@@ -23,7 +23,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Kantian diagnostic categories never visible to students
+- **Category Invisibility**: Diagnostic categories never visible to students
 
 ---
 
@@ -224,7 +224,7 @@ The podcast must be generated from the learner's **full exploration path structu
 *Features supporting natural exploration without exposing categorical framework*
 
 > **Category Visibility Policy: STRICT INVISIBILITY**
-> The 8 Kantian categorical dimensions are used for **diagnostic purposes only** and are **never visible to students**. This ensures students explore naturally without "gaming" the system. Category-related analytics are reserved for the **Teacher Dashboard only** (Teacher tier).
+> The 8 diagnostic dimensions are used for **diagnostic purposes only** and are **never visible to students**. This ensures students explore naturally without "gaming" the system. Category-related analytics are reserved for the **Teacher Dashboard only** (Teacher tier).
 
 #### 9.3.1 Student-Facing Features (Category-Invisible)
 
@@ -243,11 +243,11 @@ The podcast must be generated from the learner's **full exploration path structu
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Categorical exploration radar | Teacher Dashboard → Student View | Teacher | Visual radar chart of 8 categories | Diagnostic data, Teacher auth |
-| Category-specific question prompts | Teacher Dashboard → "Suggested Interventions" | Teacher | "Student needs Define questions" | Diagnostic data, Teacher auth |
+| Category-specific question prompts | Teacher Dashboard → "Suggested Follow-Ups" | Teacher | "Student would benefit from more Define questions" | Diagnostic data, Teacher auth |
 | Category milestone tracking | Teacher Dashboard → Student View | Teacher | Shows which categories student has explored | Diagnostic data, Teacher auth |
 | Category-based question filtering | Teacher Dashboard → Question Analytics | Teacher | Filter questions by categorical dimension | Question bank, Teacher auth |
 | Bridge question identification | Teacher Dashboard → Pattern Analysis | Teacher | Shows which questions bridge categories effectively | Pattern analysis, Teacher auth |
-| Class-level category gaps | Teacher Dashboard → Class View | Teacher | Aggregate category coverage across class | Diagnostic data, Teacher auth |
+| Class-level category concerns | Teacher Dashboard → Class View | Teacher | Aggregate category coverage across class | Diagnostic data, Teacher auth |
 | Learning velocity by category | Teacher Dashboard → Analytics | Teacher | How quickly students progress through categories | Analytics, Teacher auth |
 
 #### 9.3.3 Removed/Repositioned Features
@@ -342,7 +342,7 @@ The following features from the original specification have been **removed from 
 | Previous Year Questions | 7 | 3 | 0 |
 | Podcast Generation | 5 | 18 | 0 |
 | Mobile Device Features | 0 | 9 | 2 |
-| Kantian Framework Enhancements | 1 | 9 | 0 |
+| Diagnostic Framework Enhancements | 1 | 9 | 0 |
 | Social/Collaborative | 0 | 9 | 3 |
 | Enhanced Accessibility | 3 | 11 | 0 |
 | Complementary Features | 0 | 14 | 0 |
@@ -374,7 +374,7 @@ The following features from the original specification have been **removed from 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Initial | Base feature specification with 6 sections |
-| 1.1 | - | Added Podcast Generation, Device Features, Kantian Enhancements, Social Features, Accessibility |
+| 1.1 | - | Added Podcast Generation, Device Features, Diagnostic Framework Enhancements, Social Features, Accessibility |
 | 1.2 | - | Added Question Discovery Flow (Section 6.5.1), Image Node (Section 2.5), Perplexity Sonar integration (Section 6.6), Canvas Constraints (Section 3.6), Privacy and Compliance (Section 7.8), Category visibility clarification (strict invisibility), Teacher Dashboard deferral note, Business model placeholder |
 | 2.0 | - | **Major revision integrating reference note features**: Added Section 1 (Curriculum & Syllabus Navigation with Dashboard, Subject/Chapter selection), Section 4.4 (Previous Year Questions Panel), enhanced Section 2.3 (AI Node with phrase selection, initial prompts, auto-connect), promoted core podcast generation to MVP, added session persistence, chapter context display. Renumbered all sections to accommodate new curriculum section. Updated feature counts to reflect ~95 MVP features. |
 | 2.1 | Current | **Market research integration**: Added Section 7.7.1 (Minimum Device Target Specifications) based on Indian student device market research. Added rationale notes to Section 7.3 (Offline Mode) explaining MVP priority for offline features. Updated feature counts to ~98 MVP features. Reference: `docs/research/indian-student-market-analysis.md`. |

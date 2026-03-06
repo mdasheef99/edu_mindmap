@@ -54,8 +54,8 @@ This document specifies the three-tier access control system for the Teacher Das
 
 | Capability | Description |
 |------------|-------------|
-| ✅ View individual student profiles | Categorical coverage radar, gap analysis, exploration patterns |
-| ✅ View class-level analytics | Aggregate category gaps, accessibility rankings |
+| ✅ View individual student profiles | Categorical coverage radar, diagnostic concern analysis, exploration patterns |
+| ✅ View class-level analytics | Aggregate category concerns, accessibility rankings |
 | ✅ View question analytics | Selection rates, avoided questions, entry points |
 | ✅ View teaching recommendations | "Let explore" / "Scaffold" / "Direct teach" suggestions |
 | ✅ Export analytics reports | PDF/CSV export of class and student data |

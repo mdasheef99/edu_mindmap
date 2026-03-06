@@ -31,9 +31,13 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 
 **Stage 2: Post-Hoc Classification**
 - Model: Claude Haiku 4 (`claude-haiku-4-20250514`)
-- Purpose: Map questions to 8 Kantian categories
+- Purpose: Score each question across all 8 diagnostic dimensions as an independent engagement vector (0.0–1.0 per dimension)
 - Invisible to students (teacher/admin analytics only)
 - 10x cheaper than Sonnet (see `docs/scalability-analysis.md` §4.5)
+- **Entropy-based quality gate**: `MAX_CLASSIFICATION_ENTROPY = 2.8`
+  - Classifications with Shannon entropy above this threshold are flagged as `needs_review` — the classifier is hedging across too many dimensions
+  - `MIN_CLASSIFICATION_ENTROPY = 0.5` — classifications below this threshold are flagged as suspiciously confident ("snapping" to a single dimension)
+  - Rationale: Entropy replaces a single confidence score because dimensional vectors have 8 degrees of freedom; a scalar confidence cannot capture whether the classifier is hedging vs. confident across a multi-dimensional output
 
 ---
 
@@ -58,6 +62,9 @@ class OrganicQuestionPipeline:
     Transparent, framework-free LLM pipeline.
     Direct API calls with custom orchestration.
     """
+
+    MAX_CLASSIFICATION_ENTROPY = 2.8   # Above = hedging (too uniform)
+    MIN_CLASSIFICATION_ENTROPY = 0.5   # Below = snapping (suspiciously peaked)
 
     def __init__(self, client: anthropic.Anthropic):
         self.client = client
@@ -117,32 +124,66 @@ class OrganicQuestionPipeline:
         See docs/scalability-analysis.md §4.5 for cost rationale (10x cheaper).
         """
         prompt = f"""
-        Classify this question into the Kantian categorical framework.
+        Score this question's engagement with each diagnostic dimension.
 
         Question: "{question.text}"
         Subject: {subject}
         Context: Generated while exploring {question.context['node']}
 
-        Categories:
-        1. Define - What is X?
-        2. Distinguish - How is X different from Y?
-        3. Decompose - What are the parts of X?
-        4. Connect - How does X relate to Y?
-        5. Delimit - What are the limits/boundaries of X?
-        6. Predict - What happens if X?
-        7. Contextualize - Why does X matter historically/socially?
-        8. Vary - What are alternatives to X?
+        For each dimension, assign an independent score from 0.0 to 1.0:
+        - 0.0 = dimension not present in this question
+        - 0.3 = tangentially engaged
+        - 0.6 = meaningfully engaged
+        - 0.9 = centrally engaged
 
-        Return JSON: {{"primary": "category_name", "secondary": "category_name_or_null", "confidence": 0.0-1.0}}
+        Dimensions:
+        1. define - What is X?
+        2. distinguish - How is X different from Y?
+        3. decompose - What are the parts of X?
+        4. connect - How does X relate to Y?
+        5. delimit - What are the limits/boundaries of X?
+        6. predict - What happens if X?
+        7. contextualize - Why does X matter historically/socially?
+        8. vary - What are alternatives to X?
+
+        Scores are independent — they do NOT need to sum to 1.
+        A question can score high on multiple dimensions simultaneously.
+
+        Return JSON: {{
+          "dimensions": {{"define": float, "distinguish": float, "decompose": float,
+                         "connect": float, "delimit": float, "predict": float,
+                         "contextualize": float, "vary": float}},
+          "classification_entropy": float
+        }}
+
+        classification_entropy = Shannon entropy of the normalised score vector.
+        Low entropy (<1.5) = confident, peaked classification.
+        High entropy (>2.8) = hedging across many dimensions.
         """
 
         response = await self.client.messages.create(
             model="claude-haiku-4-20250514",
-            max_tokens=200,
-            messages=[{"role": "user", "content": prompt}]
+            max_tokens=300,
+            messages=[{{"role": "user", "content": prompt}}]
         )
 
-        question.classification = self._parse_classification(response.content[0].text)
+        classification = self._parse_classification(response.content[0].text)
+
+        # Entropy-based quality gate
+        entropy = classification.get('classification_entropy', 0.0)
+        if entropy > self.MAX_CLASSIFICATION_ENTROPY:
+            # Hedging: classifier spread scores too uniformly
+            classification['is_classified'] = False
+            classification['needs_review'] = True
+        elif entropy < self.MIN_CLASSIFICATION_ENTROPY:
+            # Snapping: suspiciously peaked on one dimension
+            classification['is_classified'] = True
+            classification['needs_review'] = True  # Flag for spot-check
+        else:
+            classification['is_classified'] = True
+            classification['needs_review'] = False
+
+        question.classification = classification
         return question
 
     async def process_batch(
@@ -188,10 +229,19 @@ import instructor
 from pydantic import BaseModel, Field
 from anthropic import Anthropic
 
+class DimensionalScores(BaseModel):
+    define: float = Field(ge=0.0, le=1.0)
+    distinguish: float = Field(ge=0.0, le=1.0)
+    decompose: float = Field(ge=0.0, le=1.0)
+    connect: float = Field(ge=0.0, le=1.0)
+    delimit: float = Field(ge=0.0, le=1.0)
+    predict: float = Field(ge=0.0, le=1.0)
+    contextualize: float = Field(ge=0.0, le=1.0)
+    vary: float = Field(ge=0.0, le=1.0)
+
 class QuestionClassification(BaseModel):
-    primary: str = Field(description="Primary Kantian category")
-    secondary: str | None = Field(description="Secondary category or null")
-    confidence: float = Field(ge=0.0, le=1.0, description="Classification confidence")
+    dimensions: DimensionalScores = Field(description="Independent engagement scores per dimension")
+    classification_entropy: float = Field(ge=0.0, description="Shannon entropy of normalised score vector")
 
 client = instructor.from_anthropic(Anthropic())
 

@@ -15,7 +15,7 @@ This document provides a complete inventory of all dashboard sections and analyt
 ### Core Principles
 
 1. **Category Invisibility (Students)**: All student-facing dashboards must NOT expose categorical dimensions
-2. **Category Visibility (Teachers)**: Teacher dashboards are the ONLY place where 8 Kantian categories are visible
+2. **Category Visibility (Teachers)**: Teacher dashboards are the ONLY place where the 8 diagnostic categories are visible
 3. **Tiered Access**: Different dashboard capabilities based on user role/tier
 4. **Tier-Aligned**: Features are assigned to priority tiers (MVP → Teacher)
 
@@ -228,7 +228,7 @@ This document provides a complete inventory of all dashboard sections and analyt
 | Class List | All linked classes with student counts | `teacher_classes` | Selectable cards |
 | Class Engagement | Active students, avg sessions/week | `learning_sessions` | Rolling 7-day |
 | Class Categorical Radar | Aggregate categorical profile for entire class | `exploration_events` + classification | 8-dimension radar chart |
-| Category Gaps | Top 3 weak categories across class | Computed from radar | "Class struggles with Decompose" |
+| Category Concerns | Top 3 categories needing review across class | Weight-adjusted; high-weight concerns flagged first | "Class-level concern in Decompose" |
 | Top Performers | Students with highest engagement | Ranked by sessions/time | Top 5 |
 | At-Risk Students | Students with declining activity | Trend analysis | Requires 2+ weeks data |
 | Chapter Coverage | Class-wide progress per chapter | Aggregated coverage | Heatmap view |
@@ -239,7 +239,7 @@ This document provides a complete inventory of all dashboard sections and analyt
 |--------|-------------|-------|
 | Select class | View specific class details | Navigation |
 | View categorical breakdown | See 8-dimension radar for class | Aggregate only |
-| Identify gaps | See which categories need attention | Actionable insight |
+| Identify priority follow-ups | See which categories need review | Actionable insight |
 | Export report | Generate PDF class report | Optional |
 | Drill into student | Navigate to individual student view | Link to B.2 |
 
@@ -263,8 +263,8 @@ This document provides a complete inventory of all dashboard sections and analyt
 | Engagement Summary | Sessions, time, questions explored | `learning_sessions` | Lifetime + recent |
 | **Categorical Exploration Radar** | 8-dimension radar showing student's categorical profile | `exploration_events` + classification | **Key diagnostic tool** |
 | Category Trend | How each category has changed over time | Time-series aggregation | Sparkline per category |
-| Strength Categories | Top 2-3 categories student explores | Ranked by selection frequency | "Strong in Define, Connect" |
-| Gap Categories | Bottom 2-3 categories student avoids | Ranked by selection frequency | "Rarely explores Predict, Vary" |
+| Strength Categories | Top 2-3 categories student explores | Ranked by weight-adjusted frequency | "Strong in Define, Connect" |
+| Follow-Up Categories | Bottom 2-3 categories with limited exploration | Ranked by weight-adjusted frequency | "Limited exploration in Predict, Vary" |
 | Chapter-by-Chapter Profile | Categorical breakdown per chapter | Pivot table | Detailed view |
 | Path Pattern Analysis | Common exploration patterns | `path_patterns` | Shows preferred sequences |
 | Quiz Performance | Scores by chapter and category | `quiz_attempts` | Category-aligned scoring |
@@ -290,7 +290,10 @@ This document provides a complete inventory of all dashboard sections and analyt
 
     Each axis: 0-100 scale (percentage of questions explored in that category)
     Radar shows: Current profile vs. class average (overlay)
-    Color coding: Green (strength), Yellow (average), Red (gap)
+    Color coding: Green (strength), Yellow (developing), Red (follow-up recommended)
+    Diagnostic significance: Weight-adjusted per subject — lower scores in high-weight categories
+    (structurally rich dimensions for that subject) are more diagnostically significant
+    than gaps in low-weight categories (structurally thin dimensions)
 ```
 
 #### User Actions
@@ -302,7 +305,7 @@ This document provides a complete inventory of all dashboard sections and analyt
 | View trends | See category changes over time | Requires 2+ weeks data |
 | View chapter breakdown | Drill into per-chapter profile | Detailed analysis |
 | Add notes | Private teacher notes on student | Stored in `teacher_notes` |
-| Flag for intervention | Mark for targeted support | Links to intervention tools |
+| Flag for follow-up | Mark for targeted support | Links to intervention tools |
 
 ---
 
@@ -548,7 +551,7 @@ This document provides a complete inventory of all dashboard sections and analyt
 |---------|-----------|-------|-------------|------------------|
 | Class engagement summary | B.1 Class | Teacher | `learning_sessions` | ✅ |
 | Class categorical radar | B.1 Class | Teacher | Classification | ✅ |
-| Class category gaps | B.1 Class | Teacher | Computed | ✅ |
+| Class category concerns | B.1 Class | Teacher | Computed | ✅ |
 | At-risk student alerts | B.1 Class | Teacher | Trend analysis | ✅ |
 | Individual categorical radar | B.2 Student | Teacher | Classification | ✅ |
 | Category trend analysis | B.2 Student | Teacher | Time-series | ✅ |

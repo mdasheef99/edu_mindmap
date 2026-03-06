@@ -140,11 +140,11 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 |-----------|---------------|
 | **Description** | Pinch to zoom (25%-400%), one-finger pan with momentum scrolling |
 | **UI Location** | Canvas gestures |
-| **Implementation** | React Native Gesture Handler → Reanimated SharedValues → Skia transform matrix |
+| **Implementation** | React Native Gesture Handler → Reanimated SharedValues → Animated.View transform on canvas container |
 | **Dependencies** | None |
 | **Priority Justification** | Core interaction for exploring mind map |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 3.1 |
-| **Architecture Reference** | `architecture-feature-mapping.md` Pillar 1 (Skia) |
+| **Architecture Reference** | `architecture-feature-mapping.md` Pillar 1 (Hybrid Native Views + Skia Edges) |
 
 ### Feature 3.2: Node Creation (FAB)
 
@@ -174,7 +174,7 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 |-----------|---------------|
 | **Description** | Connect nodes via toolbar action; visual connection line preview |
 | **UI Location** | Node toolbar → "Connect" → tap target |
-| **Implementation** | Zustand `addEdge()` action, Skia quadratic Bézier rendering |
+| **Implementation** | Zustand `addEdge()` action, Skia `Path` quadratic Bézier rendering (Skia used for edges only) |
 | **Dependencies** | Target node |
 | **Priority Justification** | Enables conceptual relationship building |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 2.1 |
@@ -455,7 +455,7 @@ The following implementation sequence respects architectural dependencies.
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| **Rendering** | React Native Skia | 60fps canvas rendering |
+| **Rendering** | Hybrid: RN Animated.View (nodes) + Skia (edges) | 60fps canvas rendering; native Views for nodes, Skia for Bézier edge curves |
 | **Layout** | D3-Force | Physics-based node positioning |
 | **State (Canonical)** | Zustand | Permanent data (nodes, edges) |
 | **State (Transient)** | Reanimated SharedValues | 60fps UI updates |

@@ -14,16 +14,26 @@
 │     templates. The LLM generates what a curious learner would ask.     │
 │                                                                         │
 │  2. POST-HOC CLASSIFICATION                                            │
-│     Kantian categories are applied AFTER generation for diagnosis.     │
-│     Categories are invisible to students throughout the experience.    │
+│     Categories are applied AFTER generation for diagnosis, because     │
+│     they represent principled diagnostic dimensions for engaging       │
+│     concepts. Classification reveals which diagnostic dimensions of    │
+│     the concept the student has engaged with through question-based    │
+│     exploration. Diagnostic significance of any gap depends on how     │
+│     structurally available that dimension is in the concept—as         │
+│     encoded by subject weights. Categories are invisible to students   │
+│     throughout the experience.                                         │
 │                                                                         │
 │  3. CHAPTER-BOUNDED SCOPE                                              │
 │     Learning sessions focus on single chapters. All concepts, nodes,   │
 │     and questions relate to the current chapter's learning objectives. │
 │                                                                         │
 │  4. SUBJECT-WEIGHTED DIAGNOSIS                                         │
-│     Gap analysis applies discipline-specific category weights.         │
-│     Mathematics prioritizes different dimensions than History.         │
+│     Different subjects systematically produce concepts with different  │
+│     structural profiles. Weights encode which dimensions are more      │
+│     prominently and meaningfully available in a subject's              │
+│     characteristic concept types, not merely which dimensions          │
+│     teachers prefer to assess. Diagnostic analysis applies these      │
+│     discipline-specific weights.                                       │
 │                                                                         │
 │  5. TEACHER AS MKO                                                     │
 │     System surfaces gaps; teachers provide scaffolding as the          │
@@ -82,7 +92,7 @@
 │  │  ┌──────────────────────┐  ┌──────────────────────────────┐     │   │
 │  │  │  Student Feedback    │  │  Teacher Dashboard           │     │   │
 │  │  │  • Assessment results│  │  • Individual profiles       │     │   │
-│  │  │  • Suggested Qs      │  │  • Class-level gaps          │     │   │
+│  │  │  • Suggested Qs      │  │  • Class-level concerns      │     │   │
 │  │  │    (category-neutral)│  │  • Avoided questions         │     │   │
 │  │  └──────────────────────┘  └──────────────────────────────┘     │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
@@ -161,13 +171,13 @@ Generated Question → Classification Model → Category Assignment → Question
 
 **Classification Prompt**:
 ```
-Classify this question according to which cognitive dimension it primarily explores:
+Score this question on how strongly it engages each diagnostic dimension of conceptual engagement.
 
 Question: "[generated question]"
 Concept: [chapter concept]
 Subject: [academic subject]
 
-Categories:
+Dimensions:
 1. Define - Explores what the concept IS (essence, definition)
 2. Distinguish - Explores what the concept is NOT (boundaries, differences)
 3. Decompose - Explores constituent parts (structure, components)
@@ -177,17 +187,43 @@ Categories:
 7. Contextualize - Explores placement in larger frameworks
 8. Vary - Explores alternatives, possibilities, variations
 
-Assign:
-- Primary category (required): The dimension most directly explored
-- Secondary category (optional): Additional dimension touched
+Score each dimension independently from 0.0 to 1.0:
+  0.0 = dimension not present in this question
+  0.3 = tangentially engaged
+  0.6 = meaningfully engaged
+  0.9 = centrally engaged
+
+Scores are INDEPENDENT — they do not need to sum to 1.
+A question can score high on multiple dimensions simultaneously.
 
 Output format:
 {
-  "primary": "[category]",
-  "secondary": "[category or null]",
-  "confidence": [0.0-1.0]
+  "scores": {
+    "define": 0.0,
+    "distinguish": 0.0,
+    "decompose": 0.0,
+    "connect": 0.0,
+    "delimit": 0.0,
+    "predict": 0.0,
+    "contextualize": 0.0,
+    "vary": 0.0
+  }
 }
 ```
+
+**Classification Quality Signal: Dimensional Entropy**
+
+After classification, compute the Shannon entropy of the score vector to detect suspicious outputs:
+
+```
+H = -Σ (p_d * log2(p_d))  where p_d = score_d / Σ scores
+```
+
+- **Low entropy** (H < 1.5): scores are concentrated — one or two dimensions dominate. This is the expected case for most questions and indicates a confident classification.
+- **High entropy** (H > 2.8): scores are spread nearly uniformly — the classifier is "hedging" and hasn't committed to a meaningful profile. Flag for review.
+- **Near-zero entropy** (H < 0.3): only one dimension has a non-zero score. Expected for simple definitional questions; suspicious if the question text appears multi-dimensional.
+
+Entropy is computed automatically and stored alongside scores. It requires no additional LLM call.
 
 ---
 
@@ -313,11 +349,23 @@ OCR requests should include contextual hints to improve accuracy:
   "chapter_id": "ch_biology_101_photosynthesis",
   "concept_id": "photosynthesis",
   "subject": "biology",
+  "note_on_subject_field": "Subject must be one of: mathematics, physics, chemistry, biology, history, literature, economics, psychology, sociology. Use specific sciences (physics/chemistry/biology) not generic 'sciences'.",
   "classification": {
-    "primary_category": "delimit",
-    "secondary_category": "predict",
-    "confidence": 0.87,
-    "classified_at": "2025-01-15T10:30:00Z"
+    "dimensional_scores": {
+      "define": 0.0,
+      "distinguish": 0.1,
+      "decompose": 0.0,
+      "connect": 0.0,
+      "delimit": 0.9,
+      "predict": 0.6,
+      "contextualize": 0.0,
+      "vary": 0.0
+    },
+    "entropy": 1.22,
+    "is_classified": true,
+    "needs_review": false,
+    "classified_at": "2025-01-15T10:30:00Z",
+    "note": "dimensional_scores is the 8-dimensional engagement vector (0.0–1.0 per dimension, independent scores). entropy is the Shannon entropy of the normalised score vector — low entropy (<1.5) indicates confident classification; high entropy (>2.8) flags hedging and triggers review."
   },
   "generation_context": {
     "current_node": "limiting_factors",
@@ -346,19 +394,26 @@ The question bank enables:
 
 1. **Avoided Question Detection**: Questions with low selection rates across class
 2. **Effective Question Identification**: Questions leading to quiz success
-3. **Category Balance Analysis**: Which categories are over/under-represented
+3. **Dimensional Balance Analysis**: Which dimensions are over/under-represented in cumulative profiles
 4. **Cross-Concept Patterns**: Systematic avoidance patterns across chapters
 
 ---
 
 ## Diagnostic Engine
 
+Weighted coverage gaps are treated as diagnostically significant indicators of possible gaps in conceptual understanding—specifically, in dimensions that are meaningfully available and significant in the concept being studied. The framework hypothesizes that breadth of engagement matters for understanding: a student who has engaged with multiple diagnostically relevant dimensions of a concept may hold a more robust understanding than one who has gone deep in only one. This is a hypothesis under empirical validation, not a settled assumption.
+
 ### Individual Student Coverage Calculation
 
 ```python
+DIMENSIONS = ["define", "distinguish", "decompose", "connect",
+              "delimit", "predict", "contextualize", "vary"]
+
 def calculate_student_coverage(student_id, chapter_id, subject):
     """
-    Calculate weighted categorical coverage for a student's chapter exploration.
+    Calculate weighted dimensional coverage for a student's chapter exploration.
+    Each selected question contributes its full 8-dimensional engagement vector.
+    Coverage is the normalised cumulative score: Σ scores[d] / N per dimension.
     """
     # Get all questions selected by student for this chapter
     selected_questions = get_selected_questions(student_id, chapter_id)
@@ -366,38 +421,46 @@ def calculate_student_coverage(student_id, chapter_id, subject):
     # Get subject-specific weights
     weights = get_subject_weights(subject)
 
-    # Initialize coverage tracking
-    category_engagement = {cat: 0.0 for cat in CATEGORIES}
+    # Cumulative state: running sum of dimensional vectors
+    cumulative = {d: 0.0 for d in DIMENSIONS}
+    n_classified = 0
 
-    # Aggregate engagement by category
     for question in selected_questions:
-        primary = question.classification.primary_category
-        secondary = question.classification.secondary_category
+        if not question.classification.is_classified:
+            continue
+        # Skip hedged classifications (high entropy = classifier unsure)
+        if question.classification.entropy > 2.8:
+            continue
 
-        # Weight primary category fully, secondary at 0.3
-        category_engagement[primary] += 1.0
-        if secondary:
-            category_engagement[secondary] += 0.3
+        scores = question.classification.dimensional_scores
+        for d in DIMENSIONS:
+            cumulative[d] += scores[d]
+        n_classified += 1
 
-    # Normalize to 0-1 scale (based on expected engagement per category)
-    normalized = normalize_engagement(category_engagement, chapter_id)
+    # Normalised cumulative score (0.0–1.0 range per dimension)
+    if n_classified > 0:
+        normalised = {d: cumulative[d] / n_classified for d in DIMENSIONS}
+    else:
+        normalised = {d: 0.0 for d in DIMENSIONS}
 
-    # Apply subject weights
-    weighted_coverage = apply_weights(normalized, weights)
+    # Apply subject weights (see docs/subject-weighting-specification.md)
+    weighted_coverage = apply_weights(normalised, weights)
 
-    # Identify gaps
-    gaps = identify_gaps(normalized, weights)
+    # Identify gaps using normalised scores and weights
+    gaps = identify_gaps(normalised, weights)
 
     return {
-        "raw_coverage": normalized,
+        "raw_coverage": normalised,
         "weighted_coverage": weighted_coverage,
+        "cumulative_state": cumulative,
+        "questions_counted": n_classified,
         "critical_gaps": gaps["critical"],
         "moderate_gaps": gaps["moderate"],
         "strengths": gaps["strengths"]
     }
 ```
 
-### Class-Level Gap Analysis
+### Class-Level Concern Analysis
 
 ```python
 def analyze_class_gaps(class_id, chapter_id, subject):
@@ -417,10 +480,10 @@ def analyze_class_gaps(class_id, chapter_id, subject):
     ]
 
     # Group by category
-    avoided_by_category = group_by_category(avoided_questions)
+    avoided_by_dimension = group_by_dominant_dimension(avoided_questions)
 
     # Generate teacher recommendations
-    recommendations = generate_mko_recommendations(avoided_by_category, subject)
+    recommendations = generate_mko_recommendations(avoided_by_dimension, subject)
 
     return {
         "avoided_questions": avoided_questions,
@@ -446,19 +509,21 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 │  Distinguish   [████████░░░░░░░░░░░░] 40%                              │
 │  Decompose     [████████████████░░░░] 80%  ★ HIGH PRIORITY             │
 │  Connect       [████████████████░░░░] 80%  ★ HIGH PRIORITY             │
-│  Delimit       [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ GAP     │
-│  Predict       [████████░░░░░░░░░░░░] 40%  ★ HIGH PRIORITY  ⚠ GAP     │
+│  Delimit       [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ SIGNIFICANT    │
+│  Predict       [████████░░░░░░░░░░░░] 40%  ★ HIGH PRIORITY  ⚠ FOLLOW-UP│
 │  Contextualize [████████░░░░░░░░░░░░] 40%                              │
 │  Vary          [████░░░░░░░░░░░░░░░░] 20%                              │
 │                                                                         │
 │  WEIGHTED SCORE: 58%                                                   │
 │                                                                         │
-│  PRIORITY INTERVENTIONS                                                │
-│  ─────────────────────                                                 │
-│  1. Predict (Gap): Student hasn't explored causal consequences         │
+│  RECOMMENDED FOLLOW-UPS                                                │
+│  ──────────────────────                                                │
+│  1. Predict: Limited exploration detected in causal                    │
+│     consequences                                                       │
 │     → "What would happen to a plant if chlorophyll stopped working?"   │
 │                                                                         │
-│  2. Delimit (Gap): Student hasn't explored failure conditions          │
+│  2. Delimit: Significant gap detected in failure                       │
+│     conditions                                                         │
 │     → "Under what conditions does photosynthesis fail or slow down?"   │
 │                                                                         │
 │  EXPLORATION PATTERNS                                                  │
@@ -478,24 +543,24 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 │  CLASS: Biology 101  │  CHAPTER: Photosynthesis  │  28 Students        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  CLASS CATEGORICAL COVERAGE                                            │
+│  CLASS DIMENSIONAL COVERAGE (normalised cumulative scores)             │
 │  ──────────────────────────                                            │
 │  Define        [████████████████████] 92%  ✓ Strong                    │
 │  Distinguish   [████████████░░░░░░░░] 61%                              │
 │  Decompose     [████████████████░░░░] 78%  ✓ Strong                    │
 │  Connect       [████████████████░░░░] 81%  ✓ Strong                    │
-│  Delimit       [████░░░░░░░░░░░░░░░░] 23%  ⚠ CLASS GAP                 │
-│  Predict       [████████░░░░░░░░░░░░] 45%  ⚠ CLASS GAP                 │
+│  Delimit       [████░░░░░░░░░░░░░░░░] 23%  ⚠ CLASS-LEVEL CONCERN       │
+│  Predict       [████████░░░░░░░░░░░░] 45%  ⚠ CLASS-LEVEL CONCERN       │
 │  Contextualize [████████████░░░░░░░░] 58%                              │
-│  Vary          [██████░░░░░░░░░░░░░░] 31%  ⚠ CLASS GAP                 │
+│  Vary          [██████░░░░░░░░░░░░░░] 31%  ⚠ CLASS-LEVEL CONCERN       │
 │                                                                         │
 │  COMMONLY AVOIDED QUESTIONS (for whole-class instruction)             │
 │  ─────────────────────────────────────────────────────────             │
-│  Category: Delimit (8% selection rate)                                 │
+│  Dimension: Delimit (8% selection rate)                                │
 │  • "What happens when a plant can't get enough CO2?"                   │
 │  • "Under what conditions does photosynthesis completely stop?"        │
 │                                                                         │
-│  Category: Vary (12% selection rate)                                   │
+│  Dimension: Vary (12% selection rate)                                  │
 │  • "Could plants evolve to use a different energy source?"             │
 │  • "Why don't all organisms use photosynthesis?"                       │
 │                                                                         │
@@ -595,16 +660,26 @@ No ML model training is required for Phases 1-3.
         "sequence": ["q_define_basic", "q_decompose_chloroplast", "q_connect_energy"],
         "frequency": 847,
         "avg_quiz_score": 0.82,
-        "category_coverage": {"define": 1.0, "decompose": 1.0, "connect": 1.0},
+        "cumulative_profile_at_end": {
+          "define": 0.75, "distinguish": 0.1, "decompose": 0.7, "connect": 0.65,
+          "delimit": 0.05, "predict": 0.2, "contextualize": 0.15, "vary": 0.0
+        },
         "success_rating": "high_engagement_partial_coverage"
       }
     ],
     "bridge_questions": [
       {
         "question_id": "q_delimit_conditions",
-        "bridges_from_categories": ["define", "decompose"],
-        "bridges_to_categories": ["delimit", "predict"],
-        "success_rate_when_bridging": 0.76
+        "dimensional_profile": {
+          "define": 0.1, "distinguish": 0.2, "decompose": 0.0, "connect": 0.0,
+          "delimit": 0.9, "predict": 0.6, "contextualize": 0.0, "vary": 0.1
+        },
+        "effective_when_cumulative_state": {
+          "high_dimensions": ["define", "decompose"],
+          "low_dimensions": ["delimit", "predict"]
+        },
+        "success_rate_when_bridging": 0.76,
+        "note": "Bridge effectiveness is computed from aggregate data: given students whose cumulative state has high scores in high_dimensions and low scores in low_dimensions, how often does selecting this question lead to subsequent engagement with the low dimensions? This is a transition probability computed via database aggregation."
       }
     ]
   }
@@ -621,8 +696,9 @@ def suggest_questions_for_new_student(student_session, chapter_id):
         # Find successful path continuations
         continuations = find_path_continuations(current_path, chapter_id)
 
-        # Find bridge questions for unexplored categories
-        bridges = find_bridge_questions(explored_categories, chapter_id)
+        # Find bridge questions whose dimensional profile fills gaps
+        # in the student's current cumulative state
+        bridges = find_bridge_questions(student_session.cumulative_state, chapter_id)
 
         # Blend: organic 70%, collective 30%
         return blend_suggestions(organic_questions, continuations, bridges)
@@ -733,7 +809,7 @@ class ContentCacheManager:
 │  APPLICATION LAYER                                                     │
 │  ─────────────────                                                     │
 │  • Python backend (FastAPI)                                            │
-│  • React Native frontend (Skia + Zustand + Reanimated)                │
+│  • React Native frontend (Hybrid Views + Skia Edges + Zustand)        │
 │  • Supabase Realtime: Mind map sync                                    │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -779,7 +855,7 @@ class ContentCacheManager:
 | Pattern detection | Statistical, not ML | Sufficient for needs, simpler, interpretable |
 | Database | PostgreSQL (Supabase) | Managed hosting, Auth integration, Realtime, Row Level Security |
 | Caching | Redis | Performance, TTL support, session management |
-| Frontend | React Native (Skia + Zustand + Reanimated) | Mobile-first for Indian student market; GPU-accelerated canvas rendering |
+| Frontend | React Native (Hybrid Animated Views + Skia Edges + Zustand + Reanimated) | Mobile-first for Indian student market; native Views for nodes (free text/touch/accessibility), Skia for edge rendering (Bézier curves) |
 
 ---
 

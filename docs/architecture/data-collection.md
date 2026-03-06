@@ -33,12 +33,16 @@
 
 ### Phrase Selection Data (phrase/word selection feature)
 
+**Cross-reference**: See `docs/measurement-and-experimentation.md` §4.6 for detailed offer set logging requirements.
+
 | Data Point | Collection Method | Diagnostic / Product Value |
 |------------|-------------------|----------------------------|
 | Phrase selected | Selection event with `selected_text` | What learners notice / latch onto |
 | Source node | `source_node_id` | Provenance for branching |
 | Source excerpt / anchor | Excerpt window + optional offsets/hash | Robustness across formatting/regeneration |
 | Phrase offer set shown | `phrase_offer_set_id` with ranked options | Counterfactual measurement ("what was offered") |
+| Offer set mode | `mode` (discovery\|exploitation) | Traffic policy tracking |
+| Propensities | Per-option selection probability | Off-policy evaluation |
 | Action chosen | `elaborate` / `custom_question` / `recommended_question` | Preference signal |
 | Recommended question chosen | Selected question text/id | Downstream learning intent |
 | Resulting transition | `parent_node_id → child_node_id` edge created | Path reconstruction |
@@ -49,7 +53,7 @@
 | Data Point | Collection Method | Diagnostic Value |
 |------------|-------------------|------------------|
 | Correct/incorrect | Answer evaluation | Understanding verification |
-| Category of question | From question classification | Category-specific understanding |
+| Dimensional profile of question | From question classification (8D vector) | Dimension-specific understanding |
 | Confidence rating | Student self-report (optional) | Metacognitive calibration |
 | Time to answer | Response duration | Fluency vs. struggle |
 | Answer changes | Edit tracking | Uncertainty signals |
@@ -95,9 +99,9 @@ Pattern analysis in the Collective Intelligence Layer uses **statistical methods
 | Feature | Analysis Method | ML Required? |
 |---------|-----------------|--------------|
 | Question path patterns | Sequence frequency counting | ❌ No |
-| Bridge question identification | Category transition analysis | ❌ No |
+| Bridge question identification | Dimensional transition analysis | ❌ No |
 | Success-correlated questions | Pearson/Spearman correlation | ❌ No |
-| Category accessibility ranking | Selection rate aggregation | ❌ No |
+| Dimensional accessibility ranking | Selection rate aggregation by dominant dimension | ❌ No |
 | Content caching decisions | Threshold-based rules | ❌ No |
 | Three-dimensional success analysis | LLM-assisted extraction | ⚠️ LLM inference (not training) |
 | Personalized path prediction | Collaborative filtering | ⚠️ Optional (later) |
@@ -132,22 +136,41 @@ class QuestionPathAnalyzer:
 
     def identify_bridge_questions(self, chapter_id: str):
         """
-        Find questions that transition students between category clusters.
-        Implementation: Category transition frequency analysis.
+        Find questions whose dimensional profiles effectively transition
+        students from one region of the dimensional space to another.
+        Implementation: Dimensional transition analysis using cumulative state.
         """
         transitions = []
 
         for session in self.get_sessions(chapter_id):
+            cumulative = {d: 0.0 for d in DIMENSIONS}
+            n = 0
             for i, question in enumerate(session.questions[:-1]):
+                # Update cumulative state
+                scores = question.classification.dimensional_scores
+                for d in DIMENSIONS:
+                    cumulative[d] += scores[d]
+                n += 1
+                normalised = {d: cumulative[d] / n for d in DIMENSIONS}
+
                 next_question = session.questions[i + 1]
+                next_scores = next_question.classification.dimensional_scores
+
+                # Identify which dimensions were low before and engaged after
+                high_dims = [d for d in DIMENSIONS if normalised[d] >= 0.5]
+                low_dims = [d for d in DIMENSIONS if normalised[d] < 0.3]
+                engaged_dims = [d for d in DIMENSIONS if next_scores[d] >= 0.6]
+
                 transitions.append({
-                    "from_category": question.primary_category,
-                    "to_category": next_question.primary_category,
+                    "cumulative_high": high_dims,
+                    "cumulative_low": low_dims,
                     "bridge_question": next_question.id,
+                    "bridge_profile": next_scores,
+                    "dimensions_bridged": [d for d in engaged_dims if d in low_dims],
                     "session_continued": len(session.questions) > i + 2
                 })
 
-        # Aggregate: which questions most often bridge category gaps?
+        # Aggregate: which questions most often bridge dimensional gaps?
         return self.aggregate_bridge_effectiveness(transitions)
 ```
 

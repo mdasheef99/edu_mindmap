@@ -2,111 +2,134 @@
 
 ## Document Overview
 
-This document maps the V1 Master Strategy (React Native Skia + D3-Force + Zustand/Reanimated) to specific features in the Mobile Feature Specification v2.0. It provides implementation guidance for each feature based on the three architectural pillars.
+This document maps the V1 Master Strategy (Hybrid Native Views + Skia Edges + D3-Force + Zustand/Reanimated) to specific features in the Mobile Feature Specification v2.0. It provides implementation guidance for each feature based on the three architectural pillars.
 
 **Architecture Pillars**:
-1. **Rendering Engine**: React Native Skia for 2D graphics
+1. **Rendering Engine**: Hybrid — React Native Animated Views for nodes + Skia for edge rendering
 2. **Layout Engine**: D3-Force for physics-based positioning
 3. **State & Interaction**: Zustand (canonical) + Reanimated (transient)
 
+> **Architecture Decision Record**: The hybrid rendering approach was chosen over a full Skia canvas approach. See [Why Hybrid Architecture?](#why-hybrid-architecture) at the end of this document for rationale, trade-offs, and escalation criteria.
+
 ---
 
-## Pillar 1: Rendering Engine (Skia) Feature Mapping
+## Pillar 1: Rendering Engine (Hybrid Native Views + Skia Edges) Feature Mapping
 
 ### Section 2: Node-Level Features
 
-| Feature | Spec Reference | Skia Implementation | Priority |
-|---------|----------------|---------------------|----------|
-| Create text node | 2.1 | `<TextNode />` Skia component with `Skia.Text` | MVP |
-| Edit text content | 2.1 | Overlay React Native `<TextInput>` on tap (hybrid approach) | MVP |
-| Change node color | 2.1 | `style.color` prop → Skia `Paint.setColor()` | MVP |
-| Node selection border | 2.1 | Conditional `strokeWidth` based on `isSelected` state | MVP |
-| Create story node | 2.2 | `<StoryNode />` with header/body regions | MVP |
-| Collapse/expand animation | 2.2 | Reanimated `SharedValue` for height interpolation | MVP |
-| Create AI node | 2.3 | `<AINode />` with response area, loading indicator | MVP |
-| AI response scrolling | 2.3 | Skia `ClipRect` + gesture-driven offset | MVP |
-| Video node thumbnail | 2.4 | `<Image />` Skia component from texture atlas | MVP |
-| Connection lines (edges) | All nodes | Quadratic Bézier via `Skia.Path` | MVP |
+| Feature | Spec Reference | Implementation | Priority |
+|---------|----------------|----------------|----------|
+| Create text node | 2.1 | `<TextNode />` React Native Animated.View with native `<Text>` | MVP |
+| Edit text content | 2.1 | Native `<TextInput>` inside node View (no overlay hack needed) | MVP |
+| Change node color | 2.1 | `style.backgroundColor` prop on Animated.View | MVP |
+| Node selection border | 2.1 | Conditional `borderWidth`/`borderColor` style on Animated.View | MVP |
+| Create story node | 2.2 | `<StoryNode />` Animated.View with header/body sub-views | MVP |
+| Collapse/expand animation | 2.2 | Reanimated `SharedValue` for height interpolation via `useAnimatedStyle` | MVP |
+| Create AI node | 2.3 | `<AINode />` Animated.View with response area, loading indicator | MVP |
+| AI response scrolling | 2.3 | Native `<ScrollView>` inside AI node View (free scrolling behavior) | MVP |
+| Video node thumbnail | 2.4 | `<FastImage />` component inside node View | MVP |
+| Connection lines (edges) | All nodes | Quadratic Bézier via `Skia.Path` (Skia used only for edges) | MVP |
 
 #### Node Rendering Architecture
 
 ```typescript
-// Node component structure
-interface SkiaNodeProps {
+// Hybrid approach: Nodes are React Native Animated.View components
+// Edges are rendered via a Skia Canvas layer underneath
+import Animated, { useAnimatedStyle, SharedValue } from 'react-native-reanimated';
+
+interface NodeViewProps {
   node: Node;
   isSelected: boolean;
   zoomLevel: SharedValue<number>;
   position: { x: SharedValue<number>; y: SharedValue<number> };
 }
 
-const TextNode: React.FC<SkiaNodeProps> = ({ node, isSelected, zoomLevel, position }) => {
-  // LOD: Simplify at low zoom
-  const showText = useDerivedValue(() => zoomLevel.value > 0.5);
+const TextNode: React.FC<NodeViewProps> = ({ node, isSelected, zoomLevel, position }) => {
+  // Animated position driven by D3-Force via SharedValues
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: position.x.value },
+      { translateY: position.y.value },
+    ],
+    // LOD: Reduce detail at low zoom
+    opacity: zoomLevel.value > 0.3 ? 1 : 0.7,
+  }));
 
   return (
-    <Group transform={[{ translateX: position.x.value }, { translateY: position.y.value }]}>
-      <RoundedRect
-        width={node.width}
-        height={node.height}
-        r={8}
-        color={node.style.color}
-      />
-      {isSelected && (
-        <RoundedRect
-          width={node.width + 4}
-          height={node.height + 4}
-          r={10}
-          style="stroke"
-          strokeWidth={2}
-          color="#007AFF"
-        />
-      )}
-      {showText.value && (
-        <Text text={node.content} x={8} y={24} font={font} />
-      )}
-    </Group>
+    <Animated.View style={[styles.nodeBase, animatedStyle, {
+      backgroundColor: node.style.color,
+      borderWidth: isSelected ? 2 : 0,
+      borderColor: isSelected ? '#007AFF' : 'transparent',
+    }]}>
+      {/* Native text rendering — free accessibility, selection, RTL support */}
+      <Text style={styles.nodeText}>{node.content}</Text>
+    </Animated.View>
   );
 };
+
+// Benefits over full Skia approach:
+// - Native touch targets (no custom hit testing)
+// - Native TextInput for editing (no overlay positioning hack)
+// - Native ScrollView for AI response scrolling
+// - Native accessibility (screen readers work automatically)
+// - React DevTools inspection works normally
 ```
 
 ### Section 3: Canvas-Level Features
 
-| Feature | Spec Reference | Skia Implementation | Priority |
-|---------|----------------|---------------------|----------|
-| Pinch to zoom (25%-400%) | 3.1 | Canvas transform matrix via SharedValue | MVP |
-| Pan/scroll | 3.1 | Translation in transform matrix | MVP |
-| Zoom buttons (+/-) | 3.1 | Animate `scale` SharedValue | MVP |
-| Fit to screen | 3.1 | Calculate bounding box → set transform | MVP |
-| Snap to grid | 3.4 | Round position on drag end | MVP |
-| Alignment guides | 3.4 | Conditional `<Line />` components | Extended |
+| Feature | Spec Reference | Implementation | Priority |
+|---------|----------------|----------------|----------|
+| Pinch to zoom (25%-400%) | 3.1 | Reanimated animated transform on canvas container `Animated.View` | MVP |
+| Pan/scroll | 3.1 | Reanimated `translateX`/`translateY` SharedValues on container | MVP |
+| Zoom buttons (+/-) | 3.1 | Animate `scale` SharedValue with `withTiming()` | MVP |
+| Fit to screen | 3.1 | Calculate bounding box → set transform SharedValues | MVP |
+| Snap to grid | 3.4 | Round position SharedValues on drag end | MVP |
+| Alignment guides | 3.4 | Conditional `react-native-svg` `<Line />` components | Extended |
 | Node count indicator | 3.6 | Derived from Zustand store length | MVP |
 
 #### Canvas Transform Architecture
 
 ```typescript
-// Canvas-level transform management
+// Canvas container: Reanimated Animated.View wrapping all nodes + Skia edge layer
+import Animated, { useSharedValue, useDerivedValue, useAnimatedStyle } from 'react-native-reanimated';
+
 const useCanvasTransform = () => {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
-  const transform = useDerivedValue(() => [
-    { translateX: translateX.value },
-    { translateY: translateY.value },
-    { scale: scale.value },
-  ]);
+  // Applied to the canvas container Animated.View
+  const canvasStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
 
-  return { scale, translateX, translateY, transform };
+  return { scale, translateX, translateY, canvasStyle };
 };
+
+// Canvas structure:
+// <GestureDetector gesture={canvasGestures}>
+//   <Animated.View style={canvasStyle}>
+//     {/* Skia Canvas layer for edges (Bézier curves only) */}
+//     <Canvas style={StyleSheet.absoluteFill}>
+//       {edges.map(edge => <EdgePath key={edge.id} edge={edge} />)}
+//     </Canvas>
+//     {/* React Native node Views rendered on top */}
+//     {visibleNodes.map(node => <NodeView key={node.id} node={node} />)}
+//   </Animated.View>
+// </GestureDetector>
 ```
 
 ### Section 4.4: Previous Year Questions Panel
 
-| Feature | Spec Reference | Skia Implementation | Priority |
-|---------|----------------|---------------------|----------|
+| Feature | Spec Reference | Implementation | Priority |
+|---------|----------------|----------------|----------|
 | Add PYQ to mind map | 4.4 | Creates new node via Zustand action | MVP |
 
-*Note: PYQ panel itself uses standard React Native components (bottom sheet), not Skia.*
+*Note: PYQ panel uses standard React Native components (bottom sheet). Node rendering uses Animated.View.*
 
 ---
 
@@ -158,7 +181,7 @@ const createSimulation = (nodes: Node[], edges: Edge[], config = DEFAULT_CONFIG)
 
 ### D3 → Reanimated Bridge
 
-The critical synchronization between D3-Force (JS thread) and Skia rendering (UI thread):
+The critical synchronization between D3-Force (JS thread) and Animated.View rendering (UI thread):
 
 ```typescript
 // Bridge: D3 simulation tick → Reanimated SharedValues
@@ -358,7 +381,7 @@ const useCanvasGestures = (transform: CanvasTransform) => {
 
 ## Section 1: Curriculum & Syllabus Navigation Mapping
 
-These features use **standard React Native components** (not Skia), but interact with Zustand for state.
+These features use **standard React Native components** (same as the node rendering layer), interacting with Zustand for state.
 
 | Feature | Spec Reference | Implementation | Priority |
 |---------|----------------|----------------|----------|
@@ -375,7 +398,7 @@ These features use **standard React Native components** (not Skia), but interact
 
 ## Section 4: Side Panel Features Mapping
 
-Side panels use **React Native Bottom Sheet** (not Skia canvas).
+Side panels use **React Native Bottom Sheet** (`@gorhom/bottom-sheet`), consistent with the hybrid native Views approach.
 
 | Feature | Spec Reference | Implementation | Priority |
 |---------|----------------|----------------|----------|
@@ -470,51 +493,61 @@ const useGenerateQuestions = () => {
 
 ## Performance Optimizations → Feature Mapping
 
-The V1 Master Strategy defines four key optimizations. Here's how they map to features:
+The hybrid architecture uses different optimization strategies than a full Skia canvas. Here's how they map to features:
 
-### Texture Atlasing
+### Icon Caching
 
 | Optimization | Applied To | Features Affected |
 |--------------|-----------|-------------------|
-| Single spritesheet for icons | Node type icons | 2.1-2.4 (all node types) |
-| Pre-rendered common shapes | Node backgrounds | 2.1-2.4 |
-| Cached font glyphs | Text rendering | All text nodes |
+| `react-native-fast-image` for cached icons | Node type icons | 2.1-2.4 (all node types) |
+| Pre-loaded icon assets | Node backgrounds | 2.1-2.4 |
+| Native text rendering (no glyph caching needed) | Text rendering | All text nodes |
 
 ### Viewport Culling
 
 | Optimization | Applied To | Features Affected |
 |--------------|-----------|-------------------|
-| Only render visible nodes | Canvas rendering | 3.1 (zoom/pan) |
-| Skip off-screen edges | Edge rendering | All connections |
+| Conditionally render visible node Views | Node rendering | 3.1 (zoom/pan) |
+| Skip off-screen edges in Skia canvas | Edge rendering | All connections |
 | Disable D3 updates for hidden | Layout engine | 3.3 (auto-arrange) |
 
 ```typescript
+// Viewport culling with hybrid approach: conditionally render node Views
+// React handles mount/unmount automatically — simpler than Skia draw list management
 const useViewportCulling = (nodes: Node[], viewport: Viewport) => {
-  return useDerivedValue(() => {
+  return useMemo(() => {
     return nodes.filter(node =>
       node.x >= viewport.left - BUFFER &&
       node.x <= viewport.right + BUFFER &&
       node.y >= viewport.top - BUFFER &&
       node.y <= viewport.bottom + BUFFER
     );
-  });
+  }, [nodes, viewport]);
 };
+
+// Usage in canvas:
+// {visibleNodes.map(node => <NodeView key={node.id} node={node} />)}
+// Nodes outside viewport are simply not rendered (React unmounts them)
 ```
 
 ### Level of Detail (LOD)
 
 | Zoom Level | Rendering Detail | Features Affected |
 |------------|-----------------|-------------------|
-| < 0.5 | Rectangles only, no text | 3.1 (zoom) |
+| < 0.5 | Simplified node Views (no text, reduced styling) | 3.1 (zoom) |
 | 0.5 - 1.0 | Text visible, simplified borders | 3.1 (zoom) |
-| > 1.0 | Full detail, shadows, gradients | 3.1 (zoom) |
+| > 1.0 | Full detail, shadows, elevation | 3.1 (zoom) |
 
-### Render Batching
+*LOD is implemented via conditional rendering within each node View component, driven by the `zoomLevel` SharedValue.*
+
+### Edge Render Batching (Skia)
 
 | Optimization | Applied To | Features Affected |
 |--------------|-----------|-------------------|
-| Single path for all edges | Edge rendering | All connections |
-| Grouped node backgrounds | Background fills | 2.1-2.4 |
+| Single Skia `Path` for all edges | Edge rendering | All connections |
+| Skia `Canvas` layer underneath node Views | Edge layer | All connections |
+
+*Edge batching is the primary Skia optimization. All Bézier curves are combined into a single draw call.*
 
 ---
 
@@ -522,18 +555,19 @@ const useViewportCulling = (nodes: Node[], viewport: Viewport) => {
 
 Quick reference: which architectural components each feature requires.
 
-| Feature Area | Skia | D3-Force | Zustand | Reanimated | RN Native |
-|-------------|------|----------|---------|------------|-----------|
+| Feature Area | Skia (Edges) | D3-Force | Zustand | Reanimated | RN Animated Views |
+|-------------|-------------|----------|---------|------------|-------------------|
 | **Section 1: Curriculum** | ❌ | ❌ | ✅ | ❌ | ✅ |
-| **Section 2: Nodes** | ✅ | ✅ | ✅ | ✅ | Hybrid* |
-| **Section 3: Canvas** | ✅ | ✅ | ❌ | ✅ | ❌ |
+| **Section 2: Nodes** | Edges only | ✅ | ✅ | ✅ | ✅ (node Views) |
+| **Section 3: Canvas** | Edges only | ✅ | ❌ | ✅ (container) | ✅ (node Views) |
 | **Section 4: Side Panels** | ❌ | ❌ | ✅ | ❌ | ✅ |
 | **Section 5: Navigation** | ❌ | ❌ | ✅ | ❌ | ✅ |
-| **Section 6: AI Integration** | ❌ | ❌ | ✅ | ❌ | ❌** |
+| **Section 6: AI Integration** | ❌ | ❌ | ✅ | ❌ | ❌* |
 | **Section 7: System** | ❌ | ❌ | ✅ | ❌ | ✅ |
 
-*Hybrid: Text input overlays use React Native components
-**API calls are pure TypeScript, no UI components
+*API calls are pure TypeScript, no UI components
+
+> **Key change from full Skia approach**: Nodes are now React Native Animated.View components (not Skia draw calls). Skia is used **only** for edge rendering (Bézier curves). This eliminates the need for custom hit testing, text overlay hacks, and custom scrolling within nodes.
 
 ---
 
@@ -541,7 +575,7 @@ Quick reference: which architectural components each feature requires.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         DATA FLOW DIAGRAM                               │
+│                    DATA FLOW DIAGRAM (Hybrid Architecture)              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌─────────────┐                                                        │
@@ -565,60 +599,55 @@ Quick reference: which architectural components each feature requires.
 │         │                                   │                           │
 │         │ fx, fy (pinning)                  │ 60fps                    │
 │         ▲                                   ▼                           │
-│  ┌──────┴──────┐                   ┌─────────────────┐                 │
-│  │   Gesture   │                   │   Skia Canvas   │                 │
-│  │   Handler   │                   │   (Rendering)   │                 │
-│  │  (UI Thread)│                   │                 │                 │
-│  └─────────────┘                   └─────────────────┘                 │
+│  ┌──────┴──────┐                   ┌─────────────────────────────┐     │
+│  │   Gesture   │                   │  Animated.View (Nodes)      │     │
+│  │   Handler   │                   │  + Skia Canvas (Edges only) │     │
+│  │  (UI Thread)│                   │  (Hybrid Rendering)         │     │
+│  └─────────────┘                   └─────────────────────────────┘     │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Hit Testing Implementation
+## Touch Handling (Hybrid Approach)
 
-Skia canvas requires custom hit testing for node selection (Section 3.2).
+With the hybrid architecture, **custom hit testing is not required for nodes**. React Native's native touch system handles node selection automatically via `Pressable` or `TouchableOpacity` wrappers on each node View.
 
 ```typescript
-interface HitTestResult {
-  nodeId: string | null;
-  edgeId: string | null;
-}
-
-const hitTest = (
-  canvasX: number,
-  canvasY: number,
-  nodes: Node[],
-  edges: Edge[],
-  transform: CanvasTransform
-): HitTestResult => {
-  // Transform screen coords to canvas coords
-  const x = (canvasX - transform.translateX) / transform.scale;
-  const y = (canvasY - transform.translateY) / transform.scale;
-
-  // Check nodes first (higher priority)
-  for (const node of nodes) {
-    if (
-      x >= node.x &&
-      x <= node.x + node.width &&
-      y >= node.y &&
-      y <= node.y + node.height
-    ) {
-      return { nodeId: node.id, edgeId: null };
-    }
-  }
-
-  // Check edges (with tolerance for touch)
-  const EDGE_TOLERANCE = 10;
-  for (const edge of edges) {
-    if (pointNearBezier(x, y, edge, EDGE_TOLERANCE)) {
-      return { nodeId: null, edgeId: edge.id };
-    }
-  }
-
-  return { nodeId: null, edgeId: null };
+// Node touch handling — native React Native, no custom coordinate math needed
+const NodeView: React.FC<{ node: Node; onSelect: (id: string) => void }> = ({ node, onSelect }) => {
+  return (
+    <Pressable onPress={() => onSelect(node.id)}>
+      <Animated.View style={[styles.node, animatedPositionStyle]}>
+        <Text>{node.content}</Text>
+      </Animated.View>
+    </Pressable>
+  );
 };
+
+// Edge tap detection still uses coordinate math (edges are rendered in Skia)
+const useEdgeTapDetection = (edges: Edge[], transform: CanvasTransform) => {
+  const handleCanvasTap = (canvasX: number, canvasY: number) => {
+    const x = (canvasX - transform.translateX.value) / transform.scale.value;
+    const y = (canvasY - transform.translateY.value) / transform.scale.value;
+
+    const EDGE_TOLERANCE = 10;
+    for (const edge of edges) {
+      if (pointNearBezier(x, y, edge, EDGE_TOLERANCE)) {
+        return edge.id;
+      }
+    }
+    return null;
+  };
+  return handleCanvasTap;
+};
+
+// Benefits of hybrid touch handling:
+// - Node taps: Zero custom code (native Pressable)
+// - Node drags: Gesture.Pan() directly on node View
+// - Canvas pan/zoom: Gesture on container, disambiguated via simultaneousWithExternalGesture
+// - Edge taps: Lightweight coordinate check (only for edges, not nodes)
 ```
 
 ---
@@ -631,9 +660,9 @@ Based on architectural dependencies, implement in this order:
 |-------|-----------|------------------|
 | 1 | Zustand store | All data persistence |
 | 2 | D3-Force simulation | Node positioning, auto-arrange |
-| 3 | Reanimated SharedValues | 60fps animations, gestures |
-| 4 | Skia rendering | Visual node/edge display |
-| 5 | Gesture Handler integration | Pan, zoom, drag, tap |
+| 3 | Reanimated SharedValues + Animated.View nodes | 60fps node rendering, animations |
+| 4 | Skia edge rendering | Visual edge/connection display (Bézier curves) |
+| 5 | Gesture Handler integration | Pan, zoom, drag, tap (native touch targets for nodes) |
 | 6 | Zustand ↔ D3 bridge | Node dragging with physics |
 | 7 | Side panels (RN) | Questions, resources, PYQ |
 | 8 | AI integration | Question generation |
@@ -646,12 +675,63 @@ Based on architectural dependencies, implement in this order:
 |-------|----------|---------------|
 | **Zustand** | Unit tests | CRUD operations, node limit, edge cascading |
 | **D3-Force** | Integration tests | Simulation convergence, fx/fy pinning |
-| **Reanimated** | Manual + E2E | 60fps verification, gesture smoothness |
-| **Skia** | Visual regression | Node rendering, LOD transitions |
-| **Hit Testing** | Unit tests | Touch accuracy, transform math |
+| **Reanimated + Animated.View** | Manual + E2E | 60fps verification, gesture smoothness, node rendering |
+| **Skia (Edges)** | Visual regression | Edge rendering, Bézier curve accuracy |
+| **Gesture Handler** | Integration tests | Touch disambiguation (node tap vs canvas pan vs pinch zoom) |
 
 ---
 
-*Document Version 1.0 | Architecture-Feature Mapping*
+## Why Hybrid Architecture?
+
+### Architecture Decision Record
+
+The hybrid rendering approach (React Native Animated.View for nodes + Skia for edges) was chosen over a full Skia canvas approach after evaluating implementation complexity, AI agent development efficiency, and performance requirements.
+
+### Rationale
+
+1. **AI Agent Implementation Difficulty**: An AI coding agent is responsible for implementing these features. The full Skia approach requires ~8 pieces of fully custom infrastructure (custom hit testing, text overlay hacks, custom scrolling, viewport culling in Skia draw lists, D3→Skia bridge, LOD rendering, texture atlasing, render batching). Each piece has no off-the-shelf equivalent and very few community examples. The hybrid approach reduces custom infrastructure to ~3 systems (D3→Reanimated bridge, viewport culling via conditional rendering, Skia edge paths).
+
+2. **Faster Time-to-MVP**: The hybrid approach eliminates the need for:
+   - Custom hit testing (React Native handles touch targets natively)
+   - Text editing overlay positioning (native `TextInput` lives inside the node View)
+   - Custom scrolling for AI responses (native `ScrollView` inside AI node View)
+   - Custom accessibility implementation (React Native provides it automatically)
+   - Custom text rendering (native `Text` component with full Unicode/RTL support)
+
+3. **Debugging and Iteration**: React DevTools can inspect node Views normally. Skia canvas rendering requires visual inspection and frame-by-frame debugging that AI agents cannot perform.
+
+4. **Performance is Sufficient**: For the target of 50-65 nodes on Android 11+ devices with 4GB RAM, React Native Animated.View components driven by Reanimated SharedValues deliver 60fps. The Reanimated library runs animations on the UI thread, bypassing the JS thread bottleneck.
+
+### Side-by-Side Comparison
+
+| Dimension | Full Skia (Previous) | Hybrid Views + Skia Edges (Current) |
+|---|---|---|
+| **AI implementation difficulty** | 🔴 Very Hard (8/10) | 🟡 Moderate (4/10) |
+| **Custom infrastructure required** | ~8 major systems | ~3 major systems |
+| **Performance ceiling** | Highest possible | Excellent for 50-65 nodes |
+| **Text handling** | Manual overlay hack | Native (free) |
+| **Accessibility** | Must build from scratch | Native (free) |
+| **Hit testing** | Custom coordinate math | Native touch targets (free) |
+| **Community examples** | Very few | Abundant |
+| **Debugging** | Visual inspection needed | React DevTools work normally |
+| **Time to MVP** | 4-6 months | 2-3 months |
+| **Risk of showstopper bugs** | 🔴 High | 🟢 Low |
+
+### When to Escalate to Full Skia
+
+The hybrid approach has a known performance ceiling. Selectively migrate components to full Skia rendering if **any** of these thresholds are exceeded during device testing:
+
+| Trigger | Threshold | Migration Action |
+|---------|-----------|-----------------|
+| Canvas pan/zoom frame drops | Below 50fps at 50+ nodes | Migrate node rendering to Skia draw calls |
+| Edge rendering jank | Below 55fps with 100+ edges | Optimize Skia path batching (single path for all edges) |
+| Memory exceeds budget | Above 150MB with 65 node Views | Implement view recycling, then Skia if still over budget |
+| Node rendering overhead | Above 2ms per node layout pass | Profile and migrate heaviest node types to Skia |
+
+This provides a **progressive enhancement path**: ship fast with hybrid, optimize with Skia only where proven necessary on actual target devices.
+
+---
+
+*Document Version 2.0 | Architecture-Feature Mapping (Hybrid Architecture)*
 *Aligned with: Mobile Feature Specification v2.0, V1 Master Strategy*
 

@@ -23,7 +23,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Kantian diagnostic categories never visible to students
+- **Category Invisibility**: Diagnostic categories never visible to students
 
 ---
 
@@ -85,17 +85,17 @@ All AI-powered capabilities organized by access point.
 
 ### 6.5 Learning-Specific AI Features
 
-*AI features aligned with Kantian categorical learning framework*
+*AI features aligned with the diagnostic learning framework*
 
 > **Note: Category Framework Visibility**
-> The 8 Kantian categorical dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for **diagnostic purposes only** and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Category visibility is reserved for the Teacher Dashboard only.
+> The 8 diagnostic dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for **diagnostic purposes only** and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Category visibility is reserved for the Teacher Dashboard only.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Generate organic questions | Automatic (invisible) | Basic | Questions emerge from exploration context | AI service, chapter context |
-| Post-hoc classification | Backend (invisible to user) | Basic | Classifies questions into 8 categories invisibly | AI service |
+| Post-hoc classification | Backend (invisible to user) | Basic | Scores questions across 8 diagnostic dimensions invisibly | AI service |
 | Suggest next questions | AI panel → "What should I explore?" | Basic | Based on current exploration path | AI service, session context |
-| Knowledge gap hints | AI panel → subtle natural language prompts | Advanced | Uses phrases like "Try asking 'what if...'" with NO category labels | AI service, diagnostic data |
+| Exploration gap hints | AI panel → subtle natural language prompts | Advanced | Uses phrases like "Try asking 'what if...'" with NO category labels | AI service, diagnostic data |
 | Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates self-assessment questions | AI service, node content |
 
 
@@ -153,8 +153,8 @@ All AI-powered capabilities organized by access point.
 *Learner-driven micro-exploration anchored to a highlighted phrase; integrates with the same node-creation pipeline as Question Discovery.*
 
 **Trigger surface (implementation note)**:
-- The Skia canvas renders text as graphics and does **not** provide native OS text selection.
-- Basic tier uses a **Reader bottom sheet** (React Native text surface) to enable word/phrase highlighting.
+- With the hybrid architecture, AI node content is rendered inside native React Native Views, which **do** support native OS text selection.
+- Basic tier uses a **Reader bottom sheet** (React Native text surface) for an enhanced word/phrase highlighting experience, though in-node text selection is also possible.
 - Implementation detail: showing highlight handles is easy (`selectable` text), but **capturing the exact selected substring** for downstream generation typically requires a surface that exposes selection range callbacks (e.g., a read-only multiline `TextInput` with `onSelectionChange`, or a purpose-built selectable-text component).
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |

@@ -8,7 +8,7 @@
 **Referenced Documents**:
 - `docs/research/indian-student-market-analysis.md` - Market size, demographics, and device specifications (consolidated)
 - `docs/system-architecture.md` - Backend architecture
-- `docs/architecture-feature-mapping.md` - Frontend architecture (Skia + D3-Force + Zustand)
+- `docs/architecture-feature-mapping.md` - Frontend architecture (Hybrid Native Views + Skia Edges + D3-Force + Zustand)
 
 ---
 
@@ -18,13 +18,13 @@
 
 **The current technical stack can scale to 1M users with modifications, but requires significant architectural changes for 10M+ users.**
 
-The recommended stack (React Native Skia + FastAPI + Supabase + Direct LLM APIs) is appropriate for MVP and early growth. The primary bottleneck is **LLM API costs and rate limits**, not database or client-side performance.
+The recommended stack (React Native Hybrid Views + Skia Edges + FastAPI + Supabase + Direct LLM APIs) is appropriate for MVP and early growth. The primary bottleneck is **LLM API costs and rate limits**, not database or client-side performance.
 
 ### Scalability Scorecard
 
 | Component | 100K Users | 1M Users | 10M+ Users |
 |-----------|------------|----------|------------|
-| **Client-side (Skia)** | ✅ Ready | ✅ Ready | ✅ Ready |
+| **Client-side (Hybrid Views + Skia Edges)** | ✅ Ready | ✅ Ready | ✅ Ready |
 | **Supabase PostgreSQL** | ✅ Ready | ⚠️ Upgrade needed | ❌ Major changes |
 | **Redis Caching** | ⚠️ Add service | ⚠️ Cluster needed | ⚠️ Cluster needed |
 | **LLM APIs** | ❌ Bottleneck | ❌ Critical | ❌ Self-host required |
@@ -48,7 +48,7 @@ The recommended stack (React Native Skia + FastAPI + Supabase + Direct LLM APIs)
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Rendering | React Native Skia | 60fps GPU-accelerated canvas |
+| Rendering | Hybrid: RN Animated.View (nodes) + Skia (edges) | 60fps rendering; native Views for nodes, Skia for Bézier edge curves |
 | Layout | D3-Force | Physics-based node positioning |
 | State (Canonical) | Zustand | Permanent data (nodes, edges) |
 | State (Transient) | Reanimated SharedValues | 60fps UI updates |
@@ -71,7 +71,7 @@ The recommended stack (React Native Skia + FastAPI + Supabase + Direct LLM APIs)
 
 | Component | Memory Usage | Notes |
 |-----------|--------------|-------|
-| Skia rendering (65 nodes) | 56-61 MB | Scaled from Skia vs React Flow analysis (65-node hard limit per `mobile-features-core-ui.md` Section 3.6) |
+| Hybrid rendering (65 node Views + Skia edge canvas) | 56-61 MB | Animated.View nodes + Skia edge layer (65-node hard limit per `mobile-features-core-ui.md` Section 3.6) |
 | D3-Force simulation | 5-10 MB | Layout calculations |
 | Zustand state | 5-10 MB | Node/edge data |
 | App overhead | 10-15 MB | React Native runtime |
@@ -406,7 +406,7 @@ def schedule_sync():
 
 | Component | Status | Bottleneck? | Required Modification |
 |-----------|--------|-------------|----------------------|
-| Client (Skia) | ✅ Ready | No | None |
+| Client (Hybrid Views + Skia Edges) | ✅ Ready | No | None |
 | Supabase Pro | ✅ Ready | No | None |
 | Redis | ⚠️ Missing | Minor | Add Upstash/Redis Cloud |
 | LLM APIs | ❌ Problem | **YES** | Implement 80% caching |
@@ -442,7 +442,7 @@ def schedule_sync():
 
 | Component | Status | Bottleneck? | Required Modification |
 |-----------|--------|-------------|----------------------|
-| Client (Skia) | ✅ Ready | No | None |
+| Client (Hybrid Views + Skia Edges) | ✅ Ready | No | None |
 | Supabase | ⚠️ Upgrade | Approaching | Upgrade to Team tier |
 | Redis | ⚠️ Scale | Moderate | Dedicated Redis instance |
 | LLM APIs | ❌ Critical | **YES** | Enterprise rate limits |
@@ -488,7 +488,7 @@ def schedule_sync():
 
 | Component | Status | Bottleneck? | Required Modification |
 |-----------|--------|-------------|----------------------|
-| Client (Skia) | ✅ Ready | No | None |
+| Client (Hybrid Views + Skia Edges) | ✅ Ready | No | None |
 | Supabase | ❌ Limit | **CRITICAL** | Enterprise or self-hosted |
 | Redis | ⚠️ Scale | Moderate | Redis Cluster |
 | LLM APIs | ❌ Critical | **CRITICAL** | Self-hosted models |

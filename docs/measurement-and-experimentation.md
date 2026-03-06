@@ -46,7 +46,7 @@ Requirements:
   - fairness/coverage priorities (explicitly configured)
 
 Operational guideline (practical default):
-- `B_total = clamp(0.30, 0.15, 0.60)` initially; adjust upward when personalization intensity increases.
+- `B_total = clamp(0.30, 0.30, 0.60)` — the organic floor is fixed at 30% minimum and cannot be reduced below 30% by any actor including administrators. It may be increased above 30% (e.g., during high-uncertainty periods or when personalization intensity increases) but never lowered.
 - `B_seg = max(B_min, f(seg))` where `f(seg)` is proportional to uncertainty × importance.
 
 ### 1.3 Avoiding “cell explosion”
@@ -60,6 +60,8 @@ Discovery budget MUST increase (globally or for specific segments) when any cond
 - detected preference drift (probe outcomes change materially)
 - sparse overlap (propensity mass near 0/1 for most options)
 - large unexplained outcome variance across segments
+
+**Note**: Raising discovery means increasing the budget *above* the 30% floor (e.g., to 40%, 50%, or higher), not dropping below it. The 30% minimum is a hard floor that cannot be reduced under any circumstances.
 
 ---
 
@@ -160,7 +162,32 @@ All events MUST include join keys:
 - `value` (typed) + `instrument_version`
 - join keys: `student_id_pseudo`, `session_id` (or timeframe window)
 
-### 4.6 Privacy and integrity
+### 4.6 Phrase Selection Offer Sets
+
+When a student selects a phrase from content (see `docs/system-architecture.md` §Stage 1A), the system presents an **offer set** of recommended follow-up questions. This is a distinct decision point requiring the same logging rigor as question offer sets.
+
+**Required fields** (in addition to standard offer set fields from §4.2):
+- `offer_set_type`: `"phrase_selection"`
+- `selected_phrase`: the exact text selected by the student
+- `source_node_id`: the node from which the phrase was selected
+- `source_excerpt`: local window around the phrase (for context)
+- `parent_node_summary`: short summary of the parent node
+- `neighborhood_summaries`: summaries of connected nodes (capped)
+- `chapter_context`: subject/chapter/grade/exam metadata
+
+**Offer set construction**:
+- `options[]`: each recommended question must include:
+  - `option_id`, `question_id`, `text`, `rank_position`
+  - `source`: `organic_llm|cache|probe`
+  - `propensity`: probability this question appears in this slot
+  - `is_probe`: boolean flag
+  - `model_id`, `prompt_version` (if LLM-generated)
+
+**Rationale**: Phrase selection is a **learner-chosen anchor** that conditions downstream exploration. Logging the offer set enables causal analysis of how phrase-anchored exploration differs from other entry points.
+
+**Cross-reference**: See `docs/architecture/data-collection.md` for storage schema and retention policy.
+
+### 4.7 Privacy and integrity
 - Do not store raw PII in events.
 - Version every policy and schema.
 - Maintain an audit trail for policy changes that affect propensities or candidate pools.

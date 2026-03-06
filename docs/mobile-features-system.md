@@ -23,7 +23,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Kantian diagnostic categories never visible to students
+- **Category Invisibility**: Diagnostic categories never visible to students
 
 ---
 
@@ -120,7 +120,7 @@ App-wide functionality that operates across all screens.
 | **RAM** | 4GB | Entry-level segment floor; budget devices (₹10,000-₹20,000) have 4-6GB |
 | **Screen Size** | 6.5" HD+ (720×1600) | Standard for budget smartphones in Indian market |
 | **Storage** | 32GB (8GB available) | Minimum for app + offline cached boards |
-| **GPU** | OpenGL ES 3.0 | Required for React Native Skia rendering |
+| **GPU** | OpenGL ES 3.0 | Required for Skia edge rendering (Bézier curves) in the hybrid architecture |
 
 **Performance Optimization Targets**:
 - **Memory budget**: 150MB maximum app footprint (allows headroom on 4GB devices)
