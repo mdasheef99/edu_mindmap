@@ -7,7 +7,7 @@ This document specifies all AI-powered capabilities for the mobile application, 
 **Part of**: Mobile Feature Specification (split for AI agent optimization)
 **Related files**:
 - [Core UI Components](mobile-features-core-ui.md) - Curriculum, nodes, canvas, panels, navigation
-- [System Features](mobile-features-system.md) - Authentication, sync, offline mode
+- [System Features](mobile-features-system.md) - Authentication, sync, persistence, and basic offline access boundaries
 - [Enhancements & Summaries](mobile-features-enhancements.md) - Feature priorities and recommendations
 - [Master Index](mobile-features-index.md) - Complete navigation guide
 
@@ -23,7 +23,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Diagnostic categories never visible to students
+- **Category Invisibility**: Internal analytic categories never visible to students
 
 ---
 
@@ -39,8 +39,6 @@ All AI-powered capabilities organized by access point.
 |---------|-------------|----------|-------------------|--------------|
 | Summarize content | Node toolbar → "AI" → "Summarize" | Basic | Generates concise summary | AI service, node content |
 | Expand content | Node toolbar → "AI" → "Expand" | Advanced | Adds detail to existing content | AI service, node content |
-| Break down into topics | Node toolbar → "AI" → "Breakdown" | Basic | Creates child nodes for subtopics | AI service, node content |
-| Generate questions | Node toolbar → "AI" → "Questions" | Basic | Creates learning questions (core platform feature) | AI service, node content |
 | Explain simply | Node toolbar → "AI" → "Simplify" | Advanced | Rewrites at lower complexity | AI service, node content |
 | Translate content | Node toolbar → "AI" → "Translate" | Advanced | Translates to selected language | AI service, node content |
 | Generate caption (for images) | Image node toolbar → "AI" → "Caption" | Advanced | Describes image content | AI service, image |
@@ -69,8 +67,6 @@ All AI-powered capabilities organized by access point.
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Quick summarize | Long-press node → "Summarize" | Advanced | One-tap summary generation | AI service, node |
-| Quick questions | Long-press node → "Generate Questions" | Advanced | Generates 3 questions | AI service, node |
-| Explain selection | Select text → "Explain" | Advanced | Explains highlighted text | AI service, text selection |
 
 ### 6.4 AI-Powered Search
 
@@ -85,27 +81,25 @@ All AI-powered capabilities organized by access point.
 
 ### 6.5 Learning-Specific AI Features
 
-*AI features aligned with the diagnostic learning framework*
+*AI features aligned with the platform's internal analytic framework*
 
-> **Note: Category Framework Visibility**
-> The 8 diagnostic dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for **diagnostic purposes only** and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Category visibility is reserved for the Teacher Dashboard only.
+> **Note: Internal Analytic Framework Visibility**
+> The 8 analytic dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for **internal analysis and teacher-support interpretation only** and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Dimension visibility is reserved for protected teacher-facing surfaces only.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Generate organic questions | Automatic (invisible) | Basic | Questions emerge from exploration context | AI service, chapter context |
-| Post-hoc classification | Backend (invisible to user) | Basic | Scores questions across 8 diagnostic dimensions invisibly | AI service |
-| Suggest next questions | AI panel → "What should I explore?" | Basic | Based on current exploration path | AI service, session context |
-| Exploration gap hints | AI panel → subtle natural language prompts | Advanced | Uses phrases like "Try asking 'what if...'" with NO category labels | AI service, diagnostic data |
-| Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates self-assessment questions | AI service, node content |
+| Post-hoc analytic classification | Backend (invisible to user) | Basic | Scores questions across 8 analytic dimensions invisibly | AI service |
+| Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates low-stakes self-review questions | AI service, node content |
 
 
 #### 6.5.1 Question Discovery Flow
 
-*Core learning loop: How students discover and select follow-up questions*
+*Core learning loop: How students discover and select follow-up questions from edge-attached branch triggers*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Explore button | AI Node → center of right edge → "+" circular button | Basic | 44×44pt touch target, appears after AI response loads | AI Node |
+| Edge + button | AI Node → center of left and right vertical edges → "+" circular button | Basic | 44×44pt touch target, appears after AI response loads | AI Node |
 | Open question popup | Tap "+" button | Basic | Opens small popup box near the button displaying 3-6 questions | Question generation |
 | View generated questions | Popup box → question list | Basic | Each question is a tappable card with preview text | AI service |
 | Select question to explore | Tap question card | Basic | Creates new AI Node (question as header, AI response as body), closes popup | Canvas, AI service |
@@ -115,13 +109,13 @@ All AI-powered capabilities organized by access point.
 
 **Question Discovery Flow — Detailed Specification**:
 
-**Explore Button**:
-- Position: Center of the right edge of each AI Node (not floating, not in a toolbar)
+**Edge + Button**:
+- Position: Center of the left and right vertical edges of each AI Node (not floating, not in a toolbar)
 - Appears after AI response loads in the node
 - Visual design details: *Deferred — to be discussed later*
 
 **Popup Box Behavior**:
-- Trigger: Tap the "+" explore button
+- Trigger: Tap either edge-attached "+" button
 - Content: 3-6 generated questions displayed as tappable cards
 - Dismissal: Tap outside the popup box
 - Persistence: Popup closes automatically when a question is selected
@@ -131,8 +125,8 @@ All AI-powered capabilities organized by access point.
 1. A new AI Node is created as a **child** of the current node
 2. The **selected question text** is displayed in the new node's **header**
 3. The AI-generated **response** to that question appears in the node **body** below the header
-4. A **permanent edge** connects parent node → child node
-5. The edge is labeled with the selected question text
+4. An **AI-generated path edge** connects parent node → child node
+5. The **path edge** is labeled with the selected question text
 
 **Question Generation Context**:
 - Questions in the popup are generated by the LLM based on:
@@ -141,16 +135,18 @@ All AI-powered capabilities organized by access point.
   - **Thread context** from previous selections in the exploration path
 - Generation follows **organic-first** principles: no category labels, no framework references, no forced coverage
 
-**Multi-threading and Node Connections**:
-- **Multiple child nodes** can branch from a single parent node (multi-threading)
-- Each branch represents a **different exploration thread**
-- Connections between nodes are **permanent once created** — they cannot be removed
-- The **connection context** (parent content + edge label + sibling context) is used to inform subsequent question generation in child nodes
+**Branching and Node Connections**:
+- **Multiple child nodes** can branch from a single parent node through repeated phrase selections or repeated edge `+` launches
+- Each branch represents a **different exploration path**
+- AI-generated parent → child edges created through phrase selection or edge `+` branching are part of the persistent exploration path and are **not** ordinary manual/reference connections
+- If a node in an AI-generated exploration path is deleted, its descendant path nodes are also deleted; the UI should require clear confirmation before deletion
+- Manual user-created connections remain separate **reference-style links** between nodes
+- The **path-edge context** (parent content + edge label + sibling context) is used to inform subsequent question generation in child nodes
 - This creates a growing mind map that visually represents the student's exploration path
 
 #### 6.5.2 Phrase/Word Selection Exploration Flow (Basic)
 
-*Learner-driven micro-exploration anchored to a highlighted phrase; integrates with the same node-creation pipeline as Question Discovery.*
+*Learner-driven micro-exploration anchored to a highlighted phrase; together with the edge `+` flow, this is one of the two branching entry points in the map.*
 
 **Trigger surface (implementation note)**:
 - With the hybrid architecture, AI node content is rendered inside native React Native Views, which **do** support native OS text selection.
@@ -165,11 +161,11 @@ All AI-powered capabilities organized by access point.
 | 1) Elaborate on "[phrase]" | Phrase action sheet (top slot) | Basic | One tap, no extra input | AI service |
 | 2) Ask custom question | Phrase action sheet (second slot) | Basic | Opens text input with phrase pre-filled as context | AI service |
 | 3) Recommended follow-up questions | Phrase action sheet (remaining slots) | Basic | 3–5 tappable cards | AI service |
-| Create child AI node + edge | On any selection | Basic | Parent → child edge label = phrase or chosen question | Canvas |
+| Create child AI node + path edge | On any selection | Basic | Parent → child AI-generated path edge label = phrase or chosen question | Canvas |
 
 **Node/edge creation rules (Basic)**:
 1. Create a new AI node as a **child of the currently selected node** (the node whose content contained the phrase).
-2. Create an edge `parent → child` labeled with:
+2. Create an **AI-generated path edge** `parent → child` labeled with:
    - the selected phrase (for Elaborate / Custom), or
    - the selected recommended question text (for Recommended).
 3. Generate the child node's response using a **thread context packet** (see Context Propagation).

@@ -4,7 +4,7 @@
 **Document Version**: 1.0  
 **Status**: Draft  
 **Last Updated**: February 2025  
-**Related Documents**: `system-architecture.md`, `mobile-feature-specification.md`, `teacher-access-control-specification.md`
+**Related Documents**: `system-architecture.md`, `mobile-features-index.md`, `teacher-access-control-specification.md`
 
 ---
 

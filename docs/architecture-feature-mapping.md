@@ -2,7 +2,7 @@
 
 ## Document Overview
 
-This document maps the V1 Master Strategy (Hybrid Native Views + Skia Edges + D3-Force + Zustand/Reanimated) to specific features in the Mobile Feature Specification v2.0. It provides implementation guidance for each feature based on the three architectural pillars.
+This document maps the V1 Master Strategy (Hybrid Native Views + Skia Edges + D3-Force + Zustand/Reanimated) to specific features in the active split mobile feature specification. It provides implementation guidance for each feature based on the three architectural pillars.
 
 **Architecture Pillars**:
 1. **Rendering Engine**: Hybrid — React Native Animated Views for nodes + Skia for edge rendering
@@ -20,14 +20,13 @@ This document maps the V1 Master Strategy (Hybrid Native Views + Skia Edges + D3
 | Feature | Spec Reference | Implementation | Priority |
 |---------|----------------|----------------|----------|
 | Create text node | 2.1 | `<TextNode />` React Native Animated.View with native `<Text>` | MVP |
-| Edit text content | 2.1 | Native `<TextInput>` inside node View (no overlay hack needed) | MVP |
+| Display short node label | 2.1 | Native `<Text>` inside node View for compact recognition | MVP |
 | Change node color | 2.1 | `style.backgroundColor` prop on Animated.View | MVP |
 | Node selection border | 2.1 | Conditional `borderWidth`/`borderColor` style on Animated.View | MVP |
-| Create story node | 2.2 | `<StoryNode />` Animated.View with header/body sub-views | MVP |
-| Collapse/expand animation | 2.2 | Reanimated `SharedValue` for height interpolation via `useAnimatedStyle` | MVP |
-| Create AI node | 2.3 | `<AINode />` Animated.View with response area, loading indicator | MVP |
-| AI response scrolling | 2.3 | Native `<ScrollView>` inside AI node View (free scrolling behavior) | MVP |
-| Video node thumbnail | 2.4 | `<FastImage />` component inside node View | MVP |
+| Create AI node | 2.2 | `<AINode />` Animated.View with response area, loading indicator | MVP |
+| AI response scrolling | 2.2 | Native `<ScrollView>` inside AI node View (free scrolling behavior) | MVP |
+| Edge + branch trigger | 2.2 / 6.5.1 | Edge-attached press target on left/right vertical node edges | MVP |
+| Video node thumbnail | 2.3 | `<FastImage />` component inside node View | MVP |
 | Connection lines (edges) | All nodes | Quadratic Bézier via `Skia.Path` (Skia used only for edges) | MVP |
 
 #### Node Rendering Architecture
@@ -69,7 +68,7 @@ const TextNode: React.FC<NodeViewProps> = ({ node, isSelected, zoomLevel, positi
 
 // Benefits over full Skia approach:
 // - Native touch targets (no custom hit testing)
-// - Native TextInput for editing (no overlay positioning hack)
+// - Native selectable/read-only text surfaces (no overlay positioning hack)
 // - Native ScrollView for AI response scrolling
 // - Native accessibility (screen readers work automatically)
 // - React DevTools inspection works normally
@@ -260,9 +259,9 @@ All persistent data lives in Zustand. This maps to features requiring data persi
 | Feature | Spec Reference | Zustand Implementation | Priority |
 |---------|----------------|----------------------|----------|
 | Create new node | 2.1, 2.2, 2.3 | `addNode(node: Node)` action | MVP |
-| Delete node | 2.1 | `removeNode(nodeId)` + cascade edges | MVP |
-| Edit node content | 2.1 | `updateNode(nodeId, changes)` action | MVP |
-| Connect nodes | 2.1 | `addEdge(edge: Edge)` action | MVP |
+| Delete node | 2.1, 2.2 | `removeNode(nodeId)` + descendant AI-path cascade + edge cleanup | MVP |
+| Update node metadata | 2.1 | `updateNode(nodeId, changes)` action for layout/style/system metadata (not learner-authored node body editing) | MVP |
+| Connect nodes (manual reference link) | 2.1 | `addEdge(edge: Edge)` action for manual/reference connections | MVP |
 | Session persistence | 7.4 | `persist` middleware with AsyncStorage | MVP |
 | Undo/Redo | 3.5 | `temporal` middleware or manual history stack | Extended |
 | Node limit (55-65) | 3.6 | Guard in `addNode` action | MVP |
@@ -273,16 +272,16 @@ import { persist } from 'zustand/middleware';
 
 interface MindMapState {
   nodes: Node[];
-  edges: Edge[];
+  edges: Edge[]; // AI-generated path edges + manual reference edges
   selectedNodeId: string | null;
   chapterId: string | null;
 
   // Actions
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
-  updateNode: (nodeId: string, changes: Partial<Node>) => void;
+  updateNode: (nodeId: string, changes: Partial<Node>) => void; // metadata/layout only
   addEdge: (edge: Edge) => void;
-  removeEdge: (edgeId: string) => void;
+  removeEdge: (edgeId: string) => void; // manual/reference edges only
   selectNode: (nodeId: string | null) => void;
   loadSession: (chapterId: string) => Promise<void>;
   saveSession: () => Promise<void>;
@@ -306,13 +305,18 @@ export const useMindMapStore = create<MindMapState>()(
         return { nodes: [...state.nodes, node] };
       }),
 
-      removeNode: (nodeId) => set((state) => ({
-        nodes: state.nodes.filter(n => n.id !== nodeId),
-        edges: state.edges.filter(e =>
-          e.source !== nodeId && e.target !== nodeId
-        ),
-        selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
-      })),
+      removeNode: (nodeId) => set((state) => {
+        const nodeIdsToRemove = collectCascadeDeleteIds(nodeId, state.nodes, state.edges);
+        return {
+          nodes: state.nodes.filter(n => !nodeIdsToRemove.has(n.id)),
+          edges: state.edges.filter(e =>
+            !nodeIdsToRemove.has(e.source) && !nodeIdsToRemove.has(e.target)
+          ),
+          selectedNodeId: state.selectedNodeId && nodeIdsToRemove.has(state.selectedNodeId)
+            ? null
+            : state.selectedNodeId,
+        };
+      }),
 
       // ... other actions
     }),
@@ -481,10 +485,10 @@ const useGenerateQuestions = () => {
 |---------|----------------|----------------------|----------|
 | Authentication | 7.1 | Supabase Auth | MVP |
 | Session sync | 7.4 | Zustand persist + Supabase upsert | MVP |
-| Offline mode (core) | 7.3 | AsyncStorage + sync queue | MVP |
+| Basic offline access | 7.3 | AsyncStorage-backed reopening of previously stored session state | MVP |
 | Auto-save | 7.4 | Zustand subscribe + debounce | MVP |
 
-*Note: Offline mode elevated to MVP per `mobile-features-system.md` Section 7.3 based on Indian student device market research. Core offline = cached board access + queued edits. AI features (question generation, classification) require network connectivity and are excluded from offline mode.*
+*Note: Current MVP includes only basic offline access to previously stored session/board content and content already generated online. Broader offline capability remains later-phase; AI features (question generation, classification) still require network connectivity.*
 
 
 
@@ -693,7 +697,7 @@ The hybrid rendering approach (React Native Animated.View for nodes + Skia for e
 
 2. **Faster Time-to-MVP**: The hybrid approach eliminates the need for:
    - Custom hit testing (React Native handles touch targets natively)
-   - Text editing overlay positioning (native `TextInput` lives inside the node View)
+   - Selectable/read-only text overlay positioning (native text surfaces live inside the node View)
    - Custom scrolling for AI responses (native `ScrollView` inside AI node View)
    - Custom accessibility implementation (React Native provides it automatically)
    - Custom text rendering (native `Text` component with full Unicode/RTL support)

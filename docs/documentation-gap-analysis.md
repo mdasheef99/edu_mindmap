@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-This gap analysis identifies documentation needs discovered through architectural discussions about the Categorical Exploration Learning Platform. The analysis covers database schemas, API endpoints, system components, integration workflows, and configuration thresholds discussed in conversation but not yet formally documented.
+This gap analysis identifies documentation needs discovered through architectural discussions about a path-based conceptual exploration and teacher-support platform. The analysis covers database schemas, API endpoints, system components, integration workflows, and configuration thresholds discussed in conversation but not yet formally documented.
 
 ### Summary by Priority
 
@@ -32,9 +32,9 @@ This gap analysis identifies documentation needs discovered through architectura
 | D2 | **Complete `learning_sessions` table schema** - Session-level aggregation with path sequences, timestamps, device context | Critical | `docs/database-schema-specification.md` | Path recording architecture discussion |
 | D3 | **Complete `path_patterns` table schema** - Aggregated patterns with library candidacy scores, caching status | Critical | `docs/database-schema-specification.md` | Content Library convergence discussion |
 | D4 | **Complete `question_transitions` table schema** - Graph-like edge data for question-to-question transitions | High | `docs/database-schema-specification.md` | Path recording architecture discussion |
-| D5 | **`question_bank` table schema** - Base question storage with categorical classification | High | `docs/database-schema-specification.md` | Question Analytics dashboard discussion |
+| D5 | **`question_bank` table schema** - Base question storage with post-hoc analytic classification metadata | High | `docs/database-schema-specification.md` | Question Analytics dashboard discussion |
 | D6 | **`curriculum` schema** - Class, Exam, Subject, Chapter hierarchy tables | High | `docs/database-schema-specification.md` | Syllabus-driven architecture references |
-| D7 | **`quiz_attempts` table schema** - Quiz performance tracking with category alignment | Medium | `docs/database-schema-specification.md` | Quiz checkpoint references |
+| D7 | **`quiz_attempts` table schema** - Quiz performance tracking with internal analytic scoring metadata | Medium | `docs/database-schema-specification.md` | Quiz checkpoint references |
 | D8 | **`student_achievements` table schema** - Gamification milestone tracking | Low | `docs/database-schema-specification.md` | A.3 My Journey dashboard reference |
 | D9 | **`teacher_classes` table schema** - Teacher-student linking for class management | Medium | `docs/database-schema-specification.md` | B.1 Class Overview dashboard |
 | D10 | **`teacher_notes` table schema** - Private teacher notes on individual students | Low | `docs/database-schema-specification.md` | B.2 Individual Student View dashboard |
@@ -49,7 +49,7 @@ This gap analysis identifies documentation needs discovered through architectura
 | A3 | **Content Library Serving API** - Cache lookup → prefix match → LLM fallback flow | High | `docs/api-specification.md` | Novel path handling discussion |
 | A4 | **A/B Test Assignment API** - Consistent hashing for group assignment | Medium | `docs/api-specification.md` | A/B testing engine discussion |
 | A5 | **Question Generation API** - LLM orchestration for organic question generation | High | `docs/api-specification.md` | Two-stage LLM pipeline references |
-| A6 | **Categorical Classification API** - Post-hoc classification endpoint | High | `docs/api-specification.md` | Post-hoc classification discussion |
+| A6 | **Post-Hoc Analytic Classification API** - Post-hoc classification endpoint | High | `docs/api-specification.md` | Post-hoc classification discussion |
 | A7 | **Secondary Enhancement API** - Semantic tracking, contextual framing, linguistic framing | Medium | `docs/api-specification.md` | Secondary Enhancement system discussion |
 | A8 | **Redis Streams Event Pipeline** - Complete specification of event ingestion via Redis Streams | High | `docs/api-specification.md` | High-throughput event pipeline |
 | A9 | **Analytics Aggregation Jobs** - Celery job specifications for daily/weekly aggregations | Medium | `docs/api-specification.md` | Analytics aggregation references |
@@ -65,8 +65,8 @@ This gap analysis identifies documentation needs discovered through architectura
 | F5 | **NovelPathHandler** - Exact match → prefix match → hybrid → full LLM generation flow | High | `docs/content-library-specification.md` | Novel path handling discussion |
 | F6 | **LibraryMaturityTracker** - Tracks library phase (Learning → Convergence → Mature → Evergreen) | Medium | `docs/content-library-specification.md` | Four maturity phases discussion |
 | F7 | **EnhancementVariantPrecomputer** - Pre-computes enhanced variants at library write time | Medium | `docs/content-library-specification.md` | Secondary Enhancement integration |
-| F8 | **CategoryClassifier** - LLM-based post-hoc classification component | High | Add to: `docs/system-architecture.md` | Two-stage pipeline references |
-| F9 | **DiagnosticEngine** - Generates categorical profile and gap analysis for teachers | Medium | Add to: `docs/system-architecture.md` | Teacher dashboard diagnostic features |
+| F8 | **AnalyticClassifier** - LLM-based post-hoc classification component | High | Add to: `docs/system-architecture.md` | Two-stage pipeline references |
+| F9 | **TeacherInterpretationEngine** - Generates teacher-facing profiles and follow-up priority signals | Medium | Add to: `docs/system-architecture.md` | Teacher dashboard interpretation features |
 
 ### 2.4 Integration & Workflow Specifications
 
@@ -76,7 +76,7 @@ This gap analysis identifies documentation needs discovered through architectura
 | I2 | **Content Library Write-Time Flow** - When patterns get promoted to library, what happens | Medium | `docs/content-library-specification.md` | Library promotion discussion |
 | I3 | **A/B Test Lifecycle Flow** - Draft → Running → Concluded → Promoted/Retired complete workflow | Medium | Add to: `docs/teacher-access-control-specification.md` | A/B testing engine discussion |
 | I4 | **Staged Validation Pipeline** - How novel paths get validated and promoted to library | Medium | `docs/content-library-specification.md` | Novel path handling discussion |
-| I5 | **Offline Sync Flow** - AsyncStorage ↔ Supabase synchronization specification | High | Add to: `docs/system-architecture.md` or `docs/mobile-feature-specification.md` | Offline-first architecture references |
+| I5 | **Broader Reconnect/Sync Flow** - AsyncStorage ↔ Supabase synchronization specification for any later-phase offline/reconnect workflow | High | Add to: `docs/system-architecture.md` or `docs/mobile-features-system.md` | Broader offline/reconnect architecture references |
 | I6 | **Teacher Verification Flow** - How teachers get verified before applying for privileges | Low | Add to: `docs/teacher-access-control-specification.md` | Teacher verification references |
 
 ### 2.5 Configuration & Thresholds
@@ -115,8 +115,8 @@ Based on the gap analysis, the following new documentation files should be creat
 | Action | File | Gaps Addressed |
 |--------|------|----------------|
 | Add A/B test lifecycle section | `docs/teacher-access-control-specification.md` | F2, F3, I3, I6 |
-| Add offline sync specification | `docs/mobile-feature-specification.md` | I5 |
-| Add CategoryClassifier component | `docs/system-architecture.md` | F8, F9 |
+| Add broader reconnect/sync specification if later-phase offline workflows are adopted | `docs/mobile-features-system.md` or `docs/system-architecture.md` | I5 |
+| Add AnalyticClassifier and TeacherInterpretationEngine components | `docs/system-architecture.md` | F8, F9 |
 
 ---
 
@@ -126,8 +126,8 @@ Based on the gap analysis, the following new documentation files should be creat
 
 | Document | Covers | Gaps |
 |----------|--------|------|
-| `system-architecture.md` | Core philosophy, LLM pipeline, collective intelligence, thresholds | Missing: CategoryClassifier details, DiagnosticEngine, offline sync |
-| `mobile-feature-specification.md` | All mobile UI features, phase assignments | Missing: Offline sync specification |
+| `system-architecture.md` | Core philosophy, LLM pipeline, collective intelligence, thresholds | Missing: AnalyticClassifier details, TeacherInterpretationEngine, broader reconnect/sync reference if later needed |
+| `mobile-features-index.md` | Active mobile specification index and split source-of-truth references | Missing: direct broader reconnect/sync specification if later adopted |
 | `teacher-access-control-specification.md` | Access tiers, privilege workflow, quality monitoring | Missing: PromotionDecider, InterventionPositionAdvisor, A/B lifecycle |
 | `analytics-dashboard-inventory.md` | All dashboards with data sources and actions | Complete (just created) |
 | `scalability-analysis.md` | Scale assessment, cost projections | Missing: LLM fallback configuration |

@@ -1,6 +1,6 @@
 # LLM Pipeline Architecture
 
-**Purpose**: Specification of the two-stage LLM pipeline for organic question generation and post-hoc classification  
+**Purpose**: Specification of the two-stage LLM pipeline for organic question generation and post-hoc analytic classification  
 **Parent Document**: `docs/system-architecture.md`  
 **Version**: 1.0  
 **Last Updated**: February 2025
@@ -27,12 +27,12 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 - Model: Claude Sonnet 4 (`claude-sonnet-4-20250514`)
 - Purpose: Generate 4-6 natural, context-driven questions
 - No categorical structure imposed
-- Student-facing output
+- Student-facing, category-neutral output
 
 **Stage 2: Post-Hoc Classification**
 - Model: Claude Haiku 4 (`claude-haiku-4-20250514`)
-- Purpose: Score each question across all 8 diagnostic dimensions as an independent engagement vector (0.0–1.0 per dimension)
-- Invisible to students (teacher/admin analytics only)
+- Purpose: Score each question across all 8 analytic dimensions as an independent engagement vector (0.0–1.0 per dimension)
+- Invisible to students (teacher/admin interpretation and analytics only)
 - 10x cheaper than Sonnet (see `docs/scalability-analysis.md` §4.5)
 - **Entropy-based quality gate**: `MAX_CLASSIFICATION_ENTROPY = 2.8`
   - Classifications with Shannon entropy above this threshold are flagged as `needs_review` — the classifier is hedging across too many dimensions
@@ -119,12 +119,13 @@ class OrganicQuestionPipeline:
         """
         Stage 2: Post-hoc classification.
         Applied AFTER generation, invisible to students.
+        Used for internal analysis and teacher-support interpretation.
         Uses Claude Haiku (not Sonnet) — classification is a constrained
         structured-output task that doesn't require Sonnet's capabilities.
         See docs/scalability-analysis.md §4.5 for cost rationale (10x cheaper).
         """
         prompt = f"""
-        Score this question's engagement with each diagnostic dimension.
+        Score this question's engagement with each analytic dimension.
 
         Question: "{question.text}"
         Subject: {subject}
@@ -272,7 +273,7 @@ classification = client.messages.create(
 
 - **[System Architecture](../system-architecture.md)** - Parent document with full system design
 - **[Scalability Analysis](../scalability-analysis.md)** - Cost analysis for Sonnet vs Haiku (§4.5)
-- **[Mobile Feature Specification](../mobile-feature-specification.md)** - AI Node features (§2.3)
+- **[Mobile Features Index](../mobile-features-index.md)** - Active source of truth for AI node and branching references
 - **[Framework Design Philosophy](../framework-design-philosophy.md)** - Organic-first principles
 
 

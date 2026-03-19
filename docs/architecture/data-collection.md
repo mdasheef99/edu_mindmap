@@ -1,6 +1,6 @@
 # Data Collection & Pattern Analysis
 
-**Purpose**: Specification of behavioral data collection and statistical pattern analysis  
+**Purpose**: Specification of behavioral data collection and statistical pattern analysis for a path-based conceptual exploration and teacher-support system  
 **Parent Document**: `docs/system-architecture.md`  
 **Version**: 1.0  
 **Last Updated**: February 2025
@@ -11,8 +11,8 @@
 
 ### Mind Map Behavioral Data
 
-| Data Point | Collection Method | Diagnostic Value |
-|------------|-------------------|------------------|
+| Data Point | Collection Method | Analytic / Product Value |
+|------------|-------------------|--------------------------|
 | Node dwell time | Timer on node focus | Engagement depth / confusion |
 | Selection hesitation | Time between options and click | Decision confidence |
 | Node placement | Coordinates when student arranges | Conceptual organization |
@@ -23,11 +23,11 @@
 
 ### Question Selection Data
 
-| Data Point | Collection Method | Diagnostic Value |
-|------------|-------------------|------------------|
-| Question selected | Click event with question ID | Category engagement |
+| Data Point | Collection Method | Analytic / Product Value |
+|------------|-------------------|--------------------------|
+| Question selected | Click event with question ID | Engagement-vector signal after post-hoc classification |
 | Questions presented | Full list shown to student | Opportunity set |
-| Questions NOT selected | Presented minus selected | Avoidance patterns |
+| Questions NOT selected | Presented minus selected | Possible non-selection / low-selection signal; requires offer-set and policy context |
 | Selection order | Timestamp sequence | Priority/interest |
 | Time to select | Duration viewing options | Decision process |
 
@@ -35,8 +35,8 @@
 
 **Cross-reference**: See `docs/measurement-and-experimentation.md` §4.6 for detailed offer set logging requirements.
 
-| Data Point | Collection Method | Diagnostic / Product Value |
-|------------|-------------------|----------------------------|
+| Data Point | Collection Method | Analytic / Product Value |
+|------------|-------------------|--------------------------|
 | Phrase selected | Selection event with `selected_text` | What learners notice / latch onto |
 | Source node | `source_node_id` | Provenance for branching |
 | Source excerpt / anchor | Excerpt window + optional offsets/hash | Robustness across formatting/regeneration |
@@ -50,10 +50,10 @@
 
 ### Quiz Performance Data
 
-| Data Point | Collection Method | Diagnostic Value |
-|------------|-------------------|------------------|
-| Correct/incorrect | Answer evaluation | Understanding verification |
-| Dimensional profile of question | From question classification (8D vector) | Dimension-specific understanding |
+| Data Point | Collection Method | Analytic / Product Value |
+|------------|-------------------|--------------------------|
+| Correct/incorrect | Answer evaluation | Explicit-response evidence for review |
+| Dimensional profile of question | From question classification (8D vector) | Internal teacher-support interpretation |
 | Confidence rating | Student self-report (optional) | Metacognitive calibration |
 | Time to answer | Response duration | Fluency vs. struggle |
 | Answer changes | Edit tracking | Uncertainty signals |
@@ -78,7 +78,7 @@ The platform must treat a learner's exploration as a **reconstructable path**, n
   - a **graph** (clusters, revisits, branching).
 
 **Why this matters (architecturally)**:
-- Teacher insights are based on patterns like revisitation, avoidance, and cluster transitions.
+- Teacher insights are based on patterns like revisitation, low-selection signals, and cluster transitions, interpreted probabilistically.
 - The Content Library promotes high-frequency/high-success **path fragments**.
 - Reinforcement artifacts (e.g., podcasts) should be **path-optimized**, not simple narration.
 
@@ -101,7 +101,7 @@ Pattern analysis in the Collective Intelligence Layer uses **statistical methods
 | Question path patterns | Sequence frequency counting | ❌ No |
 | Bridge question identification | Dimensional transition analysis | ❌ No |
 | Success-correlated questions | Pearson/Spearman correlation | ❌ No |
-| Dimensional accessibility ranking | Selection rate aggregation by dominant dimension | ❌ No |
+| Dimensional accessibility summary | Selection rate aggregation over vector signals with optional teacher-facing summaries | ❌ No |
 | Content caching decisions | Threshold-based rules | ❌ No |
 | Three-dimensional success analysis | LLM-assisted extraction | ⚠️ LLM inference (not training) |
 | Personalized path prediction | Collaborative filtering | ⚠️ Optional (later) |

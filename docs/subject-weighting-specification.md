@@ -1,18 +1,20 @@
-# Subject-Specific Category Weighting Specification
+# Subject-Specific Weighting Specification
 
 ## Overview
 
-This document specifies how the 8-dimensional diagnostic framework adapts to different academic subjects through calibrated weighting, maintaining theoretical coherence while accommodating disciplinary epistemological differences.
+This document specifies how the 8-dimensional conceptual exploration framework adapts to different academic subjects through calibrated weighting, maintaining theoretical coherence while accommodating disciplinary epistemological differences.
 
-**Core Principle**: All 8 categories apply to all subjects. Weights determine *relative diagnostic significance*, not applicability.
+**Core Principle**: All 8 categories apply to all subjects. Weights determine *relative interpretive priority*, not applicability.
+
+**Positioning note**: weights are primarily a teacher-support and research-analysis lens. They help prioritize possible follow-up areas; they do not prove that a learner has or lacks understanding.
 
 ---
 
 ## Theoretical Framing
 
-The 8 categories used in this framework are grounded in a principled derivation from a philosophical tradition asking the right foundational question: *what are the fundamental ways a mind engages with a concept?* This makes them a stronger starting point than dimensions selected by committee or intuition. The weight matrices encode the typical structural availability and diagnostic significance of each categorical dimension across a subject's characteristic concept types. The 8 categories are not claimed to be logically complete—logical completeness requires an independent argument that is not provided here. Instead, **provisional sufficiency** is claimed: these categories are adequate for diagnostic purposes given current evidence. Sufficiency is tested through **independent open-coding probes** in which raters generate dimensional labels without prior knowledge of the framework, not through classification residual analysis, which is circular (a classifier trained on these categories will force questions into them by construction).
+The 8 categories used in this framework are grounded in a principled derivation from a philosophical tradition asking the right foundational question: *what are the fundamental ways a mind engages with a concept?* This makes them a stronger starting point than dimensions selected by committee or intuition. The weight matrices encode the typical structural availability and relative interpretive importance of each categorical dimension across a subject's characteristic concept types. The 8 categories are not claimed to be logically complete—logical completeness requires an independent argument that is not provided here. Instead, **provisional sufficiency** is claimed: these categories may be adequate for teacher-support interpretation and internal diagnostic research given current evidence. Sufficiency is tested through **independent open-coding probes** in which raters generate dimensional labels without prior knowledge of the framework, not through classification residual analysis, which is circular (a classifier trained on these categories will force questions into them by construction).
 
-Subject weights reflect the uneven ways in which different subjects make some dimensions more diagnostically central and others less central. The weights are the system's principled encoding of that unevenness, grounded in expert judgment about conceptual engagement and refined by empirical validation.
+Subject weights reflect the uneven ways in which different subjects make some dimensions more central for interpretation and others less central. The weights are the system's principled encoding of that unevenness, grounded in expert judgment about conceptual engagement and refined by empirical validation.
 
 ---
 
@@ -40,7 +42,7 @@ Subject weights reflect the uneven ways in which different subjects make some di
 - **1.5** = High importance (essential for disciplinary understanding)
 - **0.5** = Low importance (peripheral to core understanding)
 
-A low weight (0.5) does not mean a category is unimportant in general—it means the concept types characteristic of that subject tend to engage that dimension less centrally, making gaps there less diagnostically significant. Weights encode diagnostic significance and typical structural availability, not pedagogical preference.
+A low weight (0.5) does not mean a category is unimportant in general—it means the concept types characteristic of that subject tend to engage that dimension less centrally, making low coverage there a lower teacher follow-up priority. Weights encode relative interpretive priority and typical structural availability, not pedagogical preference.
 
 Weights sum-normalized per subject to enable cross-subject comparison.
 
@@ -209,23 +211,23 @@ def calculate_weighted_coverage(normalised_cumulative, subject):
 
     Returns:
         weighted_coverage: float (0.0-1.0)
-        gap_report: dict with gap analysis
+        gap_report: dict with follow-up prioritization
     """
     weights = get_subject_weights(subject)
     normalized_weights = normalize_weights(weights)
 
     weighted_sum = 0.0
-    gap_report = {"critical_gaps": [], "minor_gaps": [], "strengths": []}
+    gap_report = {"priority_follow_ups": [], "monitor": [], "strengths": []}
 
     for dimension, weight in normalized_weights.items():
         score = normalised_cumulative.get(dimension, 0.0)
         weighted_sum += score * weight
 
-        # Gap detection with weight-adjusted thresholds
+        # Follow-up prioritization with weight-adjusted thresholds
         if score < 0.3 and weight >= 1.3:
-            gap_report["critical_gaps"].append(dimension)
+            gap_report["priority_follow_ups"].append(dimension)
         elif score < 0.3 and weight < 1.3:
-            gap_report["minor_gaps"].append(dimension)
+            gap_report["monitor"].append(dimension)
         elif score >= 0.7:
             gap_report["strengths"].append(dimension)
 
@@ -238,42 +240,42 @@ Gap severity uses the **normalised cumulative score** per dimension (`Σ scores[
 
 | Normalised Cumulative Score | Dimension Weight | Gap Classification |
 |-----------------------------|-----------------|-------------------|
-| < 0.3 | ≥ 1.3 (elevated) | **Significant Gap Detected** — follow-up recommended |
-| < 0.3 | 1.0 (standard) | **Moderate Gap Detected** — support recommended |
-| < 0.3 | ≤ 0.7 (reduced) | **Lower-Priority Gap Detected** — note for follow-up |
-| 0.3 – 0.7 | any | **Partial Coverage Detected** — monitor |
-| ≥ 0.7 | any | **Adequate Coverage** — relative strength |
+| < 0.3 | ≥ 1.3 (elevated) | **High-Priority Follow-Up Suggested** — possible under-explored area |
+| < 0.3 | 1.0 (standard) | **Moderate Follow-Up Suggested** — support may help |
+| < 0.3 | ≤ 0.7 (reduced) | **Lower-Priority Note** — monitor if needed |
+| 0.3 – 0.7 | any | **Partial Coverage** — monitor |
+| ≥ 0.7 | any | **Relative Strength** |
 
 ---
 
 ## Teacher Dashboard Integration
 
-### Subject-Aware Diagnostic Display
+### Subject-Aware Teacher-Support Display
 
 ```
 Student: Alex Chen | Subject: Mathematics | Concept: Limits
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Category Coverage (weighted for Mathematics):
+Exploration Profile (weighted for Mathematics teacher lens):
 
   Define     [████████████████░░░░] 80%  ★ HIGH PRIORITY
   Distinguish[████████░░░░░░░░░░░░] 40%  ★ HIGH PRIORITY  ⚠ FOLLOW-UP
   Decompose  [████████████░░░░░░░░] 60%    
   Connect    [██████░░░░░░░░░░░░░░] 30%    
-  Delimit    [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ SIGNIFICANT GAP
+  Delimit    [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ LOW COVERAGE
   Predict    [████████░░░░░░░░░░░░] 40%    
   Context    [░░░░░░░░░░░░░░░░░░░░]  0%    (lower priority for math)
-  Vary       [██░░░░░░░░░░░░░░░░░░] 10%  ★ HIGH PRIORITY  ⚠ SIGNIFICANT GAP
+  Vary       [██░░░░░░░░░░░░░░░░░░] 10%  ★ HIGH PRIORITY  ⚠ LOW COVERAGE
 
 Weighted Coverage Score: 47%
 
-PRIORITY FOLLOW-UPS (Mathematics-weighted):
-1. Delimit: Significant gap detected in boundary cases where limits fail or do not exist
+PRIORITY FOLLOW-UPS (Mathematics-weighted teacher lens):
+1. Delimit: High-priority follow-up suggested around boundary cases where limits fail or do not exist
    → Suggest: "What happens when we try to find the limit of 1/x as x→0?"
 
-2. Vary: Significant gap detected in alternative approaches to limits
+2. Vary: High-priority follow-up suggested around alternative approaches to limits
    → Suggest: "Could we define limits differently? Why epsilon-delta?"
 
-3. Distinguish: Limited exploration detected in boundary conditions
+3. Distinguish: Possible under-explored area in boundary conditions
    → Suggest: "When is something NOT a limit? What disqualifies a value?"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -282,24 +284,24 @@ PRIORITY FOLLOW-UPS (Mathematics-weighted):
 
 ## Cross-Subject Comparison
 
-Weighted scores enable meaningful comparison across subjects:
+Weighted scores can support exploratory comparison across subjects, but such comparisons should be treated cautiously and not as stable learner labels:
 
 ```
 Student: Alex Chen | Cross-Subject Profile
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Subject-Weighted Diagnostic Coverage Scores:
+Subject-Weighted Exploration Scores:
 
   Mathematics  [████████████░░░░░░░░] 58%
   Physics      [████████████████░░░░] 78%
   History      [██████████░░░░░░░░░░] 52%
   Literature   [████████░░░░░░░░░░░░] 42%
 
-Cross-Subject Pattern:
+Exploratory Cross-Subject Pattern:
 - Strongest in empirical/predictive subjects (Physics)
 - Weaker in interpretive/contextual subjects (Literature, History)
 - Mathematics gap in boundary/variation categories
 
-Recommended Focus: Contextualization and interpretation skills
+Recommended Focus: Contextualization and interpretation follow-up
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -309,7 +311,7 @@ Recommended Focus: Contextualization and interpretation skills
 
 ### Initial Weight Determination
 
-1. **Expert Panel Review**: Subject matter experts rate the typical diagnostic centrality of each dimension—how richly and consistently a given dimension is engaged across the concept types of that subject (1-5 scale). The calibration process elicits judgments about structural availability and diagnostic significance, not preference rankings.
+1. **Expert Panel Review**: Subject matter experts rate the typical interpretive centrality of each dimension—how richly and consistently a given dimension is engaged across the concept types of that subject (1-5 scale). The calibration process elicits judgments about structural availability and relative interpretive priority, not preference rankings.
 2. **Literature Alignment**: Cross-reference with disciplinary epistemology research
 3. **Consensus Building**: Resolve disagreements through structured discussion
 4. **Normalization**: Convert to weight scale (0.5-1.5 range)
@@ -318,16 +320,16 @@ Recommended Focus: Contextualization and interpretation skills
 
 Once system is operational, validate weights through:
 
-1. **Predictive Validity**: Do weighted diagnostic gaps predict understanding failures?
-   - Students with significant gaps (high-weight categories weakly explored) should be more likely to show poorer understanding
-   - Students with lower-priority gaps (low-weight categories weakly explored) should be less likely to show meaningful understanding failures
+1. **Predictive Validity**: Do weighted follow-up priorities predict weaker downstream outcomes?
+   - Students with persistent low coverage in high-weight categories may be more likely to show poorer downstream performance
+   - Students with lower-priority low-coverage areas should be less likely to show meaningful downstream problems
 
 2. **Teacher Validation**: Do teachers agree with priority rankings?
-   - Present weighted vs. unweighted gap reports
+   - Present weighted vs. unweighted follow-up reports
    - Measure agreement with teacher intuition
 
-3. **Outcome Correlation**: Do weighted diagnostic coverage scores predict learning outcomes?
-   - Correlate weighted diagnostic scores with assessment performance
+3. **Outcome Correlation**: Do weighted exploration scores predict learning outcomes?
+   - Correlate weighted exploration scores with assessment performance
    - Compare predictive power of weighted vs. unweighted scores
 
 4. **Independent Sufficiency Probe**: Human raters open-code a sample of student-generated questions without prior knowledge of the 8 categories. Emergent dimensional labels are compared against the framework. Consistent convergence is evidence of sufficiency; consistent emergence of uncaptured dimensions is a finding requiring framework revision. This probe must be conducted periodically as a standing validation requirement, not only at initial calibration. Classifier residual analysis alone is not a valid sufficiency test because a classifier trained on these categories will force questions into them by construction.

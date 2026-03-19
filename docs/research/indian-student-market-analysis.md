@@ -7,6 +7,8 @@
 
 **Note**: This document consolidates market demographics, device specifications, connectivity patterns, and usage behaviors previously split across two separate files.
 
+**Scope note:** This is a market/context reference document, not the current product-scope authority. Connectivity findings here support the value of local persistence and narrow MVP basic offline access, but current scope decisions must be taken from `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, and `docs/mobile-features-system.md`.
+
 ---
 
 ## 1. Executive Summary
@@ -22,7 +24,7 @@
 | **Device Sharing** | Common in rural areas | Local persistence over cloud sync |
 | **Study Hours** | 8-12 hours/day for competitive exams | High engagement potential |
 | **Pricing Sensitivity** | Freemium essential; 2-5% conversion typical | MVP should be free with premium upsell |
-| **Rural-Urban Divide** | 18.47% rural vs. 47.29% urban school internet | Offline mode critical for inclusion |
+| **Rural-Urban Divide** | 18.47% rural vs. 47.29% urban school internet | Connectivity constraints make local persistence and narrow offline reopening important |
 
 ### Key Technical Findings
 
@@ -30,14 +32,14 @@
 |------|---------|----------------------|
 | **Android Version** | 68% on Android 13+, 90% on Android 12+ | Target Android 11 (API 30) for ~95% coverage |
 | **Device RAM** | Entry-level segment at 3-4GB, budget at 4-6GB | Set 4GB as minimum; optimize for 150MB app footprint |
-| **Connectivity** | 58.8% rural vs. 125.3% urban mobile penetration | Offline mode is MVP priority, not Phase 2 |
+| **Connectivity** | 58.8% rural vs. 125.3% urban mobile penetration | Supports narrow basic offline access and lightweight persistence; broader offline can still remain later-phase |
 | **Cross-Device** | Shared family devices common; cloud sync not emphasized | Cross-device sync is Phase 2; local persistence sufficient |
 
 ### Strategic Recommendations
 
 1. **Target JEE/NEET aspirants first** - Most motivated, highest willingness to pay
 2. **Freemium model essential** - Price sensitivity requires free tier
-3. **Offline-first architecture** - Non-negotiable for rural inclusion
+3. **Prioritize local persistence and narrow basic offline reopening** - broader offline workflows can remain later-phase
 4. **Mobile-first, phone-only** - Tablets and laptops are secondary
 5. **Chapter-focused content** - Aligns with syllabus-driven preparation
 6. **Target Android 11+ (API 30)** - Provides ~95% market coverage
@@ -100,7 +102,7 @@
 **Technical Recommendation: Android 11 (API 30) Minimum**
 - Provides ~95% market coverage
 - Supports React Native 0.73+ requirements
-- Includes Scoped Storage improvements needed for offline caching
+- Includes Scoped Storage improvements needed for local caching and persisted session data
 - Supports all required Skia rendering features
 
 ### 3.2 Device RAM Distribution by Segment
@@ -184,13 +186,13 @@
 | Category | States | Characteristics |
 |----------|--------|-----------------|
 | **High enrollment (>95%)** | Gujarat, Maharashtra, Karnataka, Tamil Nadu, Odisha | Strong EdTech adoption potential |
-| **Connectivity gaps** | Meghalaya (26.4% no signal), Arunachal Pradesh (23.1%) | Offline mode essential |
+| **Connectivity gaps** | Meghalaya (26.4% no signal), Arunachal Pradesh (23.1%) | Local persistence and narrow offline reopening are valuable |
 
-**Technical Recommendation: Offline Mode is MVP Priority**
-- 58.8% rural mobile penetration means offline access is critical
+**Technical Recommendation: Connectivity constraints strengthen the case for narrow MVP continuity support**
+- 58.8% rural mobile penetration means reopening prior session state locally is valuable
 - Bottom 10th percentile speeds (2-15 Mbps) require optimized asset loading
-- Design for intermittent connectivity with queue-when-offline pattern
-- Pre-cache educational content during high-connectivity periods
+- Lightweight local persistence is justified even if offline editing and reconnect-sync remain out of current MVP
+- This research does not, by itself, override the current bounded MVP offline definition
 
 ---
 
@@ -263,7 +265,7 @@ Our **mind map + organic exploration** approach is unique in the market:
 
 ---
 
-## 7. Offline Mode Requirements
+## 7. Connectivity and Offline Reference Considerations
 
 ### 7.1 Competitor Analysis
 
@@ -282,21 +284,21 @@ Our **mind map + organic exploration** approach is unique in the market:
 | Rural students using mobile educational apps | 65% | IJCRT 2024 |
 | Students prioritizing offline access | High (rural) | ResearchGate studies |
 
-### 7.3 Technical Requirements for MVP
+### 7.3 Current MVP-Relevant Minimum vs Broader Reference
 
-**Implement for MVP:**
-1. **Offline data access** - Cached boards available offline
-2. **Offline editing** - Edits queued for sync when online
-3. **Offline indicator** - Visual badge when no network
-4. **Sync conflict resolution** - Handle offline edits when reconnecting
-5. **Pre-caching strategy** - Download content during high-connectivity periods
+**Consistent with the current MVP anchors:**
+1. **Basic offline access to prior session data** - Reopen previously stored session/board state
+2. **Stored content access** - Access content already generated online and stored locally
+3. **Resume continuity** - Continue learning using persisted local session data
 
-**Defer to Phase 2:**
-1. Selective offline boards (user-chosen boards for download)
-2. Sync queue visualization
-3. Advanced conflict resolution
+**Broader/later-phase reference considerations only:**
+1. Offline editing beyond already persisted state
+2. Reconnect sync / queued sync behavior
+3. Explicit offline downloads or pre-caching flows
+4. Offline video behavior
+5. Downloaded podcast offline playback
 
-**Reference**: See `docs/mobile-feature-specification.md` for detailed offline mode implementation
+**Reference**: See `docs/mobile-features-system.md` for the active mobile offline/system feature reference
 
 ---
 
@@ -394,7 +396,7 @@ Our **mind map + organic exploration** approach is unique in the market:
 | **P0 (Critical)** | 4GB RAM optimization | Budget segment floor (40% market share) |
 | **P0 (Critical)** | Android 11+ support | 95% market coverage |
 | **P0 (Critical)** | Syllabus-driven navigation | Exam-focused market |
-| **P1 (High)** | Offline editing with sync queue | Intermittent connectivity |
+| **P1 (High)** | Broader offline editing with sync queue | Intermittent connectivity if adopted later |
 | **P1 (High)** | HD+ resolution support | Standard budget smartphone |
 | **P2 (Medium)** | Cross-device sync | Not a market expectation |
 | **P2 (Medium)** | Tablet optimization | <5% usage |
@@ -407,13 +409,13 @@ Our **mind map + organic exploration** approach is unique in the market:
 | **Initial load time** | <3 seconds | 4G bottom 10th percentile (2-15 Mbps) |
 | **Cached asset size** | <50MB | 32GB device storage |
 | **Frame rate** | 60fps | With aggressive LOD on budget GPU |
-| **Offline capability** | Full core features | Queue-when-offline pattern |
+| **Offline capability** | Basic reopening of prior session data in MVP; broader offline later | Narrow continuity first |
 
 ### 10.3 Market Entry Strategy
 
 1. **Target JEE/NEET aspirants first** - Most motivated, highest willingness to pay
 2. **Freemium model essential** - Price sensitivity requires free tier
-3. **Offline-first architecture** - Non-negotiable for rural inclusion
+3. **Local persistence and narrow basic offline access first** - broader offline can remain later-phase
 4. **Mobile-first, phone-only** - Tablets and laptops are secondary
 5. **Chapter-focused content** - Aligns with syllabus-driven preparation
 6. **Lightweight assets** - Minimize data consumption for prepaid users
@@ -430,8 +432,8 @@ Our **mind map + organic exploration** approach is unique in the market:
 |-----|-------------------|---------------|
 | **Khan Academy** | Full offline download of courses | Similar approach, but we add AI + mind maps |
 | **BYJU'S** | Offline video download | We offer interactive exploration, not passive video |
-| **Unacademy** | Limited offline (paid tier) | We make offline free in MVP |
-| **Vedantu** | Limited offline support | We prioritize offline from day 1 |
+| **Unacademy** | Limited offline (paid tier) | Current MVP starts with basic offline reopening of prior stored content |
+| **Vedantu** | Limited offline support | We prioritize continuity through local persistence before broader offline features |
 
 ### 11.2 Differentiation Matrix
 
@@ -440,7 +442,7 @@ Our **mind map + organic exploration** approach is unique in the market:
 | **Learning Mode** | Video lectures + MCQ practice | Visual mind map + organic exploration |
 | **Personalization** | Algorithm-driven paths | Student-driven curiosity + AI guidance |
 | **Diagnostic** | Quiz scores only | Categorical coverage analysis (invisible to student) |
-| **Offline Support** | Limited or paid tier | MVP-critical, free tier |
+| **Offline Support** | Limited or paid tier | Narrow MVP basic offline access first; broader offline later if justified |
 | **Pricing** | ₹50K-100K annually (BYJU's) | Freemium with ₹199-499/month tiers |
 | **Content Alignment** | Generic or broad | Syllabus-driven (CBSE/ICSE/JEE/NEET) |
 
@@ -467,6 +469,6 @@ Our **mind map + organic exploration** approach is unique in the market:
 *Document Version 2.0 (Consolidated) | Indian Student Market Analysis*
 *Platform: Categorical Exploration Learning Platform*
 *Consolidates: Market demographics + Device specifications + Connectivity patterns*
-*Referenced by: `docs/mobile-feature-specification.md`, `docs/mvp-features-specification.md`, `docs/scalability-analysis.md`*
+*Referenced by: `docs/mobile-features-system.md`, `docs/mvp-features-specification.md`, `docs/scalability-analysis.md`*
 
 

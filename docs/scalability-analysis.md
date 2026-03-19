@@ -1,5 +1,7 @@
 # Scalability Analysis: Technical Stack Evaluation
 
+> **Scope note:** This document analyzes scale implications for both the current MVP and broader later-phase architecture. It should not be used as the source of truth for current product scope. In particular, current MVP includes only basic offline access to previously stored session content; offline editing, queued/offline sync, and broader offline-first behavior remain later-phase reference considerations unless the scope-anchor docs explicitly say otherwise.
+
 **Purpose**: Evaluate whether the recommended technical stack can scale to serve the Indian student market  
 **Market Context**: 248 million K-12 students, 22.7M NEET + 13.1M JEE aspirants, $7.5B EdTech market  
 **Document Version**: 1.0  
@@ -28,7 +30,7 @@ The recommended stack (React Native Hybrid Views + Skia Edges + FastAPI + Supaba
 | **Supabase PostgreSQL** | ✅ Ready | ⚠️ Upgrade needed | ❌ Major changes |
 | **Redis Caching** | ⚠️ Add service | ⚠️ Cluster needed | ⚠️ Cluster needed |
 | **LLM APIs** | ❌ Bottleneck | ❌ Critical | ❌ Self-host required |
-| **Offline Sync** | ✅ Ready | ⚠️ Jitter needed | ❌ Dedicated service |
+| **Broader Offline / Reconnect Sync** | Reference only | ⚠️ Jitter needed if adopted later | ❌ Dedicated service |
 | **CDN** | ⚠️ Add CDN | ✅ Required | ✅ Required |
 | **Cost Viability** | ⚠️ Marginal | ✅ With caching | ⚠️ Self-host LLMs |
 
@@ -37,7 +39,7 @@ The recommended stack (React Native Hybrid Views + Skia Edges + FastAPI + Supaba
 1. **Client-side scales horizontally by design** - Each device runs independently
 2. **LLM costs are the critical constraint** - Without caching, costs exceed revenue by 2.5x
 3. **Supabase scales to 1M** with Team tier; 10M requires Enterprise or self-hosted
-4. **Offline-first architecture is correct** - But needs sync storm handling at scale
+4. **Broader offline/reconnect workflows would need scale planning if adopted later** - but current MVP only requires narrow basic offline reopening of previously stored content
 5. **CDN is missing** from current stack - Critical for 1M+ users
 
 ---
@@ -317,18 +319,18 @@ The recommended stack (React Native Hybrid Views + Skia Edges + FastAPI + Supaba
 | Median download speed | 40-168 Mbps | 20-40 Mbps | Variable |
 | Bottom 10th percentile | 5-15 Mbps | 2-5 Mbps | Significant |
 
-### 5.1 Offline-First Architecture Assessment
+### 5.1 Broader Offline / Reconnect Architecture Assessment (Later-Phase Reference)
 
 **Current Stack Capabilities**:
 
 | Feature | Status | Implementation |
 |---------|--------|----------------|
-| Local persistence | ✅ MVP | AsyncStorage |
-| Offline editing | ✅ MVP | Queue edits locally |
-| Offline indicator | ✅ MVP | Network state detection |
-| Sync on reconnect | ✅ MVP | Background sync |
+| Local persistence / basic offline reopening | ✅ MVP | AsyncStorage |
+| Offline editing | Later-phase reference | Queue edits locally if ever adopted |
+| Offline indicator | Later-phase reference | Network state detection |
+| Sync on reconnect | Later-phase reference | Background sync if broader offline workflows are added |
 
-**Verdict**: ✅ **Offline-first is correctly prioritized**
+**Verdict**: For current scope, narrow local persistence and basic reopening are sufficient. Any offline-first or reconnect-sync architecture here should be read as later-phase scaling reference, not current MVP commitment.
 
 ### 5.2 Sync Storm Problem
 
@@ -410,7 +412,7 @@ def schedule_sync():
 | Supabase Pro | ✅ Ready | No | None |
 | Redis | ⚠️ Missing | Minor | Add Upstash/Redis Cloud |
 | LLM APIs | ❌ Problem | **YES** | Implement 80% caching |
-| Offline sync | ✅ Ready | No | None |
+| Broader offline / reconnect sync | Reference only | No | None for current MVP |
 | CDN | ⚠️ Missing | Minor | Add Cloudflare |
 
 **Phase 1 Modifications Required**:
@@ -446,7 +448,7 @@ def schedule_sync():
 | Supabase | ⚠️ Upgrade | Approaching | Upgrade to Team tier |
 | Redis | ⚠️ Scale | Moderate | Dedicated Redis instance |
 | LLM APIs | ❌ Critical | **YES** | Enterprise rate limits |
-| Offline sync | ⚠️ Scale | Moderate | Jittered sync |
+| Broader offline / reconnect sync | ⚠️ Scale | Moderate | Jittered sync if adopted later |
 | CDN | ✅ Required | No | Already in place |
 | Database | ⚠️ Read load | Moderate | Add read replica |
 
@@ -461,7 +463,7 @@ def schedule_sync():
    - Reduce connection overhead
    - Handle connection spikes
 
-3. **Implement jittered sync**
+3. **Implement jittered reconnect sync if broader offline workflows are adopted**
    - 0-60 second random delay
    - Prevents sync storms
 
@@ -492,7 +494,7 @@ def schedule_sync():
 | Supabase | ❌ Limit | **CRITICAL** | Enterprise or self-hosted |
 | Redis | ⚠️ Scale | Moderate | Redis Cluster |
 | LLM APIs | ❌ Critical | **CRITICAL** | Self-hosted models |
-| Offline sync | ❌ Scale | **CRITICAL** | Dedicated sync service |
+| Broader offline / reconnect sync | ❌ Scale | **CRITICAL** | Dedicated sync service if adopted later |
 | Database | ❌ Scale | **CRITICAL** | Sharding + replicas |
 
 **Phase 3 Modifications Required**:
@@ -509,7 +511,7 @@ def schedule_sync():
    - 80%+ cost reduction
    - No rate limits
 
-3. **Dedicated sync microservice**
+3. **Dedicated reconnect-sync microservice if broader offline workflows are adopted**
    - RabbitMQ or Kafka for queue
    - Separate service for sync processing
    - Conflict resolution engine

@@ -1,14 +1,16 @@
-# Theory of Change: Categorical Exploration Framework for Concept Learning
+# Theory of Change: Path-Based Conceptual Exploration and Teacher-Support Interpretation
 
-## A Synthesis of Kantian Epistemology, Constructivist Pedagogy, and Adaptive Learning Technology
+## A Synthesis of Kantian Epistemology, Constructivist Pedagogy, and Learning Technology
 
 ---
 
 ### Foundational Claim
 
-**Thesis**: More robust conceptual understanding often develops through natural learner exploration across multiple cognitive dimensions. By observing authentic learning behavior, mapping exploration patterns to a systematic categorical framework, and providing teachers with precise diagnostic data, we enable evidence-based pedagogical intervention while preserving learner agency.
+**Thesis**: More robust conceptual understanding may often develop through natural learner exploration across multiple conceptual dimensions. By observing authentic learning behavior, mapping exploration patterns to an internal analytic framework, and surfacing probabilistic teacher-support signals, the platform can help teachers and learners choose better follow-up actions while preserving learner agency.
 
-**Core Principle**: Students explore concepts naturally. The system observes and diagnoses. Teachers intervene with precision.
+**Core Principle**: Students explore concepts naturally. The system observes and interprets. Teachers decide whether and how to intervene.
+
+**Non-goal**: The system is not framed here as a standalone autonomous assessment authority. Stronger diagnostic claims remain part of the research agenda unless validated.
 
 ---
 
@@ -16,30 +18,30 @@
 
 #### Level 1: Epistemological Foundation (Kant)
 
-Kant's *Critique of Pure Reason* identifies **categories of understanding**—conceptual structures (Quantity, Quality, Relation, Modality) through which the mind organizes experience. These categories were produced by a serious philosophical tradition asking exactly the right foundational question for this framework's purposes: *what are the fundamental ways a mind engages with a concept?* This makes them a principled derivation of the diagnostic dimensions used here—a stronger starting point than dimensions selected by committee or intuition.
+Kant's *Critique of Pure Reason* identifies **categories of understanding**—conceptual structures (Quantity, Quality, Relation, Modality) through which the mind organizes experience. These categories came from a serious philosophical tradition asking a question highly relevant to this project: *what are the fundamental ways a mind engages with a concept?* That makes them a more principled starting point than dimensions selected only by committee or intuition.
 
-However, this framework sets aside Kant's transcendental scaffolding—the claim that these categories are a priori necessities of thought. Stripping that scaffolding removes Kant's original justification for the completeness of the categorical system, and no independent argument for logical completeness is offered to replace it. **The framework does not claim that these 8 categories are logically complete or that they exhaust the space of possible conceptual dimensions.** Instead, it makes the weaker, more defensible claim of **provisional sufficiency**: these 8 categories are adequate for diagnostic purposes given current evidence, and sufficiency is treated as an open empirical question under ongoing test.
+However, this framework sets aside Kant's transcendental scaffolding—the claim that these categories are a priori necessities of thought. Once that scaffolding is removed, no independent argument for logical completeness is offered here. **The framework therefore does not claim that these 8 categories are logically complete or that they exhaust the space of possible conceptual dimensions.** Instead, it makes the weaker and more defensible claim of **provisional sufficiency**: these 8 categories may be adequate as an internal analytic lens for teacher-support interpretation and internal research under current evidence, while remaining open to revision.
 
-**Key distinction**: We do not claim individual variation in cognitive *structure*. We claim individual variation in *exploratory preference*—the entry points and sequences through which learners choose to engage with a shared diagnostic categorical space (as modeled by this framework). However, because the categories function as principled diagnostic dimensions of conceptual engagement, a gap in exploration of a dimension that is genuinely available in a concept is treated as evidence of a likely gap in conceptual understanding, not merely a behavioral preference. Where a dimension is structurally thin for a given concept—as encoded by low subject weighting—the same gap is less diagnostically significant.
+**Key distinction**: We do not claim individual variation in cognitive *structure*. We claim individual variation in *exploratory preference*—the entry points and sequences through which learners choose to engage with a shared conceptual space. Low coverage in a dimension that is genuinely available and high-priority for a concept may indicate a **possible under-explored area** worth follow-up, but it is not treated as definitive proof of misunderstanding. Subject weights modulate how seriously such signals should be interpreted.
 
-**Application**: Kantian categories serve as a *diagnostic lens* for interpreting conceptual engagement, not as a pedagogical structure. Students never encounter categorical language—they explore freely while the system maps their behavior to categorical dimensions.
+**Application**: Kantian categories serve here as an **internal analytic lens** for interpreting conceptual engagement, not as a pedagogical structure. Students do not encounter categorical language; they explore freely while the system maps patterns for later interpretation.
 
-#### Level 2: Diagnostic Schema (8-Dimension Framework)
+#### Level 2: Internal Analytic Schema (8-Dimension Framework)
 
-We operationalize Kantian categories into eight **diagnostic dimensions**—analytical lenses for mapping natural exploration to cognitive coverage:
+We operationalize the Kantian starting point into eight **analytic dimensions** for interpreting natural exploration:
 
-| Dimension | What It Detects | Kantian Origin |
-|-----------|-----------------|----------------|
-| 1. Define (Essence) | Has student engaged with what the concept IS? | Quality: Reality |
-| 2. Distinguish (Boundaries) | Has student explored what the concept is NOT? | Quality: Negation |
-| 3. Decompose (Structure) | Has student analyzed constituent parts? | Quantity: Unity/Plurality |
-| 4. Connect (Relations) | Has student mapped relationships to other concepts? | Relation: Community |
-| 5. Delimit (Constraints) | Has student identified failure conditions/limitations? | Quality: Limitation |
-| 6. Predict (Causation) | Has student traced effects and consequences? | Relation: Causality |
-| 7. Contextualize (Framework) | Has student situated concept within larger systems? | Relation: Inherence |
-| 8. Vary (Possibilities) | Has student explored alternatives and contingencies? | Modality: Possibility |
+| Dimension | What It Helps Interpret | Kantian Origin |
+|-----------|-------------------------|----------------|
+| 1. Define (Essence) | Whether the learner engages what the concept is | Quality: Reality |
+| 2. Distinguish (Boundaries) | Whether the learner explores what the concept is not | Quality: Negation |
+| 3. Decompose (Structure) | Whether the learner analyzes constituent parts | Quantity: Unity/Plurality |
+| 4. Connect (Relations) | Whether the learner maps relationships to other concepts | Relation: Community |
+| 5. Delimit (Constraints) | Whether the learner engages limits or failure conditions | Quality: Limitation |
+| 6. Predict (Causation) | Whether the learner traces effects and consequences | Relation: Causality |
+| 7. Contextualize (Framework) | Whether the learner situates the concept within larger systems | Relation: Inherence |
+| 8. Vary (Possibilities) | Whether the learner explores alternatives and contingencies | Modality: Possibility |
 
-**Working Hypothesis**: Engagement across dimensions that are structurally available and significant in a given concept is treated as evidence of broader conceptual coverage. The **subject-specific weighting** system determines which dimensions are structurally significant for a given concept type. The hypothesis that breadth of engagement across multiple dimensions predicts more robust understanding than equivalent depth in a subset of dimensions is explicitly under empirical test—it is a principled and theoretically grounded bet, but not a settled assumption. The diagnostic schema detects gaps that may indicate diagnostically significant areas of incomplete conceptual engagement or understanding, with diagnostic significance proportional to the structural availability of each dimension in the concept being studied.
+**Working Hypothesis**: Engagement across dimensions that are structurally available and significant in a given concept may correlate with broader conceptual coverage. The **subject-specific weighting** system determines which dimensions are structurally significant for a given concept type. The hypothesis that breadth of engagement across multiple dimensions predicts more robust understanding than equivalent depth in a subset of dimensions remains under empirical test. The analytic schema is therefore used to generate **teacher-support signals and research hypotheses**, not to certify mastery.
 
 ---
 
@@ -49,43 +51,45 @@ We operationalize Kantian categories into eight **diagnostic dimensions**—anal
 
 The system monitors authentic learning behavior without imposing structure:
 
-| Data Type | What Is Captured | Diagnostic Value |
-|-----------|------------------|------------------|
-| **Question Generation** | Questions students naturally ask or select | Each selected question is scored as an 8-dimensional engagement vector (0.0–1.0 per dimension), revealing which cognitive dimensions the learner is actively engaging |
-| **Exploration Sequence** | Order of conceptual dimensions engaged | Shows preferred entry points and pathways |
-| **Engagement Depth** | Time spent, content consumed, revisitation | Distinguishes surface vs. deep exploration |
+| Data Type | What Is Captured | Analytic / Product Value |
+|-----------|------------------|--------------------------|
+| **Question Generation** | Questions students naturally ask or select | Each selected question can be scored as an 8-dimensional engagement vector (0.0–1.0 per dimension), showing which analytic dimensions the learner is engaging |
+| **Exploration Sequence** | Order of dimensions engaged over time | Shows preferred entry points, transitions, and path shapes |
+| **Engagement Depth** | Time spent, content consumed, revisitation | Helps distinguish shallow contact from more sustained exploration |
 | **Connection Behaviors** | Links made between concepts | Indicates integration and transfer potential |
-| **Confusion Signals** | Hesitation, backtracking, repeated access | Identifies struggle points requiring support |
+| **Confusion Signals** | Hesitation, backtracking, repeated access | Helps surface areas that may merit support or clarification |
 
 **Principle**: Capture the natural learning journey as it unfolds. No categorical prompting, no structured questioning, no artificial scaffolding during observation.
 
-#### Phase 2: Analysis (Diagnosis)
+#### Phase 2: Analysis (Internal Interpretation)
 
-The system maps observed behavior to the 8-dimension diagnostic framework for **teacher/admin analytics** (student-facing UX remains category-neutral):
+The system maps observed behavior to the 8-dimension analytic framework for **teacher/admin interpretation and internal analytics** while student-facing UX remains category-neutral.
 
-**Teacher-Facing Dimensional Coverage Mapping (not shown to students)**
+For the planned learner-facing reflective guidance and self-review layer that sits downstream of this boundary, see `docs/student-reflective-guidance-and-self-review.md`.
+
+**Teacher-Facing Analytic Summary (not shown to students)**
 ```
-Teacher diagnostic view of a student's exploration of [Photosynthesis]:
+Teacher support summary for a student's exploration of [Photosynthesis]:
 Normalised cumulative scores (Σ scores[d] / N questions selected):
 ├── Define:        0.72 ███████░░░  (strong engagement)
 ├── Distinguish:   0.18 ██░░░░░░░░  (minimal)
 ├── Decompose:     0.55 ██████░░░░  (moderate)
 ├── Connect:       0.74 ███████░░░  (strong engagement)
-├── Delimit:       0.03 ░░░░░░░░░░  (near-zero — persistent concern)
+├── Delimit:       0.03 ░░░░░░░░░░  (persistently low)
 ├── Predict:       0.58 ██████░░░░  (moderate)
 ├── Contextualize: 0.41 ████░░░░░░  (partial)
-└── Vary:          0.05 ░░░░░░░░░░  (near-zero — persistent concern)
+└── Vary:          0.05 ░░░░░░░░░░  (persistently low)
 
-Diagnostic: Strong on essence and connections.
-Concern: Persistent near-zero scores in Delimit and Vary; follow-up recommended.
-Risk signal: Understanding may be less stable at boundary conditions.
+Interpretive note: Strong on core meaning and connections.
+Possible follow-up area: Delimit and Vary remain under-engaged despite repeated opportunities.
+Teacher-facing caution: This pattern may indicate weaker engagement with boundary conditions, but does not by itself prove misunderstanding.
 Velocity (last 5 questions): Vary rising (0.0 → 0.3) — may be catching up.
 ```
 
 **Profile Generation**
-- **Preferred entry points**: Which dimensions students naturally engage first
-- **Exploration sequences**: Typical pathways through categorical space
-- **Consistent gaps**: Dimensions repeatedly neglected across concepts
+- **Preferred entry points**: Which dimensions learners naturally engage first
+- **Exploration sequences**: Typical pathways through analytic space
+- **Persistent low-engagement areas**: Dimensions repeatedly under-engaged across concepts
 - **Subject variations**: How patterns differ across domains
 
 **Understanding Signals**
@@ -94,24 +98,24 @@ Velocity (last 5 questions): Vary rising (0.0 → 0.3) — may be catching up.
 - Self-correction behaviors (metacognitive indicator)
 - Novel application attempts (transfer indicator)
 
-#### Phase 3: Teacher Integration (Intervention)
+#### Phase 3: Teacher Integration (Guided Follow-Up)
 
-The system provides actionable diagnostic data to enable targeted scaffolding:
+The system provides **actionable teacher-support insights** to enable more targeted scaffolding, while leaving final pedagogical judgment to the teacher.
 
 **Individual Student Profiles**
 ```
 Student A - Concept: Democracy
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Independent Exploration: Definition, Connections, Context
-Unexplored Dimensions: Limits, Alternatives, Causation
+Observed independent exploration: Definition, Connections, Context
+Possible follow-up areas: Limits, Alternatives, Causation
 
-Recommended Intervention:
+Suggested follow-up prompts:
 → "What happens when democratic systems face urgent crises?"
 → "How might democracy work differently in different contexts?"
 → "What effects does democratic decision-making have on speed vs. legitimacy?"
 
-ZPD Positioning: Student can define and contextualize independently.
-Ready for guided exploration of failure conditions and trade-offs.
+Teacher note: Student appears comfortable with defining and contextualizing the concept.
+Possible next step: guided exploration of failure conditions and trade-offs.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -119,21 +123,21 @@ Ready for guided exploration of failure conditions and trade-offs.
 ```
 Class Overview - Concept: Photosynthesis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Common Strength: 85% explored components and causation
-Common Concern: Only 12% explored limits or alternatives
+Common strength: most students explored components and causation.
+Common follow-up theme: limits and alternatives remain relatively under-explored.
 
-Recommended Class Intervention:
+Suggested class follow-up:
 → Lesson focus: "When does photosynthesis fail?"
 → Discussion prompt: "Could plants evolve different energy systems?"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 **Vygotsky's ZPD Operationalized**
-- **Independent capability**: Dimensions explored without guidance
-- **Proximal zone**: Unexplored dimensions where scaffolding would be productive
-- **Teacher as "more knowledgeable other"**: Precise targeting of intervention
+- **Independent capability**: areas explored without guidance
+- **Probable proximal zone**: under-explored areas where scaffolding may be productive
+- **Teacher as "more knowledgeable other"**: interpreter of signals, not recipient of certainty claims
 
-**Outcome**: Teachers move from intuition-based instruction ("I think students struggle with X") to evidence-based targeting ("Data shows Student A has not explored limits or alternatives, suggesting intervention should focus on boundary conditions").
+**Outcome**: Teachers move from intuition-only instruction ("I think students struggle with X") toward evidence-informed follow-up ("This learner has not yet explored limits or alternatives much; I may want to probe boundary conditions next").
 
 ---
 
@@ -144,23 +148,23 @@ Recommended Class Intervention:
 │                           THEORY OF CHANGE                                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  IF comprehensive conceptual understanding benefits from engagement across  │
-│     multiple diagnostic dimensions (working hypothesis)                     │
+│  IF robust conceptual understanding often benefits from engagement across   │
+│     multiple relevant dimensions (working hypothesis)                       │
 │                                                                             │
 │  AND we can observe natural learning behavior without imposing structure    │
 │     (authentic data collection)                                             │
 │                                                                             │
-│  AND we can map observed behavior to categorical dimensions                 │
-│     (diagnostic analysis)                                                   │
+│  AND we can map observed behavior to internal analytic dimensions           │
+│     (post-hoc interpretation)                                               │
 │                                                                             │
-│  AND we can identify gaps that may indicate likely difficulties             │
-│     (coverage detection)                                                    │
+│  AND we can surface probabilistic follow-up signals for teachers            │
+│     (teacher-support analytics)                                             │
 │                                                                             │
-│  AND teachers can use gap data to target intervention precisely             │
-│     (ZPD scaffolding)                                                       │
+│  AND teachers can use those signals to guide follow-up deliberately         │
+│     (ZPD-informed scaffolding)                                              │
 │                                                                             │
-│  THEN students are more likely to achieve more complete conceptual          │
-│       understanding through efficient, evidence-based pedagogical support   │
+│  THEN students may be more likely to achieve stronger conceptual            │
+│       understanding through more timely, evidence-informed support          │
 │       while maintaining authentic learning agency                           │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -168,8 +172,8 @@ Recommended Class Intervention:
 
 **Causal Chain**:
 ```
-Natural Exploration → Behavior Observation → Categorical Mapping →
-Gap Detection → Teacher Insight → Targeted Intervention → Improved Understanding
+Natural Exploration → Behavior Observation → Analytic Mapping →
+Teacher-Support Signals → Targeted Follow-Up → Improved Understanding
 ```
 
 ---
@@ -178,13 +182,13 @@ Gap Detection → Teacher Insight → Targeted Intervention → Improved Underst
 
 | Objection | Response |
 |-----------|----------|
-| "Kant's categories are transcendental, not pedagogical" | The transcendental question is orthogonal to this application. What matters is that the categories were derived by asking what the fundamental dimensions of conceptual engagement may be for diagnostic purposes—the right question for this framework's purposes. The transcendental scaffolding is set aside; the principled derivation is retained. Categories serve as an analytical lens for detecting coverage gaps, not as teaching structure. Students never encounter Kantian language. |
-| "You've stripped Kant's transcendental justification for completeness without replacing it" | Correct—logical completeness is not claimed. The framework claims **provisional sufficiency**: that these categories are adequate for diagnostic purposes given current evidence. Sufficiency is tested not by classification residual alone—that test is circular, since a classifier trained on 8 categories will force questions into them by construction, proving only that the classifier works, not that the space is adequate—but by an **independent open-coding probe** in which human raters generate their own dimensional labels without prior knowledge of the framework. Consistent convergence with the 8 categories is real evidence of sufficiency; consistent emergence of uncaptured dimensions is a finding requiring framework revision. |
-| "Depth in one dimension may produce better understanding than breadth across many" | This is an open empirical question the framework treats as such. The framework makes a principled bet on breadth—that a student who has never engaged with the limits or alternatives of a concept holds a more fragile understanding than one who has explored multiple dimensions—but this is one of the core hypotheses the validation roadmap is designed to test, not a settled assumption. |
-| "Exploration doesn't equal understanding" | Correct. Exploration is necessary but not sufficient. We track engagement patterns to detect *likely gaps* in understanding, not to certify mastery. Teacher intervention addresses gaps; separate assessment validates learning. |
-| "How do you know unexplored dimensions indicate incomplete understanding?" | Empirical hypothesis requiring validation. We predict that students who never explore limits will fail on boundary-case problems. This correlation must be tested. Diagnostic significance of any gap depends on the structural availability of that dimension in the concept, as encoded by subject weights—gaps in high-weight dimensions are more meaningful than gaps in low-weight dimensions. |
-| "Observation may change behavior (Hawthorne effect)" | System observes passively through normal learning interface. Students engage with content, not with tracking system. Minimal behavioral distortion expected. |
-| "Teachers may not use diagnostic data effectively" | Valid concern. Requires professional development and actionable data presentation. System provides specific intervention recommendations, not just raw coverage percentages. |
+| "Kant's categories are transcendental, not pedagogical" | The transcendental question is orthogonal to this application. What matters is that the categories were derived by asking what the fundamental dimensions of conceptual engagement may be. The transcendental scaffolding is set aside; the principled derivation is retained. Categories serve as an internal analytic lens, not as teaching structure. Students never encounter Kantian language. |
+| "You've stripped Kant's transcendental justification for completeness without replacing it" | Correct—logical completeness is not claimed. The framework claims **provisional sufficiency** only: that these categories may be adequate for internal interpretation given current evidence. Sufficiency should be tested not by classification residuals alone, which are circular, but by **independent open-coding probes** that can reveal uncaptured dimensions. |
+| "Depth in one dimension may produce better understanding than breadth across many" | This remains an open empirical question. The framework makes a principled bet on breadth, but treats it as a hypothesis rather than a settled conclusion. |
+| "Exploration doesn't equal understanding" | Correct. Exploration is neither equivalent to mastery nor a substitute for assessment. The system tracks engagement patterns to identify *possible* follow-up areas, not to certify understanding. |
+| "How do you know under-explored dimensions indicate difficulty?" | We do not know this in a universal sense. It is an empirical hypothesis requiring validation. We predict that some persistent low-engagement patterns—especially in high-weight dimensions—may correlate with later difficulty, but that correlation must be tested. |
+| "Observation may change behavior (Hawthorne effect)" | The system observes passively through the normal learning interface. Some distortion remains possible, which is why observation validity is part of the validation agenda. |
+| "Teachers may not use these signals effectively" | Valid concern. The product must present signals as probabilistic, actionable, and easy to interpret. Professional development and clear UX matter. |
 
 ---
 
@@ -194,31 +198,31 @@ Gap Detection → Teacher Insight → Targeted Intervention → Improved Underst
 |-----------|----------------------|------------------------------|---------------|
 | **Student experience** | Answer explicit questions | Follow algorithm-determined path | Explore freely |
 | **Data source** | Answer correctness | Performance on prescribed tasks | Natural exploration patterns |
-| **Categorical structure** | Visible to student | Embedded in question sequence | Invisible diagnostic overlay |
-| **Teacher insight** | Aggregate scores | Mastery percentages | Priority dimensional concerns |
-| **Intervention basis** | "Student scored 70%" | "Student hasn't mastered X skill" | "Student has shown limited exploration of X dimension" |
+| **Analytic structure** | Visible to student | Embedded in question sequence | Invisible internal analytic overlay |
+| **Teacher insight** | Aggregate scores | Mastery percentages | Probabilistic follow-up themes |
+| **Intervention basis** | "Student scored 70%" | "Student hasn't mastered X skill" | "This learner may need more support on X kind of conceptual move" |
 | **Learner agency** | Low (respond to prompts) | Low (follow adaptive path) | High (self-directed exploration) |
-| **Theoretical basis** | Assessment theory | Skill mastery models | Principled categorical diagnostics (provisional sufficiency) |
+| **Theoretical basis** | Assessment theory | Skill mastery models | Principled analytic framework (provisional sufficiency) |
 
-**Key Innovation**: Systematic diagnosis through observation of authentic behavior, rather than structured testing or adaptive sequencing.
+**Key Innovation**: Systematic interpretation of authentic exploration to support teacher follow-up, rather than relying only on structured testing or fully prescribed adaptive sequencing.
 
 ---
 
 ### Understanding Signals Framework
 
-Beyond categorical coverage, the system detects behavioral signals that may indicate developing or deeper understanding:
+Beyond dimensional coverage, the system detects behavioral signals that may indicate developing or deeper understanding:
 
-| Signal Type | Observable Behavior | What It Indicates |
-|-------------|--------------------|--------------------|
+| Signal Type | Observable Behavior | What It May Indicate |
+|-------------|--------------------|----------------------|
 | **Active Questioning** | Student generates own questions | Deep cognitive engagement |
 | **Cross-Concept Linking** | Student connects to prior knowledge | Integration occurring |
 | **Self-Correction** | Student revises initial understanding | Metacognitive processing |
-| **Boundary Testing** | Student asks "what if" questions | Sophisticated comprehension |
+| **Boundary Testing** | Student asks "what if" questions | More sophisticated conceptual engagement |
 | **Novel Application** | Student applies concept to new context | Transfer capability |
 | **Contradiction Recognition** | Student identifies tensions/paradoxes | Critical analysis |
-| **Trajectory Shape** | Cumulative dimensional profile evolves over session | Shift from narrow to broad engagement indicates deepening exploration; stagnation in a single region may indicate fixation |
+| **Trajectory Shape** | Cumulative dimensional profile evolves over session | A shift from narrow to broader engagement may indicate deepening exploration |
 
-These signals complement categorical coverage to provide richer diagnostic profiles.
+These signals complement dimensional coverage to provide richer teacher-support profiles.
 
 ---
 
@@ -228,37 +232,37 @@ This framework makes empirical claims requiring systematic validation:
 
 **Phase 1: Observation Validity**
 - Can we accurately capture natural exploration behavior?
-- Does observation avoid distorting learning behavior?
-- Is collected data rich enough for categorical mapping?
+- Does observation materially distort learning behavior?
+- Is collected data rich enough for meaningful analytic mapping?
 
-**Phase 2: Diagnostic Validity**
+**Phase 2: Analytic Validity**
 - Can we reliably classify exploration behavior into the 8 dimensions?
 - Do inter-rater agreement tests confirm classification consistency?
-- Are coverage gaps stable and meaningful (not random noise)?
+- Are persistent low-engagement signals stable and meaningful rather than random noise?
 
 **Phase 3: Predictive Validity**
-- Do categorical gaps predict specific understanding failures?
-- Does gap-targeted intervention improve outcomes vs. generic instruction?
+- Do some low-coverage patterns predict specific understanding failures?
+- Does targeted follow-up improve outcomes versus generic instruction?
 - Which dimensions are most predictive for which concept types?
 
 **Phase 4: Practical Validity**
-- Can teachers interpret and act on diagnostic profiles?
-- Does evidence-based targeting improve teaching efficiency?
+- Can teachers interpret and act on probabilistic profiles?
+- Does evidence-informed targeting improve teaching efficiency?
 - Do students achieve better conceptual understanding?
 
 **Phase 5: Core Hypothesis Validation**
 
-Three explicit validation targets that address the framework's foundational claims:
+Four explicit validation targets address the framework's foundational claims:
 
-1. **Independent sufficiency probe** — Human raters open-code student-generated questions without prior knowledge of the 8-category framework. Emergent dimensional labels are compared against the 8 categories to test whether the categorical space is adequate or requires expansion. This is the primary sufficiency test. Classifier residual analysis alone is not a valid sufficiency test—a classifier trained on 8 categories will force questions into them by construction, proving only that the classifier works, not that the space is adequate.
+1. **Independent sufficiency probe** — Human raters open-code student-generated questions without prior knowledge of the 8-category framework. Emergent dimensional labels are compared against the 8 categories to test whether the analytic space is adequate or requires expansion.
 
 2. **Breadth vs. depth tradeoff** — Does coverage across multiple dimensions predict better learning outcomes than equivalent depth in a subset of dimensions? This tests the framework's core bet on breadth.
 
-3. **Weight validity** — Do gaps in high-weight dimensions predict understanding failures more reliably than gaps in low-weight dimensions? This validates that the weighting system correctly encodes the structural significance of each dimension for a given subject.
+3. **Weight validity** — Do persistent low-engagement patterns in high-weight dimensions predict understanding failures more reliably than low-engagement patterns in low-weight dimensions?
 
-4. **Trajectory shape as diagnostic signal** — Does the shape of the cumulative dimensional profile over a session (not just its endpoint) predict learning outcomes? Specifically: does a session that starts narrow and broadens produce better outcomes than one that remains narrow throughout, controlling for total engagement time? This validates whether trajectory shape adds diagnostic value beyond cumulative coverage.
+4. **Trajectory shape as additional signal** — Does the shape of the cumulative dimensional profile over a session predict learning outcomes beyond the endpoint alone?
 
-**Status**: This remains a theoretically-grounded hypothesis requiring empirical validation before claiming effectiveness.
+**Status**: This remains a theoretically grounded hypothesis set requiring empirical validation before stronger product claims are justified.
 
 ---
 
@@ -267,13 +271,13 @@ Three explicit validation targets that address the framework's foundational clai
 | Phase | Focus | Deliverable |
 |-------|-------|-------------|
 | 1. Prototype | Build observation infrastructure | Data collection system capturing exploration behavior |
-| 2. Classify | Develop categorical mapping | Algorithm mapping behavior to 8 dimensions |
-| 3. Validate | Test diagnostic accuracy | Correlation studies: gaps → understanding failures |
-| 4. Interface | Build teacher dashboard | Actionable profiles with intervention recommendations |
-| 5. Evaluate | Measure pedagogical impact | Controlled study: targeted vs. generic intervention |
+| 2. Classify | Develop analytic mapping | Reliable 8-dimension post-hoc classification |
+| 3. Validate | Test signal validity | Correlation studies: signals → later outcomes |
+| 4. Interface | Build teacher dashboard | Actionable teacher-support profiles and follow-up suggestions |
+| 5. Evaluate | Measure pedagogical impact | Controlled study: targeted follow-up vs. generic intervention |
 
 ---
 
-*Document Version 2.0 | Categorical Exploration Framework*
-*Updated: Observation-first, Diagnosis-second Architecture*
+*Document Version 2.1 | Path-Based Conceptual Exploration and Teacher-Support Interpretation*
+*Updated: Observation-first, interpretation-second architecture*
 

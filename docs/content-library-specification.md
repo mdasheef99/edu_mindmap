@@ -17,7 +17,7 @@ It exists to:
 ## Non-goals / guardrails
 - Not student-facing: no category labels, no “8 dimensions” UI.
 - Not a replacement for organic exploration: keep a tunable **discovery budget**.
-- Not “optimize for diagnostic coverage” during generation; promotion is based on observed effectiveness, not category quotas.
+- Not “optimize for analytic coverage” during generation; promotion is based on observed effectiveness, not category quotas.
 
 ---
 

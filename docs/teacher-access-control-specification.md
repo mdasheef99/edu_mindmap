@@ -1,15 +1,19 @@
 # Teacher Access Control Specification
 
-**Document Version**: 1.0  
-**Status**: Draft  
-**Last Updated**: February 2025  
-**Related Documents**: `system-architecture.md`, `analytics-dashboard-inventory.md`
+**Document Version**: 1.1  
+**Status**: Reference Draft (Broader / Later-Phase)  
+**Last Updated**: March 2026  
+**Related Documents**: `docs/teacher-support-mvp-specification.md`, `docs/system-architecture.md`, `docs/analytics-dashboard-inventory.md`
+
+---
+
+> **Alignment note (March 2026):** The current MVP teacher-support surface and minimum access model are defined in `docs/teacher-support-mvp-specification.md`. This document describes a broader privilege, intervention, and administration architecture beyond the current MVP scope and should be treated as later-phase reference until further aligned.
 
 ---
 
 ## 1. Executive Summary
 
-This document specifies the three-tier access control system for the Teacher Dashboard, ensuring that question intervention privileges are properly gatekept while maintaining platform content quality and organic exploration principles.
+This document describes a broader three-tier access control concept for teacher privileges, intervention workflows, and administration beyond the current MVP teacher-support surface, while maintaining platform content quality and organic exploration principles.
 
 ### Core Principles
 

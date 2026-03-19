@@ -1,4 +1,6 @@
-# System Architecture: Categorical Exploration Learning Platform
+# System Architecture: Path-Based Conceptual Exploration Platform
+
+> **Scope note:** This document is authoritative for overall pipeline structure and system flow, but some downstream surface examples in it describe broader or later-phase reference material. Current MVP scope decisions should be taken from `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, and `docs/teacher-support-mvp-specification.md`, especially for the bounded teacher-support surface and the narrow basic-offline-access boundary.
 
 ## Design Principles
 
@@ -14,29 +16,29 @@
 │     templates. The LLM generates what a curious learner would ask.     │
 │                                                                         │
 │  2. POST-HOC CLASSIFICATION                                            │
-│     Categories are applied AFTER generation for diagnosis, because     │
-│     they represent principled diagnostic dimensions for engaging       │
-│     concepts. Classification reveals which diagnostic dimensions of    │
-│     the concept the student has engaged with through question-based    │
-│     exploration. Diagnostic significance of any gap depends on how     │
-│     structurally available that dimension is in the concept—as         │
-│     encoded by subject weights. Categories are invisible to students   │
-│     throughout the experience.                                         │
+│     Categories are applied AFTER generation for analysis and teacher-  │
+│     support interpretation, because they provide principled internal   │
+│     dimensions for conceptual engagement. Classification reveals       │
+│     which parts of the concept the learner may have engaged through    │
+│     question-based exploration. Interpretive priority depends on how   │
+│     structurally available a dimension is in the concept—as encoded    │
+│     by subject weights. Categories remain invisible to students.       │
 │                                                                         │
 │  3. CHAPTER-BOUNDED SCOPE                                              │
 │     Learning sessions focus on single chapters. All concepts, nodes,   │
 │     and questions relate to the current chapter's learning objectives. │
 │                                                                         │
-│  4. SUBJECT-WEIGHTED DIAGNOSIS                                         │
+│  4. SUBJECT-WEIGHTED INTERPRETATION                                    │
 │     Different subjects systematically produce concepts with different  │
 │     structural profiles. Weights encode which dimensions are more      │
 │     prominently and meaningfully available in a subject's              │
 │     characteristic concept types, not merely which dimensions          │
-│     teachers prefer to assess. Diagnostic analysis applies these      │
-│     discipline-specific weights.                                       │
+│     teachers prefer to assess. Teacher-support interpretation applies  │
+│     these discipline-specific weights cautiously.                      │
 │                                                                         │
 │  5. TEACHER AS MKO                                                     │
-│     System surfaces gaps; teachers provide scaffolding as the          │
+│     System surfaces probabilistic signals and possible follow-ups;     │
+│     teachers provide contextual judgment and scaffolding as the        │
 │     "More Knowledgeable Other" per Vygotsky's ZPD framework.          │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -81,8 +83,8 @@
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                   ANALYSIS LAYER                                 │   │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐     │   │
-│  │  │  Question      │  │   Coverage     │  │  Subject       │     │   │
-│  │  │    Bank        │  │    Engine      │  │  Weighting     │     │   │
+│  │  │  Question      │  │ Coverage &     │  │  Subject       │     │   │
+│  │  │    Bank        │  │ Signal Engine  │  │  Weighting     │     │   │
 │  │  └────────────────┘  └────────────────┘  └────────────────┘     │   │
 │  └──────────────────────────────┬──────────────────────────────────┘   │
 │                                 │                                       │
@@ -90,10 +92,11 @@
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                   OUTPUT LAYER                                   │   │
 │  │  ┌──────────────────────┐  ┌──────────────────────────────┐     │   │
-│  │  │  Student Feedback    │  │  Teacher Dashboard           │     │   │
-│  │  │  • Assessment results│  │  • Individual profiles       │     │   │
-│  │  │  • Suggested Qs      │  │  • Class-level concerns      │     │   │
-│  │  │    (category-neutral)│  │  • Avoided questions         │     │   │
+│  │  │  Student Guidance    │  │  Teacher Dashboard           │     │   │
+│  │  │  • Path recap        │  │  • Individual profiles       │     │   │
+│  │  │  • Self-checks       │  │  • Class-level concerns      │     │   │
+│  │  │  • Suggested Qs      │  │  • Low-selection patterns    │     │   │
+│  │  │    (category-neutral)│  │  • Follow-up themes          │     │   │
 │  │  └──────────────────────┘  └──────────────────────────────┘     │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
@@ -137,7 +140,7 @@ Do NOT:
 - Use formulaic question patterns
 - Force artificial variety
 - Reference any categorical framework
-- Optimize for diagnostic category coverage (no "cover all 8" / "hit each dimension" objectives)
+- Optimize for analytic dimension coverage (no "cover all 8" / "hit each dimension" objectives)
 ```
 
 **Output**: Natural, contextually-relevant questions with no categorical tagging.
@@ -162,7 +165,7 @@ This packet (or a hash/reference to it) must be persisted on the resulting child
 
 ### Stage 2: Post-Hoc Categorical Classification
 
-**Principle**: Classification happens invisibly, after generation, for diagnostic purposes only.
+**Principle**: Classification happens invisibly, after generation, for internal analysis and teacher-support interpretation only.
 
 **Classification Process**:
 ```
@@ -171,7 +174,7 @@ Generated Question → Classification Model → Category Assignment → Question
 
 **Classification Prompt**:
 ```
-Score this question on how strongly it engages each diagnostic dimension of conceptual engagement.
+Score this question on how strongly it engages each analytic dimension of conceptual engagement.
 
 Question: "[generated question]"
 Concept: [chapter concept]
@@ -304,13 +307,13 @@ These derived fields are what get injected into prompts as:
 ### Storage and delivery requirements
 - **Images**: object storage (S3/Supabase Storage/etc.) + CDN; store original + optional resized variants.
 - **Videos**: store references (YouTube ID/URL) and derived transcript/summary; stream via platform player.
-- **Offline mode**: cache media metadata and derived text; optionally cache downloaded audio/video where permitted.
+- **Basic offline access / broader offline reference**: current MVP only requires local reopening of previously stored session content and already generated text/media metadata. Any richer offline downloads or playback behavior should be treated as later-phase reference material, not current MVP scope.
 
 ---
 
 ## Handwritten answer submission & analysis (pipeline)
 
-This pipeline turns a photographed handwritten solution into actionable feedback and diagnostic signals.
+This pipeline turns a photographed handwritten solution into actionable feedback and teacher-support signals.
 
 ### End-to-end flow
 1. **Capture/upload**: student photographs handwritten work and attaches it to a `question_attempt_id` (and optionally `node_id`).
@@ -326,7 +329,7 @@ This pipeline turns a photographed handwritten solution into actionable feedback
    - misconception tags / error type (conceptual vs algebraic vs unit error),
    - next-step hint(s) and targeted follow-up prompts.
 6. **Feedback delivery**: present concise feedback to student; optionally generate a "worked example".
-7. **Diagnostic integration**: write back signals for teacher/admin analytics and longitudinal profiling.
+7. **Teacher-support integration**: write back signals for teacher/admin analytics and longitudinal profiling.
 
 ### Contextual OCR hints
 OCR requests should include contextual hints to improve accuracy:
@@ -335,7 +338,7 @@ OCR requests should include contextual hints to improve accuracy:
 
 ### Logging & safety
 - Store the original image securely; treat it as sensitive user data.
-- Persist OCR outputs + confidence; if confidence is low, downstream diagnostics must down-weight these signals.
+- Persist OCR outputs + confidence; if confidence is low, downstream teacher-support analytics must down-weight these signals.
 - Emit events for: upload, OCR completed, student-edited OCR, analysis completed, feedback shown.
 
 ## Question Bank Architecture
@@ -392,16 +395,16 @@ OCR requests should include contextual hints to improve accuracy:
 
 The question bank enables:
 
-1. **Avoided Question Detection**: Questions with low selection rates across class
+1. **Low-Selection Pattern Detection**: Questions with low selection rates across class
 2. **Effective Question Identification**: Questions leading to quiz success
 3. **Dimensional Balance Analysis**: Which dimensions are over/under-represented in cumulative profiles
-4. **Cross-Concept Patterns**: Systematic avoidance patterns across chapters
+4. **Cross-Concept Patterns**: Systematic low-selection patterns across chapters
 
 ---
 
-## Diagnostic Engine
+## Exploration Signals and Teacher-Support Interpretation
 
-Weighted coverage gaps are treated as diagnostically significant indicators of possible gaps in conceptual understanding—specifically, in dimensions that are meaningfully available and significant in the concept being studied. The framework hypothesizes that breadth of engagement matters for understanding: a student who has engaged with multiple diagnostically relevant dimensions of a concept may hold a more robust understanding than one who has gone deep in only one. This is a hypothesis under empirical validation, not a settled assumption.
+Weighted coverage and path signals are treated as **probabilistic indicators** of possible under-explored areas in conceptual engagement—especially in dimensions that are meaningfully available in the concept being studied. The framework hypothesizes that broader engagement across relevant dimensions may correlate with more robust understanding than depth in only one area, but this remains an empirical question rather than a settled product claim.
 
 ### Individual Student Coverage Calculation
 
@@ -414,6 +417,7 @@ def calculate_student_coverage(student_id, chapter_id, subject):
     Calculate weighted dimensional coverage for a student's chapter exploration.
     Each selected question contributes its full 8-dimensional engagement vector.
     Coverage is the normalised cumulative score: Σ scores[d] / N per dimension.
+    Outputs are teacher-support signals, not definitive judgments of understanding.
     """
     # Get all questions selected by student for this chapter
     selected_questions = get_selected_questions(student_id, chapter_id)
@@ -446,16 +450,16 @@ def calculate_student_coverage(student_id, chapter_id, subject):
     # Apply subject weights (see docs/subject-weighting-specification.md)
     weighted_coverage = apply_weights(normalised, weights)
 
-    # Identify gaps using normalised scores and weights
-    gaps = identify_gaps(normalised, weights)
+    # Identify follow-up priorities using normalised scores and weights
+    gaps = identify_follow_up_priorities(normalised, weights)
 
     return {
         "raw_coverage": normalised,
         "weighted_coverage": weighted_coverage,
         "cumulative_state": cumulative,
         "questions_counted": n_classified,
-        "critical_gaps": gaps["critical"],
-        "moderate_gaps": gaps["moderate"],
+        "priority_follow_ups": gaps["priority"],
+        "monitor_dimensions": gaps["monitor"],
         "strengths": gaps["strengths"]
     }
 ```
@@ -465,7 +469,7 @@ def calculate_student_coverage(student_id, chapter_id, subject):
 ```python
 def analyze_class_gaps(class_id, chapter_id, subject):
     """
-    Identify questions generated but consistently avoided across class.
+    Identify low-selection patterns across class using cautious offer-set interpretation.
     """
     # Get all questions generated for this chapter
     all_questions = get_chapter_questions(chapter_id)
@@ -474,27 +478,27 @@ def analyze_class_gaps(class_id, chapter_id, subject):
     widely_presented = [q for q in all_questions if q.times_presented >= 10]
 
     # Identify low-selection questions
-    avoided_questions = [
+    low_selection_questions = [
         q for q in widely_presented
-        if q.selection_rate < AVOIDANCE_THRESHOLD  # e.g., 0.15
+        if q.selection_rate < LOW_SELECTION_THRESHOLD  # e.g., 0.15
     ]
 
-    # Group by category
-    avoided_by_dimension = group_by_dominant_dimension(avoided_questions)
+    # Summarize vector signals for teacher-facing convenience
+    dimension_signals = summarize_dimension_signals(low_selection_questions)
 
     # Generate teacher recommendations
-    recommendations = generate_mko_recommendations(avoided_by_dimension, subject)
+    recommendations = generate_mko_recommendations(dimension_signals, subject)
 
     return {
-        "avoided_questions": avoided_questions,
-        "category_gaps": avoided_by_category,
+        "low_selection_questions": low_selection_questions,
+        "dimension_signals": dimension_signals,
         "recommendations": recommendations
     }
 ```
 
 ---
 
-## Teacher Dashboard Specification
+## Broader Teacher Dashboard Reference (Later-Phase)
 
 ### Individual Student View
 
@@ -503,26 +507,26 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 │  STUDENT: Alex Chen  │  CHAPTER: Photosynthesis  │  SUBJECT: Biology   │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  CATEGORICAL COVERAGE (Biology-weighted)                               │
-│  ────────────────────────────────────────                              │
+│  EXPLORATION PROFILE (Biology-weighted teacher lens)                   │
+│  ──────────────────────────────────────────────────                    │
 │  Define        [████████████████░░░░] 80%                              │
 │  Distinguish   [████████░░░░░░░░░░░░] 40%                              │
-│  Decompose     [████████████████░░░░] 80%  ★ HIGH PRIORITY             │
-│  Connect       [████████████████░░░░] 80%  ★ HIGH PRIORITY             │
-│  Delimit       [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ SIGNIFICANT    │
+│  Decompose     [████████████████░░░░] 80%  ★ HIGH FOLLOW-UP PRIORITY   │
+│  Connect       [████████████████░░░░] 80%  ★ HIGH FOLLOW-UP PRIORITY   │
+│  Delimit       [████░░░░░░░░░░░░░░░░] 20%  ★ HIGH PRIORITY  ⚠ LOW COVERAGE    │
 │  Predict       [████████░░░░░░░░░░░░] 40%  ★ HIGH PRIORITY  ⚠ FOLLOW-UP│
 │  Contextualize [████████░░░░░░░░░░░░] 40%                              │
 │  Vary          [████░░░░░░░░░░░░░░░░] 20%                              │
 │                                                                         │
-│  WEIGHTED SCORE: 58%                                                   │
+│  WEIGHTED EXPLORATION SCORE: 58%                                       │
 │                                                                         │
-│  RECOMMENDED FOLLOW-UPS                                                │
-│  ──────────────────────                                                │
-│  1. Predict: Limited exploration detected in causal                    │
+│  RECOMMENDED TEACHER FOLLOW-UPS                                        │
+│  ───────────────────────────────                                        │
+│  1. Predict: Possible under-explored area in causal                    │
 │     consequences                                                       │
 │     → "What would happen to a plant if chlorophyll stopped working?"   │
 │                                                                         │
-│  2. Delimit: Significant gap detected in failure                       │
+│  2. Delimit: High-priority follow-up suggested around                  │
 │     conditions                                                         │
 │     → "Under what conditions does photosynthesis fail or slow down?"   │
 │                                                                         │
@@ -543,29 +547,29 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 │  CLASS: Biology 101  │  CHAPTER: Photosynthesis  │  28 Students        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  CLASS DIMENSIONAL COVERAGE (normalised cumulative scores)             │
-│  ──────────────────────────                                            │
+│  CLASS DIMENSIONAL SIGNALS (normalised cumulative scores)              │
+│  ─────────────────────────────────────────────                         │
 │  Define        [████████████████████] 92%  ✓ Strong                    │
 │  Distinguish   [████████████░░░░░░░░] 61%                              │
 │  Decompose     [████████████████░░░░] 78%  ✓ Strong                    │
 │  Connect       [████████████████░░░░] 81%  ✓ Strong                    │
-│  Delimit       [████░░░░░░░░░░░░░░░░] 23%  ⚠ CLASS-LEVEL CONCERN       │
-│  Predict       [████████░░░░░░░░░░░░] 45%  ⚠ CLASS-LEVEL CONCERN       │
+│  Delimit       [████░░░░░░░░░░░░░░░░] 23%  ⚠ CLASS FOLLOW-UP THEME     │
+│  Predict       [████████░░░░░░░░░░░░] 45%  ⚠ CLASS FOLLOW-UP THEME     │
 │  Contextualize [████████████░░░░░░░░] 58%                              │
-│  Vary          [██████░░░░░░░░░░░░░░] 31%  ⚠ CLASS-LEVEL CONCERN       │
+│  Vary          [██████░░░░░░░░░░░░░░] 31%  ⚠ CLASS FOLLOW-UP THEME     │
 │                                                                         │
-│  COMMONLY AVOIDED QUESTIONS (for whole-class instruction)             │
-│  ─────────────────────────────────────────────────────────             │
-│  Dimension: Delimit (8% selection rate)                                │
+│  COMMON LOW-SELECTION QUESTIONS (for whole-class instruction)          │
+│  ─────────────────────────────────────────────────────────────          │
+│  Dimension summary: Delimit (8% selection rate)                        │
 │  • "What happens when a plant can't get enough CO2?"                   │
 │  • "Under what conditions does photosynthesis completely stop?"        │
 │                                                                         │
-│  Dimension: Vary (12% selection rate)                                  │
+│  Dimension summary: Vary (12% selection rate)                          │
 │  • "Could plants evolve to use a different energy source?"             │
 │  • "Why don't all organisms use photosynthesis?"                       │
 │                                                                         │
-│  RECOMMENDED CLASS INTERVENTION                                        │
-│  ─────────────────────────────                                         │
+│  RECOMMENDED CLASS FOLLOW-UP                                           │
+│  ───────────────────────────                                           │
 │  Focus next lesson on: Limiting factors and alternatives               │
 │  Discussion prompts:                                                   │
 │  → "What are the breaking points for photosynthesis?"                  │
@@ -575,7 +579,7 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 │  ────────────────────                                                  │
 │  Strong coverage (>70%): 8 students                                    │
 │  Moderate coverage (40-70%): 14 students                               │
-│  Needs support (<40%): 6 students  [View list]                         │
+│  Needs follow-up (<40%): 6 students  [View list]                       │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -585,7 +589,11 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 
 Trigger mechanisms and adaptive logic are **yet to be designed/specified** and will be defined in a future document.
 
-**Category invisibility**: if/when quizzes exist, student-facing quiz UX and results remain category-neutral (no category names, axis labels, or “X/8 dimensions” language). Category-level diagnostics remain teacher/admin-facing.
+**Category invisibility**: if/when quizzes exist, student-facing quiz UX and results remain category-neutral (no category names, axis labels, or “X/8 dimensions” language). Category-level interpretation remains teacher/admin-facing.
+
+**Student guidance boundary**: any teacher-absent learner support should be framed as low-stakes self-check, recap, and next-step guidance—not as teacher-equivalent judgment or definitive diagnosis.
+
+See `docs/student-reflective-guidance-and-self-review.md` for the planned future-facing learner layer that fits within this boundary.
 
 ---
 
@@ -629,7 +637,7 @@ No ML model training is required for Phases 1-3.
 │  │              PATTERN ANALYSIS ENGINE (Statistical)               │   │
 │  │  • Question paths: Sequence frequency counting (SQL/NoSQL)      │   │
 │  │  • Success correlation: Pearson/Spearman coefficients           │   │
-│  │  • Avoidance patterns: Selection rate aggregation               │   │
+│  │  • Low-selection patterns: Selection rate aggregation           │   │
 │  │  • Bridge questions: Category transition analysis               │   │
 │  │  • NO ML model training required                                │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
@@ -710,16 +718,16 @@ def suggest_questions_for_new_student(student_session, chapter_id):
 
 **Purpose**: Transform aggregate selection data into actionable teaching intelligence.
 
-**Implementation**: Selection rate aggregation and category accessibility ranking—pure database queries.
+**Implementation**: Selection rate aggregation and dimension accessibility summaries—pure database queries.
 
 **Analytics Structure**:
 ```json
 {
   "chapter_selection_analytics": {
     "high_appeal_questions": [...],
-    "systematic_avoidance": [...],
+    "systematic_low_selection_patterns": [...],
     "entry_point_analysis": {...},
-    "category_accessibility_ranking": [...],
+    "dimension_accessibility_summary": [...],
     "teaching_recommendations": {
       "let_students_explore_independently": ["define", "connect"],
       "provide_light_scaffolding": ["predict", "contextualize"],
@@ -866,9 +874,9 @@ class ContentCacheManager:
 | 1 | Core Infrastructure | Mind map UI, basic question generation, data collection |
 | 2 | Classification Pipeline | Post-hoc categorization, question bank storage |
 | 2 | Teacher Insights | Selection pattern analytics, accessibility rankings |
-| 3 | Diagnostic Engine | Coverage calculation, gap detection, subject weighting |
+| 3 | Coverage & Signal Engine | Coverage calculation, follow-up prioritization, subject weighting |
 | 3 | Pattern Analysis | Question path identification, bridge question detection |
-| 4 | Student Feedback | Quiz system, self-awareness prompts |
+| 4 | Student Guidance | Quiz system, self-awareness prompts |
 | 4 | Path Suggestions | Apply patterns to improve question suggestions |
 | 5 | Teacher Dashboard | Individual profiles, class analytics, recommendations |
 | 5 | Content Caching | Pre-generate content for common paths |

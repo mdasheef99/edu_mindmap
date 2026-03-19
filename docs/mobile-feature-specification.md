@@ -1,8 +1,10 @@
 # Mobile Application Feature Specification
 
+> **Legacy reference note:** This combined document is retained for historical/reference purposes only. The active source of truth is the split mobile specification surfaced through `docs/mobile-features-index.md`. If this file conflicts with the split docs, follow the split docs. Some sections below reflect superseded structure from earlier iterations (including removed node types, deprecated node-editing assumptions, and older connection rules that do not match the current path-edge vs manual-edge distinction or current delete behavior) and should not be used as the current mind map feature definition. In particular, the current product definition has **no Story Node**, does **not** allow learner node-body editing, and includes only **basic offline access to previously stored session content**, not broader offline mode behavior.
+
 ## Document Overview
 
-This document provides the authoritative specification of all features for the mobile application version of the Categorical Exploration Learning Platform. Features are organized by UI layer and component type, with priority levels and mobile adaptation notes.
+This document is a legacy combined reference for the mobile application feature set. Features are organized by UI layer and component type, with priority levels and mobile adaptation notes, but active updates should be made in the split files referenced by `docs/mobile-features-index.md`.
 
 **Priority / tier labels (non-binding)**:
 Treat all priority labels as **capability tiers**, not timeline commitments.
@@ -16,7 +18,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Diagnostic categories never visible to students
+- **Category Invisibility**: Internal analytic categories never visible to students
 
 ---
 
@@ -42,7 +44,7 @@ Features for navigating the educational curriculum hierarchy.
 | Filter subjects by exam | Automatic based on exam | Basic | Only shows relevant subjects | Exam selection |
 | View chapters list | Subject → Chapters list | Basic | Scrollable list with progress indicators | Subject selection |
 | Chapter search | Chapters screen → Search bar | Basic | Filters chapters by keyword | Subject selection |
-| Chapter progress indicator | Chapter card → Progress ring | Basic | Shows exploration coverage percentage | Session data |
+| Chapter progress indicator | Chapter card → Progress ring | Basic | Shows chapter exploration progress summary | Session data |
 | Mark chapter complete | Chapter card → "Mark Complete" | Advanced | Manual completion flag | Chapter data |
 | Chapter difficulty indicator | Chapter card → Difficulty badge | Advanced | Easy/Medium/Hard based on content | Chapter metadata |
 
@@ -55,7 +57,7 @@ Features for navigating the educational curriculum hierarchy.
 | ~~Browse new topic~~ | ~~Dashboard → "Explore" section~~ | Deferred | *(Deferred — to be discussed later)* | Curriculum data |
 | Recent sessions list | Dashboard → "Recent" section | Basic | Last 5 sessions with timestamps | Session data |
 | Daily learning streak | Dashboard → Streak counter | Basic | Days of consecutive activity | Analytics |
-| Recommended chapters | Dashboard → "For You" section | Advanced | AI-suggested based on progress gaps | AI service, analytics |
+| Recommended chapters | Dashboard → "For You" section | Advanced | AI-suggested based on exploration patterns and likely follow-up opportunities | AI service, analytics |
 | Exam countdown | Dashboard → Exam card | Advanced | Days remaining to selected exam | Exam dates |
 
 ---
@@ -81,7 +83,9 @@ Features that apply to individual nodes within the mind map canvas.
 | Download as text | Node toolbar → "More" → "Export" | Advanced | Saves to device or shares | File system |
 | Highlight text | Edit mode → select → highlight | Exclude | Complex touch interaction | None |
 
-### 2.2 Story Node
+### 2.2 Removed Story Node (Legacy Reference)
+
+*Superseded reference: the current product has no Story Node, and learners do not edit node body/content. This section is retained only so older references in the combined legacy spec remain interpretable.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
@@ -113,7 +117,7 @@ Features that apply to individual nodes within the mind map canvas.
 | Regenerate response | Node toolbar → "Regenerate" | Basic | Clears and re-queries | AI service |
 | Copy response | Node toolbar → "Copy" | Basic | Copies to clipboard | None |
 | Phrase/word selection | AI response → long-press → open Reader (selectable text) → select phrase | Basic | Opens phrase action sheet (Elaborate / Ask / Recommended) and creates child AI node | AI service, bottom sheet |
-| Convert to Story Node | Node toolbar → "More" → "Convert" | Advanced | Transforms node type | None |
+| Legacy convert to Story Node (removed) | Node toolbar → "More" → "Convert" | Exclude | Removed from current product definition | None |
 | Branch into topics | Node toolbar → "AI" → "Breakdown" | Basic | Creates connected child nodes | AI service |
 | Follow-up question | Response area → "Ask follow-up" | Advanced | Maintains conversation context | AI service |
 | Delete node | Long-press → "Delete" | Basic | Standard deletion | None |
@@ -138,19 +142,21 @@ Features that apply to individual nodes within the mind map canvas.
 
 ### 2.5 Image Node
 
-*Standalone image nodes for visual learning content*
+*Standalone image nodes for supporting visual learning media*
+
+*Image nodes are in MVP. In this section, `Basic` means the minimum in-MVP image-node surface; `Advanced` means richer enhancement-tier image workflows, not post-MVP scope.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Create image node | FAB → "Add Image" | Advanced | Opens camera/gallery/search picker | Canvas, media permissions |
+| Create image node | FAB → "Add Image" | Basic | Opens image picker | Canvas, media permissions |
 | Capture from camera | Image picker → "Camera" | Advanced | Opens device camera | Camera permission |
-| Select from gallery | Image picker → "Gallery" | Advanced | Opens device photo library | Media permission |
+| Select from gallery | Image picker → "Gallery" | Basic | Opens device photo library | Media permission |
 | Search images (Perplexity Sonar) | Image picker → "Search" | Advanced | Contextual search based on exploration | Perplexity API, network |
-| View image full-screen | Tap image | Advanced | Pinch-zoom enabled | None |
+| View image full-screen | Tap image | Basic | Pinch-zoom enabled | None |
 | AI describe image | Node toolbar → "AI" → "Describe" | Advanced | Generates text description of image content | AI service |
 | AI extract text (OCR) | Node toolbar → "AI" → "Extract Text" | Advanced | Extracts text from image | AI service, OCR |
-| Connect to other node | Node toolbar → "Connect" | Advanced | Standard connection | Target node |
-| Delete node | Long-press → "Delete" | Advanced | Confirmation dialog | None |
+| Connect to other node | Node toolbar → "Connect" | Basic | Standard connection | Target node |
+| Delete node | Long-press → "Delete" | Basic | Confirmation dialog | None |
 | Download image | Node toolbar → "More" → "Save" | Advanced | Saves to device gallery | File system |
 
 ---
@@ -332,9 +338,10 @@ Features in the main navigation structure.
 | Primary FAB | Bottom right of canvas | Basic | "+" icon, 56dp size | Canvas screen |
 | FAB expansion | Tap FAB | Basic | Reveals 4 node type options | FAB |
 | Add Text Node | FAB menu → "Text" | Basic | Icon + label | FAB expansion |
-| Add Story Node | FAB menu → "Story" | Basic | Icon + label | FAB expansion |
+| Legacy Add Story Node (Removed) | FAB menu → "Story" | Exclude | Removed from current product definition | FAB expansion |
 | Add AI Node | FAB menu → "AI" | Basic | Icon + label | FAB expansion |
 | Add Video Node | FAB menu → "Video" | Basic | Icon + label | FAB expansion |
+| Add Image Node | FAB menu → "Image" | Basic | Icon + label | FAB expansion |
 | FAB collapse | Tap outside or tap FAB | Basic | Closes menu | FAB expansion |
 | Mini FAB (secondary) | Above primary FAB when expanded | Advanced | Quick undo action | FAB expansion |
 
@@ -409,17 +416,17 @@ All AI-powered capabilities organized by access point.
 
 ### 6.5 Learning-Specific AI Features
 
-*AI features aligned with the diagnostic learning framework*
+*AI features aligned with the internal analytic framework*
 
 > **Note: Category Framework Visibility**
-> The 8 diagnostic dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for **diagnostic purposes only** and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Category visibility is reserved for the Teacher Dashboard only.
+> The 8 analytic dimensions (Define, Distinguish, Decompose, Connect, Delimit, Predict, Contextualize, Vary) are used for internal analysis and teacher-support interpretation only and are **never visible to students**. Students explore naturally; the system observes and classifies invisibly. Category visibility is reserved for protected teacher-facing surfaces only.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Generate organic questions | Automatic (invisible) | Basic | Questions emerge from exploration context | AI service, chapter context |
-| Post-hoc classification | Backend (invisible to user) | Basic | Classifies questions into 8 categories invisibly | AI service |
+| Post-hoc classification | Backend (invisible to user) | Basic | Classifies questions into 8 analytic dimensions invisibly | AI service |
 | Suggest next questions | AI panel → "What should I explore?" | Basic | Based on current exploration path | AI service, session context |
-| Knowledge gap hints | AI panel → subtle natural language prompts | Advanced | Uses phrases like "Try asking 'what if...'" with NO category labels | AI service, diagnostic data |
+| Category-neutral follow-up hints | AI panel → subtle natural language prompts | Advanced | Uses phrases like "Try asking 'what if...'" with NO category labels | AI service, exploration signal data |
 | Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates self-assessment questions | AI service, node content |
 
 #### 6.5.1 Question Discovery Flow
@@ -462,7 +469,7 @@ All AI-powered capabilities organized by access point.
   - The **current node's content** (AI response text being viewed)
   - **Exploration context** (parent node chain, sibling nodes, chapter/subject)
   - **Thread context** from previous selections in the exploration path
-- Generation follows **organic-first** principles: no category labels, no framework references, no forced coverage
+- Generation follows **organic-first** principles: no category labels, no framework references, no forced analytic coverage
 
 **Multi-threading and Node Connections**:
 - **Multiple child nodes** can branch from a single parent node (multi-threading)
@@ -570,17 +577,17 @@ App-wide functionality that operates across all screens.
 | Conflict resolution | Sync dialog | Advanced | Shows conflicting changes, pick version | Sync service |
 | Sync history | Settings → "Sync" → "History" | Advanced | Shows recent sync events | Sync service |
 
-### 7.3 Offline Mode
+### 7.3 Basic Offline Access + Broader Offline Legacy Reference
 
-*Offline capabilities are Basic tier priority based on Indian student device market research (see `docs/research/indian-student-market-analysis.md`). Rural connectivity gaps (58.8% mobile penetration vs. 125.3% urban) and competitor offline offerings (Khan Academy, BYJU's) make offline mode essential for target market.*
+*Current-scope note: for the active product definition, MVP includes only basic offline access to previously stored session/board state, already generated content stored locally, and resume continuity via persisted local session data. The broader offline ideas retained below are legacy/reference material only and should not be read as current MVP commitments.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Offline data access | Automatic | Basic | Cached boards available offline | Local storage |
-| Offline editing | Automatic | Basic | Edits queued for sync when online | Local storage |
-| Offline indicator | Header → offline badge | Basic | Shows when no network connection | Network detection |
-| Sync queue | Settings → "Offline" → "Pending" | Advanced | Shows queued changes with sync status | Local storage |
-| Selective offline boards | Board menu → "Available Offline" | Advanced | Downloads full board for offline use | Local storage |
+| Basic offline access to prior stored content | Automatic | Basic | Reopen previously stored session/board state and already generated content locally | Local storage |
+| Offline editing beyond persisted state | Automatic | Exclude | Not part of the current MVP basic offline boundary | Local storage |
+| Offline indicator | Header → offline badge | Advanced | Later-phase quality-of-life behavior if broader offline/reconnect workflows are added | Network detection |
+| Reconnect sync queue | Settings → "Offline" → "Pending" | Exclude | Not part of current MVP basic offline access | Local storage |
+| Selective offline board downloads | Board menu → "Available Offline" | Exclude | Not part of current MVP basic offline access | Local storage |
 | Offline AI (limited) | N/A | Exclude | Requires network for AI features | N/A |
 
 ### 7.4 Notifications
@@ -634,7 +641,7 @@ App-wide functionality that operates across all screens.
 | **Android Version** | Android 11 (API 30) | ~95% coverage of Indian Android users (Android 11+ = 90%+) |
 | **RAM** | 4GB | Entry-level segment floor; budget devices (₹10,000-₹20,000) have 4-6GB |
 | **Screen Size** | 6.5" HD+ (720×1600) | Standard for budget smartphones in Indian market |
-| **Storage** | 32GB (8GB available) | Minimum for app + offline cached boards |
+| **Storage** | 32GB (8GB available) | Minimum for app + locally persisted session data |
 | **GPU** | OpenGL ES 3.0 | Required for Skia edge rendering (Bézier curves) in the hybrid architecture |
 
 **Performance Optimization Targets**:
@@ -687,7 +694,7 @@ Decision: Deferred until feature specification is complete -->
 
 ### Basic - Core learner features
 
-**Total: ~98 features** *(Updated with market research-driven offline mode prioritization and device target specifications)*
+**Total: ~98 features** *(Legacy combined count retained for reference; current scope uses narrower basic offline access wording plus device target specifications)*
 
 | Category | Feature Count |
 |----------|---------------|
@@ -699,7 +706,7 @@ Decision: Deferred until feature specification is complete -->
 | AI Integration | 23 |
 | System-Level | 32 |
 
-*Note: System-Level count includes 3 offline mode Basic features (offline data access, offline editing, offline indicator) and device target specifications. See `docs/indian-student-device-market-research.md` for market research rationale.*
+*Note: This legacy combined count should be interpreted through the split source-of-truth docs. Current scope includes local persistence/basic offline access to previously stored session content; broader offline editing, reconnect sync, and download flows are not current MVP commitments.*
 
 ### Advanced - Enhancement features
 
@@ -717,18 +724,18 @@ Focus areas:
 - Node statistics
 - Data export
 
-### Teacher tier - Teacher dashboard
+### Teacher tier - Broader teacher-facing reference
 
-**Status**: Specification deferred until core student features are validated
+**Status**: Broader/later-phase reference beyond the current bounded MVP teacher-support surface
 
 **Scope** (per system-architecture.md):
-- Individual student profiles with categorical coverage visualization
-- Class-level analytics and gap identification
+- Individual student profiles with category-visible signal visualization
+- Class-level analytics and follow-up theme identification
 - Priority intervention recommendations
 - Exploration pattern analysis
 - Quiz performance tracking
 
-**Note**: Teacher Dashboard will be defined after initial user validation. See `docs/system-architecture.md` Section "Teacher Dashboard Specification" for architectural details.
+**Note**: The current bounded teacher-support MVP is defined in `docs/teacher-support-mvp-specification.md`. Any fuller dashboard-style material in this combined legacy document should be treated as broader reference only. See `docs/system-architecture.md` Section "Broader Teacher Dashboard Reference (Later-Phase)" for architectural context.
 
 ### Excluded Features
 
@@ -765,10 +772,10 @@ The following features are recommended additions to enhance the mobile learning 
 | Choose podcast length | Podcast wizard → "Length" | Basic | Short (3-5 min), Medium (8-12 min), Long (15-20 min) | AI service |
 | Generate podcast audio | Podcast wizard → "Generate" | Basic | Background generation with progress indicator | AI service, TTS service |
 | Listen to generated podcast | Podcast player (full-screen) | Basic | Standard audio controls, background playback | Audio permissions |
-| Select voice style | Podcast wizard → "Voice" | Advanced | 4 options: Narrator, Conversational, Interview, Student-Teacher | TTS service |
+| Select voice style | Podcast wizard → "Voice" | Advanced | 4 options: Narrator, Conversational, Interview, Guided Dialogue | TTS service |
 | Download podcast | Podcast player → "Download" | Advanced | Saves MP3 to device | File system |
 | Share podcast | Podcast player → "Share" | Advanced | Share via system share sheet | Share service |
-| Include learning insights (category-neutral) | Podcast wizard → "Include Learning Insights" toggle | Advanced | Adds meta-commentary on exploration patterns (no category labels) | Diagnostic data |
+| Include learning insights (category-neutral) | Podcast wizard → "Include Learning Insights" toggle | Advanced | Adds meta-commentary on exploration patterns (no category labels) | Exploration signal data |
 
 #### 9.1.2 Node-Level Podcast Features
 
@@ -784,7 +791,7 @@ The following features are recommended additions to enhance the mobile learning 
 | Feature | UI Location | Tier | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | View podcast library | Bottom nav → "Podcasts" or Profile → "My Podcasts" | Advanced | List view with thumbnails and duration | Local storage |
-| Play podcast offline | Podcast library → downloaded episode | Advanced | Cached audio playback | Local storage |
+| Offline playback of downloaded podcast | Podcast library → downloaded episode | Advanced | Later-phase downloaded-audio behavior, not current MVP | Local storage |
 | Delete podcast | Podcast library → swipe left | Advanced | Confirmation dialog | Local storage |
 | Podcast playback history | Podcast library → "History" tab | Advanced | Recently played with resume position | Local storage |
 | Subscribe to topic podcasts | Explore → topic → "Subscribe" | Advanced | Curated podcasts from community | Podcast service |
@@ -796,7 +803,7 @@ The following features are recommended additions to enhance the mobile learning 
 | AI narrator voice | Settings → "Podcast" → "Default Voice" | Advanced | 6 voice options (3 male, 3 female) | TTS service |
 | Playback speed control | Podcast player → speed button | Advanced | 0.5x, 1x, 1.25x, 1.5x, 2x | None |
 | Interview-style dialogue | Podcast wizard → "Style" → "Interview" | Advanced | Two-voice Q&A format | TTS service (multi-voice) |
-| Student-teacher dialogue | Podcast wizard → "Style" → "Lesson" | Advanced | Simulates tutoring conversation | TTS service (multi-voice) |
+| Guided dialogue | Podcast wizard → "Style" → "Lesson" | Advanced | Simulates supportive coaching conversation | TTS service (multi-voice) |
 | Background music | Podcast wizard → "Music" toggle | Advanced | Subtle ambient music options | Audio assets |
 
 #### 9.1.5 Podcast Content Structure
@@ -810,7 +817,7 @@ The following features are recommended additions to enhance the mobile learning 
 | Concept clusters | Node clusters + selected questions | Summarizes each cluster into a compact explanation |
 | Bridges | Cross-cluster transitions | Adds short bridging explanations to connect clusters |
 | Media highlights | Videos/images engaged + derived text (captions/transcripts/OCR) | Pulls in brief supporting explanations/examples |
-| Misconceptions & fixes (category-neutral) | Answer attempts / quiz errors / follow-up questions | Identifies likely confusion points and corrects them |
+| Possible confusion points & fixes (category-neutral) | Answer attempts / quiz errors / follow-up questions | Identifies likely confusion points and corrects them |
 | Conclusion | Session summary | Synthesizes learning with forward prompts |
 
 **Example Podcast Script Structure**:
@@ -841,7 +848,7 @@ The podcast must be generated from the learner's **full exploration path structu
 **High-level pipeline**:
 1. Build a **path graph** from events (node visits, offer sets, selections, revisits, media engaged).
 2. Detect **clusters** (concept communities) and **pivots** (bridge transitions).
-3. Identify **gaps / confusion points** from behavior signals (avoidance, repeated revisits, errors), expressed in category-neutral terms.
+3. Identify **possible confusion points** from behavior signals (low-selection patterns, repeated revisits, errors), expressed in category-neutral terms.
 4. Generate an outline that:
    - starts with a path map,
    - teaches per cluster,
@@ -868,36 +875,38 @@ The podcast must be generated from the learner's **full exploration path structu
 | Apple Watch companion | Watch app | Exclude | View notifications, quick capture | watchOS |
 | Handwriting input | Node edit → stylus mode | Advanced | Apple Pencil / stylus support for handwritten notes | Stylus API |
 
-### 9.3 Learning Platform Enhancements
+### 9.3 Exploration Guidance Enhancements
 
 *Features supporting natural exploration without exposing categorical framework*
 
+For the broader product framing of this planned reflective guidance, self-review, and next-step support layer, see `docs/student-reflective-guidance-and-self-review.md`.
+
 > **Category Visibility Policy: STRICT INVISIBILITY**
-> The 8 diagnostic dimensions are used for **diagnostic purposes only** and are **never visible to students**. This ensures students explore naturally without "gaming" the system. Category-related analytics are reserved for the **Teacher Dashboard only** (Teacher tier).
+> The 8 analytic dimensions are used for internal analysis and teacher-support interpretation only and are **never visible to students**. This ensures students explore naturally without "gaming" the system. Category-related analytics are reserved for protected teacher-facing surfaces only.
 
 #### 9.3.1 Student-Facing Features (Category-Invisible)
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
 | Exploration path visualization | Board menu → "My Journey" | Advanced | Animated replay of exploration sequence (no categories shown) | Session data |
-| Natural exploration hints | AI panel → "Explore More" section | Basic | Subtle natural language prompts (e.g., "Try asking 'what if...'" or "What causes this?") with **NO category labels** | Diagnostic data |
+| Natural exploration hints | AI panel → "Explore More" section | Basic | Subtle natural language prompts (e.g., "Try asking 'what if...'" or "What causes this?") with **NO category labels** | Exploration signal data |
 | Exploration depth indicator | Node badge | Advanced | Shows how deeply a concept has been explored (simple depth score, no categories) | Session data |
 | Conceptual connection strength | Connection line thickness | Advanced | Thicker lines = stronger conceptual links | Exploration data |
 | Learning streak tracking | Profile → "Learning Stats" | Advanced | Days active, questions explored, boards created | Analytics |
 
-#### 9.3.2 Teacher Dashboard Features (Category-Visible) - Teacher tier
+#### 9.3.2 Broader Teacher-Facing Reference Features (Category-Visible)
 
-*These features expose categorical data and are ONLY available in Teacher Dashboard*
+*These features expose analytic/category-visible data and belong only on protected teacher-facing surfaces. They are broader reference features, not a current MVP commitment to a full teacher dashboard.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Categorical exploration radar | Teacher Dashboard → Student View | Teacher | Visual radar chart of 8 categories | Diagnostic data, Teacher auth |
-| Category-specific question prompts | Teacher Dashboard → "Suggested Follow-Ups" | Teacher | "Student would benefit from more Define questions" | Diagnostic data, Teacher auth |
-| Category milestone tracking | Teacher Dashboard → Student View | Teacher | Shows which categories student has explored | Diagnostic data, Teacher auth |
-| Category-based question filtering | Teacher Dashboard → Question Analytics | Teacher | Filter questions by categorical dimension | Question bank, Teacher auth |
+| Analytic dimension radar | Teacher Dashboard → Student View | Teacher | Visual radar chart of 8 analytic dimensions | Exploration signal data, Teacher auth |
+| Teacher follow-up prompt suggestions | Teacher Dashboard → "Suggested Follow-Ups" | Teacher | "This student may benefit from more boundary-condition prompts" | Exploration signal data, Teacher auth |
+| Dimension signal tracking | Teacher Dashboard → Student View | Teacher | Shows which dimensions are strongly or weakly represented in the learner path | Exploration signal data, Teacher auth |
+| Dimension-based question filtering | Teacher Dashboard → Question Analytics | Teacher | Filter questions by analytic dimension | Question bank, Teacher auth |
 | Bridge question identification | Teacher Dashboard → Pattern Analysis | Teacher | Shows which questions bridge categories effectively | Pattern analysis, Teacher auth |
-| Class-level category concerns | Teacher Dashboard → Class View | Teacher | Aggregate category coverage across class | Diagnostic data, Teacher auth |
-| Learning velocity by category | Teacher Dashboard → Analytics | Teacher | How quickly students progress through categories | Analytics, Teacher auth |
+| Class-level follow-up themes | Teacher Dashboard → Class View | Teacher | Aggregate dimension patterns across class | Exploration signal data, Teacher auth |
+| Learning velocity by dimension | Teacher Dashboard → Analytics | Teacher | How quickly students diversify their exploration across dimensions | Analytics, Teacher auth |
 
 #### 9.3.3 Removed/Repositioned Features
 
@@ -906,7 +915,7 @@ The following features from the original specification have been **removed from 
 | Original Feature | Original Priority | Decision | Reason |
 |------------------|-------------------|----------|--------|
 | Category-specific question prompts (student) | Advanced | **Removed** | Exposes categories to students |
-| Category milestone celebrations | Advanced | **Removed** | Dimension-count milestones reveal the hidden diagnostic framework (category invisibility violation) |
+| Category milestone celebrations | Advanced | **Removed** | Dimension-count milestones reveal the hidden analytic framework (category invisibility violation) |
 | Category-based question filtering (student) | Advanced | **Moved to Teacher Dashboard** | Category labels not for students |
 | Categorical exploration radar (student) | Advanced | **Moved to Teacher Dashboard** | Category visualization not for students |
 
@@ -990,7 +999,7 @@ The following features from the original specification have been **removed from 
 | Previous Year Questions | 7 | 3 | 0 |
 | Podcast Generation | 5 | 18 | 0 |
 | Mobile Device Features | 0 | 9 | 2 |
-| Diagnostic Framework Enhancements | 1 | 9 | 0 |
+| Exploration Guidance Enhancements | 1 | 9 | 0 |
 | Social/Collaborative | 0 | 9 | 3 |
 | Enhanced Accessibility | 3 | 11 | 0 |
 | Complementary Features | 0 | 14 | 0 |
@@ -1014,7 +1023,7 @@ The following features from the original specification have been **removed from 
 ---
 
 *Document Version 2.1 | Mobile Feature Specification*
-*Platform: Categorical Exploration Learning Platform*
+*Platform: Path-Based Conceptual Exploration Platform*
 *Target: iOS and Android mobile applications*
 
 ### Version History
@@ -1022,7 +1031,7 @@ The following features from the original specification have been **removed from 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Initial | Base feature specification with 6 sections |
-| 1.1 | - | Added Podcast Generation, Device Features, Diagnostic Framework Enhancements, Social Features, Accessibility |
+| 1.1 | - | Added Podcast Generation, Device Features, Exploration Guidance Enhancements, Social Features, Accessibility |
 | 1.2 | - | Added Question Discovery Flow (Section 6.5.1), Image Node (Section 2.5), Perplexity Sonar integration (Section 6.6), Canvas Constraints (Section 3.6), Privacy and Compliance (Section 7.8), Category visibility clarification (strict invisibility), Teacher Dashboard deferral note, Business model placeholder |
 | 2.0 | - | **Major revision integrating reference note features**: Added Section 1 (Curriculum & Syllabus Navigation with Dashboard, Subject/Chapter selection), Section 4.4 (Previous Year Questions Panel), enhanced Section 2.3 (AI Node with phrase selection, initial prompts, auto-connect), promoted core podcast generation to MVP, added session persistence, chapter context display. Renumbered all sections to accommodate new curriculum section. Updated feature counts to reflect ~95 MVP features. |
 | 2.1 | Current | **Market research integration**: Added Section 7.7.1 (Minimum Device Target Specifications) based on Indian student device market research. Added rationale notes to Section 7.3 (Offline Mode) explaining MVP priority for offline features. Updated feature counts to ~98 MVP features. Reference: `docs/research/indian-student-market-analysis.md`. |

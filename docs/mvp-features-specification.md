@@ -1,57 +1,71 @@
-# Basic Features Specification
+# MVP Features Specification
 
 ## Executive Summary
 
-This document consolidates the **20 core Basic features** for the Categorical Exploration Learning Platform mobile application. It serves as a focused reference for Basic tier scope, separate from the comprehensive mobile feature specification (see `docs/mobile-features-index.md` for navigation to split files) which includes Advanced tier features.
+This document consolidates the current MVP feature scope for the mobile application of the path-based conceptual exploration product. It is intended to be a practical implementation-facing reference for the learner experience and the shared platform capabilities that support it.
 
-**Target Demographic**: Indian students (ages 14-18) preparing for CBSE, ICSE, NEET, and JEE examinations
+It should be read alongside `docs/prd/master-prd.md`, which is the current master product definition. Where older tier language or legacy scope in surrounding documentation conflicts with the PRD or the split mobile feature docs, the PRD and the active split mobile docs should take precedence.
+
+**Primary user context**: Students in India preparing for defined-syllabus exams
 **Platform**: React Native (iOS and Android)
-**Document Version**: 1.0
+**Document Version**: 1.2
 
-### Basic Scope Definition
+### Current MVP Scope Definition
 
-The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experience** with:
-- Curriculum-anchored navigation (Class → Exam → Subject → Chapter)
-- Interactive mind map canvas with dynamic AI content generation
-- Previous year questions integration
-- Session persistence for learning continuity
-- Core podcast generation from exploration sessions
-- Offline capability for rural connectivity gaps
+The MVP delivers a syllabus-driven, AI-supported path-based conceptual exploration experience with:
+- curriculum-anchored navigation (class or syllabus level → exam → subject → chapter)
+- a bounded mind map for chapter exploration
+- AI-generated responses and bounded branching through the two confirmed learner exploration flows
+- previous year questions as a supporting exam-preparation resource
+- session persistence and basic offline access for continuity, resume, and reopening previously stored session state
+- podcast generation from exploration sessions as a reinforcement capability
+- path capture, offer-set logging, and internal post-hoc interpretation hooks required for the teacher-support layer
+
+### Scope Boundary Notes
+
+- Learner-facing surfaces must remain category-neutral and must not expose internal analytic labels.
+- Teacher-support interpretation remains a separate layer from the learner experience.
+- The confirmed mind map interaction rules are fixed for current MVP scope: no Story Node, no node body editing, branching only through phrase selection or the left/right AI-node edge `+`, and AI-generated path edges are distinct from manual reference links.
+- Deleting a node in an AI-generated exploration path must also delete its descendant path nodes after confirmation.
+- Basic offline access to previously stored session content is part of the current MVP scope for this document, but broader offline capability is not.
 
 ### Related Documents
 
 | Document | Purpose |
 |----------|---------|
-| `docs/mobile-features-index.md` | Master index for mobile feature specification (split into 4 files) |
+| `docs/prd/master-prd.md` | Current master product definition and scope anchor |
+| `docs/teacher-support-mvp-specification.md` | Current teacher-facing MVP surface and minimum access boundary |
+| `docs/mobile-features-core-ui.md` | Current authoritative source for node, canvas, and interaction behavior |
+| `docs/mobile-features-ai-integration.md` | Current authoritative source for AI branching and question-discovery flows |
+| `docs/mobile-features-system.md` | System-level capabilities such as authentication, sync, and persistence |
+| `docs/mobile-features-enhancements.md` | Current podcast-generation capability reference |
 | `docs/architecture-feature-mapping.md` | Technical implementation mapping |
-| `docs/system-architecture.md` | Backend architecture and LLM pipeline |
-| `docs/research/indian-student-market-analysis.md` | Device targets and offline rationale |
+| `docs/system-architecture.md` | Backend architecture and runtime pipeline |
 
 ---
 
-## Basic Feature Categories
+## MVP Feature Groups
 
-| Category | Feature Count | Core Capability |
-|----------|---------------|-----------------|
-| **1. Curriculum Navigation** | 4 features | Syllabus-driven content discovery |
-| **2. Dashboard** | 4 features | Session continuity and quick access |
-| **3. Mind Map Canvas** | 4 features | Interactive visual learning |
-| **4. AI Node (Dynamic Content)** | 4 features | LLM-powered content generation |
-| **5. Previous Year Questions** | 2 features | Exam-focused study resources |
-| **6. Podcast Generation** | 2 features | Audio learning from exploration |
-| **Total** | **20 features** | |
+| Feature Group | Primary Capability |
+|---------------|--------------------|
+| **1. Curriculum Navigation** | Syllabus-driven content discovery |
+| **2. Dashboard** | Session continuity and quick re-entry |
+| **3. Mind Map Canvas** | Bounded exploration surface and manual reference operations |
+| **4. AI Exploration Nodes** | AI-generated content and bounded branching |
+| **5. Previous Year Questions** | Exam-focused supporting resources |
+| **6. Session Persistence, Basic Offline Access & Podcast** | Save and reopen prior exploration state, then generate reinforcement audio |
 
 ---
 
-## Category 1: Curriculum Navigation
+## Feature Group 1: Curriculum Navigation
 
-*Syllabus-driven content anchoring for Indian exam preparation*
+*Syllabus-driven entry into supported exam content*
 
 ### Feature 1.1: Class Selection
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Student selects their class level (Class 6-12) during onboarding |
+| **Description** | Student selects the class or syllabus level relevant to the supported exam set during onboarding |
 | **UI Location** | Onboarding → Class picker |
 | **Implementation** | React Native Picker → Zustand `setClass()` action |
 | **Dependencies** | Curriculum data (Supabase) |
@@ -62,7 +76,7 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Student selects target exam (CBSE, ICSE, State Boards, NEET, JEE) filtered by class |
+| **Description** | Student selects the target exam filtered by the chosen class or syllabus level |
 | **UI Location** | Onboarding → Exam picker |
 | **Implementation** | Filtered list based on class → Zustand `setExam()` |
 | **Dependencies** | Class selection (Feature 1.1) |
@@ -93,9 +107,9 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 
 ---
 
-## Category 2: Dashboard
+## Feature Group 2: Dashboard
 
-*Session continuity and learning engagement*
+*Session continuity and fast re-entry into chapter exploration*
 
 ### Feature 2.1: Dashboard Home
 
@@ -130,9 +144,9 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 | **Priority Justification** | Enables multi-chapter study patterns |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 1.3 |
 
-## Category 3: Mind Map Canvas
+## Feature Group 3: Mind Map Canvas
 
-*Interactive visual learning with physics-based layout*
+*Bounded exploration surface for node placement, selection, and reference links*
 
 ### Feature 3.1: Canvas Navigation (Pan/Zoom)
 
@@ -146,82 +160,90 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 | **Spec Reference** | `mobile-features-core-ui.md` Section 3.1 |
 | **Architecture Reference** | `architecture-feature-mapping.md` Pillar 1 (Hybrid Native Views + Skia Edges) |
 
-### Feature 3.2: Node Creation (FAB)
+### Feature 3.2: Node Creation Access (FAB)
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Floating Action Button expands to reveal 4 node types (Text, Story, AI, Video) |
+| **Description** | Floating Action Button expands to reveal the manual node-creation actions available in the current build. This is a canvas entry/control surface, not the primary branching mechanism for the AI exploration path. |
 | **UI Location** | Bottom right of canvas → "+" icon (56dp) |
 | **Implementation** | React Native FAB → Zustand `addNode()` action |
 | **Dependencies** | Canvas |
-| **Priority Justification** | Primary content creation mechanism |
+| **Priority Justification** | Primary entry point for manual node creation and initial canvas composition |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 5.3 |
 
-### Feature 3.3: Node Selection & Editing
+### Feature 3.3: Node Selection
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Tap to select (shows border + toolbar), edit content inline or full-screen |
+| **Description** | Tap to select nodes, reveal the node toolbar, and manage positioning or connections without learner-authored node body editing |
 | **UI Location** | Tap node → selection state |
-| **Implementation** | Hit testing via Zustand, overlay React Native TextInput for editing |
+| **Implementation** | Hit testing via Zustand; selection state drives toolbar and node actions |
 | **Dependencies** | None |
-| **Priority Justification** | Core content manipulation |
-| **Spec Reference** | `mobile-features-core-ui.md` Section 2.1 |
+| **Priority Justification** | Core map interaction |
+| **Spec Reference** | `mobile-features-core-ui.md` Section 3.2 |
 
 ### Feature 3.4: Node Connections
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Connect nodes via toolbar action; visual connection line preview |
+| **Description** | Create manual reference connections via toolbar action; these links are separate from AI-generated exploration-path edges |
 | **UI Location** | Node toolbar → "Connect" → tap target |
-| **Implementation** | Zustand `addEdge()` action, Skia `Path` quadratic Bézier rendering (Skia used for edges only) |
+| **Implementation** | Zustand `addEdge()` action for manual/reference links, Skia `Path` quadratic Bézier rendering (Skia used for edges only) |
 | **Dependencies** | Target node |
 | **Priority Justification** | Enables conceptual relationship building |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 2.1 |
 | **Architecture Reference** | `architecture-feature-mapping.md` Pillar 1 (Edge Rendering) |
 
+**Connection model note**:
+- Manual connections are learner-created **reference-style links** between nodes.
+- AI-generated parent → child path edges are created only through the two exploration flows (phrase selection and edge `+`) and are a different connection category in the product logic.
+
 ---
 
-## Category 4: AI Node (Dynamic Content)
+## Feature Group 4: AI Exploration Nodes
 
-*LLM-powered content generation with organic question discovery*
+*AI-generated responses with bounded, organic-first question discovery*
+
+Learner-facing branching in the mind map is limited to **two entry points only**:
+- phrase selection within AI node content
+- edge-attached `+` buttons on the left and right sides of AI nodes
 
 ### Feature 4.1: Create AI Node with Prompt
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Create AI node via FAB, enter custom prompt or select initial prompt options |
+| **Description** | Create the initial AI exploration node for the current chapter or concept entry point, either through a custom prompt or initial prompt options |
 | **UI Location** | FAB → "Ask AI" → Prompt input |
 | **Implementation** | Zustand `addNode(type: 'ai')`, API call to Claude/OpenAI |
 | **Dependencies** | Canvas, AI service, Chapter context |
-| **Priority Justification** | Core learning mechanism; enables curiosity-driven exploration |
+| **Priority Justification** | Starts the AI exploration flow within the selected chapter context |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 2.3 |
 
 ### Feature 4.2: Dynamic Content Population
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | AI-generated answers and explanations populate node automatically |
+| **Description** | AI-generated answers and explanations populate the node automatically in learner-facing, category-neutral language |
 | **UI Location** | Response area within AI node |
 | **Implementation** | Streaming response display, auto-formatted markdown |
 | **Dependencies** | AI service, Chapter context |
-| **Priority Justification** | Delivers personalized learning content |
-| **Spec Reference** | `mobile-features-core-ui.md` Section 2.3 |
+| **Priority Justification** | Delivers the core explanatory content used for exploration |
+| **Spec Reference** | `mobile-features-core-ui.md` Section 2.2 |
 | **Architecture Reference** | `system-architecture.md` LLM Processing Pipeline |
 
 ### Feature 4.3: Phrase Selection for New Questions
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Select a word/phrase from AI content to open a bottom sheet with: (1) Elaborate, (2) Ask custom, (3) 3–5 recommended follow-up questions; selection creates a child AI node |
+| **Description** | Select a word or phrase from AI content to open a bottom sheet with: (1) Elaborate, (2) Ask custom, (3) 3–5 recommended follow-up questions. Any selection creates a child AI node in the exploration path. |
 | **UI Location** | AI Node → Reader (selectable text) → Phrase action sheet (bottom sheet) |
-| **Implementation** | Phrase selection → generate phrase-conditioned offer set → create child AI node + parent→child edge → generate response using thread context packet → log offer set + selection |
-| **Dependencies** | AI service, bottom sheet UI, node/edge creation |
+| **Implementation** | Phrase selection → generate phrase-conditioned offer set → create child AI node + parent→child AI-generated path edge → generate response using thread context packet → log offer set + selection |
+| **Dependencies** | AI service, bottom sheet UI, node/path-edge creation |
 | **Priority Justification** | Enables organic exploration flow; core to learning methodology |
-| **Spec Reference** | `mobile-features-core-ui.md` Section 2.3 |
+| **Spec Reference** | `mobile-features-ai-integration.md` Section 6.5.2 |
 | **Architecture Reference** | `system-architecture.md` Stage 1 (Organic generation) + Learning path capture + Phrase selection logging |
 
-**Basic UI behavior**:
+**Phrase selection UI behavior**:
 - Selecting text must surface a bottom sheet with **fixed top actions** and **3–5 recommended questions**:
   1) **Elaborate on "[selected phrase]"** → immediate node creation
   2) **Ask custom question** → opens input; on submit create node
@@ -230,7 +252,9 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 **Graph / threading behavior**:
 - Each phrase selection creates a **new branch (child node)** from the source node.
 - Default structure is **sibling branches** for multiple phrase selections from the same parent.
+- The created parent → child link is an **AI-generated path edge**, not a manual reference connection.
 - The created child node must persist a `thread_context` reference so subsequent exploration from that node remains grounded in the initiating phrase.
+- Deleting a node in an AI-generated exploration path also deletes its descendant path nodes after confirmation.
 
 **Analytics requirements**:
 - Log the phrase offer set (actions + recommended questions) and the selection (including “dismissed/no selection”).
@@ -239,25 +263,29 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Explore button on AI node opens popup box with 3-6 generated questions; selected question appears in new node header with AI response in body |
-| **UI Location** | AI Node center of right edge → "+" button → Popup box |
-| **Implementation** | Question generation API → Popup box with tappable cards → New node with question header |
+| **Description** | Edge-attached `+` buttons on the left and right sides of an AI node open 3–6 generated follow-up questions; selecting one creates a child AI node connected by an AI-generated path edge |
+| **UI Location** | AI Node left/right vertical edge → "+" button → Popup box |
+| **Implementation** | Question generation API → edge-triggered popup with tappable cards → new child node + labeled AI-generated path edge + offer-set logging |
 | **Dependencies** | AI service, Question generation |
 | **Priority Justification** | Core learning loop; guides exploration without forcing paths |
 | **Spec Reference** | `mobile-features-ai-integration.md` Section 6.5.1 |
 
 **Question Discovery UI**:
-- Explore button: 44×44pt touch target, center of right edge of AI node
+- Edge `+` buttons: 44×44pt touch targets, centered on the left and right vertical edges of the AI node
 - Popup box: Small popup near button with 3-6 questions
 - Question cards: Tappable, max 2 lines with ellipsis
 - Selection creates new AI node with question text in header, AI response in body
-- Permanent edge connects parent → child, labeled with question text
+- Connected AI-generated path edge links parent → child, labeled with question text
+
+**Analytics requirements**:
+- Log the offered question set shown from each edge-triggered launch, including question order/rank.
+- Log the learner selection or dismissal/no-selection outcome so the exploration offer set can be reconstructed later.
 
 ---
 
-## Category 5: Previous Year Questions
+## Feature Group 5: Previous Year Questions
 
-*Exam-focused study resources anchored to curriculum*
+*Exam-focused study resources anchored to chapter context*
 
 ### Feature 5.1: PYQ Panel Access
 
@@ -283,52 +311,54 @@ The Basic tier delivers a **syllabus-driven, AI-powered mind map learning experi
 
 ---
 
-## Category 6: Session Persistence & Podcast
+## Feature Group 6: Session Persistence, Basic Offline Access & Podcast
 
-*Learning continuity and audio content generation*
+*Learning continuity, reopening of previously stored session content, and session-based reinforcement audio*
 
 ### Feature 6.1: Session Persistence
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Mind map state saved locally for resume across app restarts |
+| **Description** | Previously loaded mind map state, generated text already received online, and recent exploration context are saved locally so the learner can reopen and resume a session across app restarts, including basic offline access to that previously stored content |
 | **UI Location** | Automatic |
 | **Implementation** | Zustand `persist` middleware with AsyncStorage |
 | **Dependencies** | Secure storage |
 | **Priority Justification** | Essential for learning continuity; enables "Continue Learning" |
-| **Spec Reference** | `mobile-features-system.md` Section 7.1 |
+| **Spec Reference** | `docs/mobile-features-core-ui.md` Section 1.3 and `docs/mobile-features-system.md` (authentication/data persistence context) |
 | **Architecture Reference** | `architecture-feature-mapping.md` Section 3 (Zustand) |
+
+**Scope clarification**: This feature includes basic offline access to previously stored session state and content already generated online. It should not be read as support for new AI generation while offline, offline editing beyond that persisted state, offline sync/queued sync behavior, offline video behavior, downloaded media or podcast offline playback, or a broader offline product mode.
 
 ### Feature 6.2: Generate Exploration Podcast
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Transform exploration session into personalized reinforcement audio podcast (path-optimized; may be non-linear) |
-| **UI Location** | Board menu → "Create Podcast" → Full-screen wizard |
-| **Implementation** | AI script generation → TTS service → Audio player |
+| **Description** | Transform an exploration session into a personalized reinforcement podcast generated from the learner's explored path and session context |
+| **UI Location** | Board menu → "Create Podcast" → Full-screen podcast wizard/player |
+| **Implementation** | AI script generation from session/path data → TTS service → audio playback |
 | **Dependencies** | AI service, TTS service, Session data |
-| **Priority Justification** | Differentiated learning experience; audio learning for commute/revision |
-| **Spec Reference** | `mobile-features-enhancements.md` Section 9.1.1 |
+| **Priority Justification** | Confirmed MVP reinforcement feature derived from the learner's exploration session |
+| **Spec Reference** | `docs/mobile-features-enhancements.md` Section 9.1.1 |
 
-**Podcast Generation Flow**:
-1. Select length: Short (3-5 min), Medium (8-12 min), Long (15-20 min)
-2. Preview/edit AI-generated script
-3. Generate audio with progress indicator
-4. Listen with standard audio controls, background playback
+**Podcast flow (MVP)**:
+1. Open podcast generation from the current board/session.
+2. Choose podcast length.
+3. Preview the generated script.
+4. Generate audio and listen in the built-in player.
 
 ## Suggested implementation order (non-binding)
 
 The following implementation sequence respects architectural dependencies.
 
-**Note**: Any "Phase" / week labels should be treated as **non-binding**. Use this as a dependency/sequence suggestion, not a timeline commitment.
+**Note**: Any "Phase" or week labels from older planning should be treated as non-binding. Use the sequence below as a dependency suggestion, not a timeline commitment.
 
 ### Foundation
 
 | Order | Feature | Rationale |
 |-------|---------|-----------|
 | 1 | Canvas Navigation (3.1) | Core rendering infrastructure |
-| 2 | Node Creation (3.2) | Basic content creation |
-| 3 | Node Selection & Editing (3.3) | Content manipulation |
+| 2 | Node Creation Access (3.2) | Manual node entry and canvas controls |
+| 3 | Node Selection & Management (3.3) | Core node interaction |
 | 4 | Session Persistence (6.1) | State management foundation |
 
 ### Curriculum
@@ -349,75 +379,57 @@ The following implementation sequence respects architectural dependencies.
 | 11 | Phrase Selection (4.3) | Exploration flow |
 | 12 | Question Discovery Flow (4.4) | Core learning loop |
 
-### Features & polish
+### Supporting capabilities
 
 | Order | Feature | Rationale |
 |-------|---------|-----------|
 | 13 | Node Connections (3.4) | Relationship building |
 | 14 | Continue Learning (2.2) | Session continuity |
 | 15 | Recent Sessions (2.3) | Quick access |
-| 16 | Daily Streak (2.4) | Engagement |
-| 17 | PYQ Panel (5.1) | Exam prep |
-| 18 | Add PYQ to Map (5.2) | Integration |
-| 19 | Chapter Search (1.4) | Navigation |
-| 20 | Podcast Generation (6.2) | Audio learning |
+| 16 | PYQ Panel (5.1) | Exam prep resource access |
+| 17 | Add PYQ to Map (5.2) | Chapter-context integration |
+| 18 | Chapter Search (1.4) | Faster navigation |
+| 19 | Generate Exploration Podcast (6.2) | Reinforcement and review from session history |
 
 ---
 
 ## Feature Dependencies
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  DEPENDENCY GRAPH                                                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  [Authentication] ──────────────────────────────────────────────────┐   │
-│        │                                                             │   │
-│        ▼                                                             │   │
-│  [Class Selection] ──► [Exam Selection] ──► [Subject/Chapter Nav]   │   │
-│        │                      │                      │               │   │
-│        │                      ▼                      ▼               │   │
-│        │              [PYQ Panel] ◄──────── [Chapter Context]        │   │
-│        │                                            │                │   │
-│        ▼                                            ▼                │   │
-│  [Dashboard Home] ◄─────────────────────── [Session Persistence]     │   │
-│        │                                            │                │   │
-│        ▼                                            ▼                │   │
-│  [Continue Learning] ◄──────────────────── [Mind Map State]         │   │
-│        │                                            │                │   │
-│        │                                            ▼                │   │
-│        │                                    [Canvas + Nodes]         │   │
-│        │                                            │                │   │
-│        │                                            ▼                │   │
-│        │                                    [AI Node + Questions]    │   │
-│        │                                            │                │   │
-│        │                                            ▼                │   │
-│        └──────────────────────────────────► [Podcast Generation]     │   │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Dependency | Enables |
+|------------|---------|
+| Authentication and app session | Dashboard access, saved progress, and user-specific persistence |
+| Curriculum selection | Subject/chapter navigation, chapter context, and PYQ filtering |
+| Canvas infrastructure | Node selection, manual reference links, and AI-node rendering |
+| Initial AI node creation | Phrase-selection flow and edge `+` question discovery |
+| Session persistence + session/path data | Continue Learning, Recent Sessions, and podcast generation |
+| AI + TTS services | AI exploration content and podcast generation |
+| Offer-set logging + path capture | Downstream teacher-support interpretation and measurement |
 
 ### Critical Path
 
 1. **Authentication** → Required for all user-specific features
 2. **Curriculum Selection** → Required for content filtering
 3. **Canvas Infrastructure** → Required for all node features
-4. **Session Persistence** → Required for Continue Learning
-5. **AI Service Integration** → Required for AI Node and Podcast
+4. **Session Persistence** → Required for Continue Learning and podcast inputs
+5. **AI Service Integration** → Required for AI node creation, phrase branching, question discovery, and podcast script generation
+6. **TTS Service Integration** → Required for podcast audio generation
+
+**Product-level dependency note**: A basic teacher view is in MVP at the product level. Its bounded teacher-facing surface and minimum access model are defined in `docs/teacher-support-mvp-specification.md`. What *is* required here is the learner-path and offer-set data capture that the teacher-support layer depends on.
 
 ---
 
-## Success Criteria for Basic Tier Launch
+## Success Criteria for MVP Launch
 
 ### Functional Criteria
 
 | Criterion | Measurement | Target |
 |-----------|-------------|--------|
-| All 20 features implemented | Feature checklist | 100% |
-| Core user flow complete | Onboarding → Learning → Resume | End-to-end |
-| AI response quality | User satisfaction survey | >4.0/5.0 |
+| Core learner flow complete | Curriculum selection → Chapter exploration → Resume | End-to-end |
+| Both branching flows functional | Phrase selection + edge `+` flows | Working in production path |
+| Path-edge vs manual-link rules implemented | Deletion, rendering, and edge-type behavior | Correct |
 | Session persistence reliability | Data loss incidents | 0 |
-| Offline mode functional | Cached board access | Works without network |
+| Podcast generation flow functional | Session → script → playable audio | End-to-end |
+| Offer-set logging present for exploration flows | Logged offer-set + selection events | 100% of phrase/edge launches |
 
 ### Performance Criteria
 
@@ -427,7 +439,6 @@ The following implementation sequence respects architectural dependencies.
 | Canvas frame rate | FPS during pan/zoom | 60fps |
 | AI response time | Query to first token | <2 seconds |
 | Memory footprint | Peak RAM usage | <150MB |
-| Offline cache size | Per-board storage | <5MB |
 
 ### Device Compatibility
 
@@ -444,10 +455,19 @@ The following implementation sequence respects architectural dependencies.
 
 | Criterion | Measurement | Target |
 |-----------|-------------|--------|
-| Onboarding completion | % completing curriculum setup | >90% |
-| First session depth | Nodes created in first session | >5 |
-| Return rate (Day 1) | % returning within 24 hours | >50% |
-| Session duration | Average time per session | >10 minutes |
+| Curriculum setup completion | % completing initial syllabus/exam setup | >90% |
+| First exploration session depth | Questions selected / child nodes created in first chapter session | >5 |
+| Same-chapter return rate | % returning to the same chapter for a second session | >40% |
+| Offer-set engagement | % of shown phrase/edge offer sets that lead to a selection | Track and improve |
+
+---
+
+## Known Scope Notes
+
+- **Teacher-support MVP surface**: The product-level MVP includes a basic teacher view, with the current high-level teacher-facing boundary defined in `docs/teacher-support-mvp-specification.md`. This file remains primarily the learner/mobile exploration scope plus the shared data-capture requirements that support teacher interpretation.
+- **Offline scope alignment**: Current MVP includes basic offline access to previously loaded session state and content already generated online so learners can reopen and resume later. Broader offline capability remains out of MVP for this document and should not be inferred from this narrow behavior.
+- **Image-node scope detail**: Image nodes are **in MVP** as supporting learning media. The minimum MVP surface is standalone image-node creation/import, viewing, manual reference linking, and deletion.
+- **Image-node capability-tier clarification**: In the split mobile docs, image-specific enrichment such as contextual image search, OCR, or AI description may remain labeled **Advanced**. That label means enhancement-tier capability, not post-MVP status for image nodes themselves.
 
 ---
 
@@ -463,10 +483,10 @@ The following implementation sequence respects architectural dependencies.
 | **Persistence** | AsyncStorage | Local session storage |
 | **Backend** | Supabase (PostgreSQL) | User data, curriculum, PYQ |
 | **AI** | Claude/OpenAI API | Content generation |
-| **TTS** | Platform TTS / AI voice | Podcast audio |
+| **TTS** | Platform TTS / AI voice service | Podcast audio generation |
 
 ---
 
-*Document Version 1.0 | Basic Features Specification*
-*Platform: Categorical Exploration Learning Platform*
+*Document Version 1.2 | MVP Features Specification*
+*Platform: Path-Based Conceptual Exploration and Teacher-Support System*
 *Referenced by: Mobile Feature Specification (see `docs/mobile-features-index.md` for navigation)*

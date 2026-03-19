@@ -2,7 +2,7 @@
 
 ## Document Overview
 
-This document specifies system-level functionality for the mobile application, including authentication, data sync, offline mode, notifications, settings, export/import, performance optimization, and privacy compliance.
+This document specifies system-level functionality for the mobile application, including authentication, data sync, broader offline continuity references, notifications, settings, export/import, performance optimization, and privacy compliance.
 
 **Part of**: Mobile Feature Specification (split for AI agent optimization)
 **Related files**:
@@ -23,7 +23,7 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Organic-First**: Students explore naturally; system observes invisibly
 - **Syllabus-Driven**: All content anchored to curriculum (Class, Exam, Subject, Chapter)
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
-- **Category Invisibility**: Diagnostic categories never visible to students
+- **Category Invisibility**: Internal analytic categories never visible to students
 
 ---
 
@@ -54,17 +54,17 @@ App-wide functionality that operates across all screens.
 | Conflict resolution | Sync dialog | Advanced | Shows conflicting changes, pick version | Sync service |
 | Sync history | Settings → "Sync" → "History" | Advanced | Shows recent sync events | Sync service |
 
-### 7.3 Offline Mode
+### 7.3 Basic Offline Access
 
-*Offline capabilities are Basic tier priority based on Indian student device market research (see `docs/research/indian-student-market-analysis.md`). Rural connectivity gaps (58.8% mobile penetration vs. 125.3% urban) and competitor offline offerings (Khan Academy, BYJU's) make offline mode essential for target market.*
+*Current MVP scope includes only basic offline access to previously stored session/board state and content already generated online so learners can reopen and resume later. Broader offline capability remains later-phase only and should not be read into this section. This section does not imply offline editing, queued sync, explicit offline downloads, offline video behavior, or AI generation without network.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Offline data access | Automatic | Basic | Cached boards available offline | Local storage |
-| Offline editing | Automatic | Basic | Edits queued for sync when online | Local storage |
-| Offline indicator | Header → offline badge | Basic | Shows when no network connection | Network detection |
-| Sync queue | Settings → "Offline" → "Pending" | Advanced | Shows queued changes with sync status | Local storage |
-| Selective offline boards | Board menu → "Available Offline" | Advanced | Downloads full board for offline use | Local storage |
+| Basic offline data access | Automatic | Basic | Previously stored session/board content can be reopened locally | Local storage |
+| Offline editing | N/A | Exclude | Not part of the current clarified scope | N/A |
+| Offline indicator | Header → offline badge | Advanced | Shows when no network connection while viewing previously stored content | Network detection |
+| Sync queue | N/A | Exclude | Not part of the current clarified scope | N/A |
+| Selective offline boards | N/A | Exclude | Explicit offline-download behavior is not currently established | N/A |
 | Offline AI (limited) | N/A | Exclude | Requires network for AI features | N/A |
 
 ### 7.4 Notifications
@@ -119,7 +119,7 @@ App-wide functionality that operates across all screens.
 | **Android Version** | Android 11 (API 30) | ~95% coverage of Indian Android users (Android 11+ = 90%+) |
 | **RAM** | 4GB | Entry-level segment floor; budget devices (₹10,000-₹20,000) have 4-6GB |
 | **Screen Size** | 6.5" HD+ (720×1600) | Standard for budget smartphones in Indian market |
-| **Storage** | 32GB (8GB available) | Minimum for app + offline cached boards |
+| **Storage** | 32GB (8GB available) | Minimum for app + locally persisted session data |
 | **GPU** | OpenGL ES 3.0 | Required for Skia edge rendering (Bézier curves) in the hybrid architecture |
 
 **Performance Optimization Targets**:

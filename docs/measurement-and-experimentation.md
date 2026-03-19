@@ -20,7 +20,7 @@ It operationalizes Section 4 (“offer sets + discovery vs exploitation”) in `
 - **Offer set**: the concrete menu of options presented for a decision.
 - **Discovery mode**: measurement-first traffic (more organic, limited personalization, controlled randomness).
 - **Exploitation mode**: experience-optimized traffic (ranking, caching, interventions), still logged.
-- **Diagnostic probe**: a small, randomized perturbation embedded in exploitation to preserve identifiability.
+- **Randomized probe**: a small, randomized perturbation embedded in exploitation to preserve identifiability.
 
 ---
 
@@ -43,13 +43,13 @@ Requirements:
 - **Stratified remainder**: the remaining discovery budget is allocated by a weighted function of:
   - segment traffic volume
   - model uncertainty / drift indicators
-  - fairness/coverage priorities (explicitly configured)
+  - fairness/exploration priorities (explicitly configured)
 
 Operational guideline (practical default):
 - `B_total = clamp(0.30, 0.30, 0.60)` — the organic floor is fixed at 30% minimum and cannot be reduced below 30% by any actor including administrators. It may be increased above 30% (e.g., during high-uncertainty periods or when personalization intensity increases) but never lowered.
 - `B_seg = max(B_min, f(seg))` where `f(seg)` is proportional to uncertainty × importance.
 
-### 1.3 Avoiding “cell explosion”
+### 1.3 Avoiding segment explosion
 If the Cartesian product of axes yields too many tiny segments:
 - Use **hierarchical backoff**: allocate by (subject, grade_band) first; then refine by language/proficiency when volume allows.
 - Merge rare segments into “other” buckets while preserving `segment_schema_version`.
@@ -65,7 +65,7 @@ Discovery budget MUST increase (globally or for specific segments) when any cond
 
 ---
 
-## 2) Diagnostic probe design (inside exploitation)
+## 2) Randomized probe design (inside exploitation)
 ### 2.1 Frequency and placement
 Probes occur in exploitation mode with probability `p_probe` per offer set.
 
@@ -84,7 +84,7 @@ A probe offer set is a **controlled mixture** that preserves UX but introduces o
 
 **Hard constraints**:
 - No category labels in student-visible text.
-- No forced “cover all dimensions” objectives.
+- No forced “cover all analytic dimensions” objectives.
 - Respect safety/age filters and content policies.
 
 ### 2.3 Randomization method (must be loggable)
@@ -99,7 +99,7 @@ Supported probe randomization mechanisms:
 
 ## 3) Minimum per-segment sample targets
 ### 3.1 What “sample” means
-Primary unit: **offer sets** (and their impressions + selections). Secondary: downstream outcomes (assessments, retention).
+Primary unit: **offer sets** (and their impressions + selections). Secondary: downstream outcomes (performance checks, retention, transfer).
 
 ### 3.2 Practical minimums (starting guidance)
 For each segment × policy_version (per evaluation window, e.g., weekly):
@@ -158,9 +158,11 @@ All events MUST include join keys:
 - optional: `dismissed` / `no_selection`
 
 ### 4.5 `learning_outcome` (downstream signals)
-- `outcome_type` (assessment|retention|transfer|time_on_task|teacher_rating|etc.)
+- `outcome_type` (performance_check|retention|transfer|time_on_task|teacher_rating|etc.)
 - `value` (typed) + `instrument_version`
 - join keys: `student_id_pseudo`, `session_id` (or timeframe window)
+
+When these downstream outcomes are used to evaluate learner-facing reflective guidance, self-review support, or next-step support, keep the capability boundaries in `docs/student-reflective-guidance-and-self-review.md` in scope.
 
 ### 4.6 Phrase Selection Offer Sets
 
