@@ -17,6 +17,7 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 - a bounded mind map for chapter exploration
 - AI-generated responses and bounded branching through the two confirmed learner exploration flows
 - previous year questions as a supporting exam-preparation resource
+- optional Reflective Checkpoints / Sensemaking Pauses triggered by meaningful dimensional shifts in the learner path
 - session persistence and basic offline access for continuity, resume, and reopening previously stored session state
 - podcast generation from exploration sessions as a reinforcement capability
 - path capture, offer-set logging, and internal post-hoc interpretation hooks required for the teacher-support layer
@@ -24,6 +25,7 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 ### Scope Boundary Notes
 
 - Learner-facing surfaces must remain category-neutral and must not expose internal analytic labels.
+- Reflective Checkpoints are **non-mandatory** low-stakes sensemaking invitations, not tests, grades, or progression gates.
 - Teacher-support interpretation remains a separate layer from the learner experience.
 - The confirmed mind map interaction rules are fixed for current MVP scope: no Story Node, no node body editing, branching only through phrase selection or the left/right AI-node edge `+`, and AI-generated path edges are distinct from manual reference links.
 - Deleting a node in an AI-generated exploration path must also delete its descendant path nodes after confirmation.
@@ -52,8 +54,9 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 | **2. Dashboard** | Session continuity and quick re-entry |
 | **3. Mind Map Canvas** | Bounded exploration surface and manual reference operations |
 | **4. AI Exploration Nodes** | AI-generated content and bounded branching |
-| **5. Previous Year Questions** | Exam-focused supporting resources |
-| **6. Session Persistence, Basic Offline Access & Podcast** | Save and reopen prior exploration state, then generate reinforcement audio |
+| **5. Reflective Checkpoint / Sensemaking Pause** | Optional low-stakes metacognitive reflection after meaningful path shifts |
+| **6. Previous Year Questions** | Exam-focused supporting resources |
+| **7. Session Persistence, Basic Offline Access & Podcast** | Save and reopen prior exploration state, then generate reinforcement audio |
 
 ---
 
@@ -129,7 +132,7 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 | **Description** | Shows last active chapter with resume button to restore mind map state |
 | **UI Location** | Dashboard → Top section |
 | **Implementation** | Load persisted Zustand state from AsyncStorage |
-| **Dependencies** | Session persistence (Feature 6.1) |
+| **Dependencies** | Session persistence (Feature 7.1) |
 | **Priority Justification** | Critical for learning continuity; reduces friction to resume |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 1.3 |
 
@@ -283,11 +286,50 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 
 ---
 
-## Feature Group 5: Previous Year Questions
+## Feature Group 5: Reflective Checkpoint / Sensemaking Pause
+
+*Optional low-stakes reflection surfaced when the learner's path makes a meaningful conceptual move*
+
+### Feature 5.1: Dimensional Shift Trigger
+
+| Attribute | Specification |
+|-----------|---------------|
+| **Description** | Detect meaningful shifts in the learner's recent classified exploration vectors, such as moving from Define/Decompose-heavy exploration into Predict/Delimit-heavy exploration |
+| **UI Location** | No direct UI; backend/session policy monitors classified selection events |
+| **Implementation** | Use Stage 2 dimensional vectors to compare previous and recent rolling windows; checkpoint becomes eligible when cosine distance is at least `0.35`, dominant dimensions change, and the learner has enough prior context and cooldown clearance |
+| **Dependencies** | Post-hoc classification, session path history, checkpoint cooldown state |
+| **Priority Justification** | Adds a metacognitive signal without turning the learner flow into a formal quiz or assessment |
+| **Architecture Reference** | `docs/system-architecture.md` Dimensional Shift Monitor + Stage 4 Active Probing |
+
+### Feature 5.2: Soft Participation Checkpoint UI
+
+| Attribute | Specification |
+|-----------|---------------|
+| **Description** | Present a category-neutral reflection invitation, e.g. "Quick reflection pause", with options to Try Now, Not Sure Yet, Snooze, or Skip |
+| **UI Location** | Lightweight modal/bottom sheet anchored to the current AI node or transition moment |
+| **Implementation** | Non-blocking prompt component; records action and optional response; does not expose category labels, scores, or mastery language |
+| **Dependencies** | Trigger policy, current node context, AI service for prompt generation or retrieval |
+| **Priority Justification** | Supports sensemaking while preserving learner agency and organic exploration |
+| **Architecture Reference** | `docs/system-architecture.md` Stage 4 Active Probing / Reflective Checkpoint Layer |
+
+**Soft participation rules**:
+- **Try Now**: learner answers a short reflection prompt; response quality is logged as a teacher-support signal.
+- **Not Sure Yet**: learner explicitly marks uncertainty; this is treated as metacognitive self-awareness, not failure.
+- **Snooze**: learner defers the checkpoint; it may reappear once after additional relevant exploration and cooldown.
+- **Skip**: learner opts out; a single skip is treated as an agency/opt-out event, not avoidance or misunderstanding.
+- No option should block review of existing content, assign a grade, or show a pass/fail result.
+
+**Analytics requirements**:
+- Log checkpoint eligibility, offered prompt, trigger type, prior/recent phase vectors, entropy delta, student action, optional response, and policy version.
+- Store checkpoint signals separately from exploration coverage. They may inform teacher-support interpretation but must not be merged into a mastery score.
+
+---
+
+## Feature Group 6: Previous Year Questions
 
 *Exam-focused study resources anchored to chapter context*
 
-### Feature 5.1: PYQ Panel Access
+### Feature 6.1: PYQ Panel Access
 
 | Attribute | Specification |
 |-----------|---------------|
@@ -298,7 +340,7 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 | **Priority Justification** | Critical for exam-focused users (NEET, JEE, CBSE) |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 4.4 |
 
-### Feature 5.2: Add PYQ to Mind Map
+### Feature 6.2: Add PYQ to Mind Map
 
 | Attribute | Specification |
 |-----------|---------------|
@@ -311,11 +353,11 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 
 ---
 
-## Feature Group 6: Session Persistence, Basic Offline Access & Podcast
+## Feature Group 7: Session Persistence, Basic Offline Access & Podcast
 
 *Learning continuity, reopening of previously stored session content, and session-based reinforcement audio*
 
-### Feature 6.1: Session Persistence
+### Feature 7.1: Session Persistence
 
 | Attribute | Specification |
 |-----------|---------------|
@@ -329,7 +371,7 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 
 **Scope clarification**: This feature includes basic offline access to previously stored session state and content already generated online. It should not be read as support for new AI generation while offline, offline editing beyond that persisted state, offline sync/queued sync behavior, offline video behavior, downloaded media or podcast offline playback, or a broader offline product mode.
 
-### Feature 6.2: Generate Exploration Podcast
+### Feature 7.2: Generate Exploration Podcast
 
 | Attribute | Specification |
 |-----------|---------------|
@@ -378,18 +420,19 @@ The following implementation sequence respects architectural dependencies.
 | 10 | Dynamic Content Population (4.2) | Response handling |
 | 11 | Phrase Selection (4.3) | Exploration flow |
 | 12 | Question Discovery Flow (4.4) | Core learning loop |
+| 13 | Reflective Checkpoint Trigger + UI (5.1-5.2) | Optional metacognitive signal after classified path shifts |
 
 ### Supporting capabilities
 
 | Order | Feature | Rationale |
 |-------|---------|-----------|
-| 13 | Node Connections (3.4) | Relationship building |
-| 14 | Continue Learning (2.2) | Session continuity |
-| 15 | Recent Sessions (2.3) | Quick access |
-| 16 | PYQ Panel (5.1) | Exam prep resource access |
-| 17 | Add PYQ to Map (5.2) | Chapter-context integration |
-| 18 | Chapter Search (1.4) | Faster navigation |
-| 19 | Generate Exploration Podcast (6.2) | Reinforcement and review from session history |
+| 14 | Node Connections (3.4) | Relationship building |
+| 15 | Continue Learning (2.2) | Session continuity |
+| 16 | Recent Sessions (2.3) | Quick access |
+| 17 | PYQ Panel (6.1) | Exam prep resource access |
+| 18 | Add PYQ to Map (6.2) | Chapter-context integration |
+| 19 | Chapter Search (1.4) | Faster navigation |
+| 20 | Generate Exploration Podcast (7.2) | Reinforcement and review from session history |
 
 ---
 
@@ -402,7 +445,8 @@ The following implementation sequence respects architectural dependencies.
 | Canvas infrastructure | Node selection, manual reference links, and AI-node rendering |
 | Initial AI node creation | Phrase-selection flow and edge `+` question discovery |
 | Session persistence + session/path data | Continue Learning, Recent Sessions, and podcast generation |
-| AI + TTS services | AI exploration content and podcast generation |
+| Stage 2 classification + session/path data | Dimensional Shift Trigger and optional Reflective Checkpoint prompts |
+| AI + TTS services | AI exploration content, checkpoint prompt generation, and podcast generation |
 | Offer-set logging + path capture | Downstream teacher-support interpretation and measurement |
 
 ### Critical Path
@@ -411,8 +455,9 @@ The following implementation sequence respects architectural dependencies.
 2. **Curriculum Selection** → Required for content filtering
 3. **Canvas Infrastructure** → Required for all node features
 4. **Session Persistence** → Required for Continue Learning and podcast inputs
-5. **AI Service Integration** → Required for AI node creation, phrase branching, question discovery, and podcast script generation
-6. **TTS Service Integration** → Required for podcast audio generation
+5. **AI Service Integration** → Required for AI node creation, phrase branching, question discovery, checkpoint prompt generation, and podcast script generation
+6. **Post-hoc classification** → Required for dimensional shift detection and Reflective Checkpoint triggering
+7. **TTS Service Integration** → Required for podcast audio generation
 
 **Product-level dependency note**: A basic teacher view is in MVP at the product level. Its bounded teacher-facing surface and minimum access model are defined in `docs/teacher-support-mvp-specification.md`. What *is* required here is the learner-path and offer-set data capture that the teacher-support layer depends on.
 
@@ -430,6 +475,7 @@ The following implementation sequence respects architectural dependencies.
 | Session persistence reliability | Data loss incidents | 0 |
 | Podcast generation flow functional | Session → script → playable audio | End-to-end |
 | Offer-set logging present for exploration flows | Logged offer-set + selection events | 100% of phrase/edge launches |
+| Reflective Checkpoint soft participation | Try Now / Not Sure Yet / Snooze / Skip actions logged without blocking exploration | End-to-end |
 
 ### Performance Criteria
 
@@ -459,6 +505,7 @@ The following implementation sequence respects architectural dependencies.
 | First exploration session depth | Questions selected / child nodes created in first chapter session | >5 |
 | Same-chapter return rate | % returning to the same chapter for a second session | >40% |
 | Offer-set engagement | % of shown phrase/edge offer sets that lead to a selection | Track and improve |
+| Checkpoint participation | Try Now / Not Sure Yet / Snooze / Skip distribution after eligible shifts | Track; no punitive target |
 
 ---
 

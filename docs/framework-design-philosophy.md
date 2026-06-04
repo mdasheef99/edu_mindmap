@@ -7,7 +7,7 @@ This document defines the **design philosophy** for a **path-based conceptual ex
 - **Not a metaphysical claim** that the 8 categories are universal necessities of thought.
 - **Not a student-facing taxonomy**: students must never see category labels, axis names, or “you explored 6/8 dimensions”.
 - **Not a standalone autonomous assessment authority**: stronger diagnostic claims belong to the internal research agenda unless and until validated.
-- **Not a quiz-trigger spec**: adaptive trigger logic is intentionally out of scope and will be designed later.
+- **Not a formal testing system**: the MVP Reflective Checkpoint / Sensemaking Pause is optional active probing for teacher-support interpretation, not a quiz grade, mastery score, or mandatory assessment gate.
 
 ---
 
@@ -38,6 +38,8 @@ From the captured path, the system computes five statistical analyses (all compu
 3. **Velocity** — the dimensional engagement vector of a single selection event, interpreted as the rate of change per step. A question with high Delimit and low everything else contributes a velocity vector that “pushes” the cumulative state toward Delimit.
 4. **Transition Probabilities** — P(next_vector | current_cumulative_state). Computed from aggregate data across students: given a cumulative profile similar to the current one, what dimensional engagement tends to come next? Used for bridge question recommendations.
 5. **Gap Persistence** — distinguishes dimensions that are merely unexplored-so-far from dimensions that remain consistently under-engaged despite repeated opportunities. A dimension with low cumulative score *and* low velocity across recent selections (the learner keeps not engaging it despite opportunities) is a persistent gap. A dimension with low cumulative score but recent non-zero velocity is catching up.
+
+The MVP also supports an optional **Reflective Checkpoint / Sensemaking Pause** when path data shows a meaningful dimensional shift. This is the framework's bounded transition from passive observation to active probing: the system may invite the learner to reflect, but the learner can Try Now, choose Not Sure Yet, Snooze, or Skip. These actions are logged as metacognitive interaction signals, not as grades or proof of understanding.
 
 This “path capture” goal is foundational because it powers (and constrains):
 - teacher-facing probabilistic insights (patterns, clusters, low-selection signals, revisitation),
@@ -109,6 +111,14 @@ To interpret selection behavior, we must log not only what the learner chose, bu
 - policy metadata: `policy_name`, `policy_version`, `mode` (discovery|exploitation)
 - outcome: `selected_option_id`, `time_to_select`, optional scroll/visibility signals
 
+### Reflective Checkpoint event fields (conceptual)
+- `checkpoint_id`, `student_id`, `session_id`, `node_id`, `timestamp`
+- `trigger_type`: dimensional_shift, entropy_shift, persistent_gap, or other policy reason
+- `previous_phase_vector`, `recent_phase_vector`, `shift_score`, `entropy_delta`
+- `focus_dimensions` for internal analysis only; never student-visible
+- `student_action`: try_now, not_sure_yet, snooze, skip
+- optional response text/selection, response-quality signal, confidence, and policy version
+
 ### Discovery vs exploitation separation
 - **Discovery traffic**: preserves measurement quality (diverse, more organic, limited personalization, occasional safe randomization).
 - **Exploitation traffic**: applies optimizations (ranking, caching, interventions) to improve experience.
@@ -134,11 +144,12 @@ We define **structural coverage of conceptual engagement** operationally as:
 ## 6) Key design principles
 1. **Organic-first generation**: questions are generated from context as a curious learner would ask—no categorical templates (and no attempt to optimize for category coverage at generation time).
 2. **Post-hoc classification**: categories are applied after generation for analysis and teacher-support interpretation.
-3. **Category-neutral student language**: any student prompts are phrased as natural suggestions (e.g., “Try comparing…”, “What happens if…”) without naming dimensions.
-4. **Teacher-visible probabilistic insights**: teachers see category-weighted coverage, possible follow-up areas, and suggested follow-ups.
-5. **Multiple outcome measures**: validate signals using more than one outcome (e.g., retention, transfer tasks, performance checks, confidence calibration, optional assessments).
-6. **Subject-specific interpretation**: weights change which low-coverage dimensions count as higher-priority follow-up concerns.
-7. **Cautious product positioning**: stronger diagnostic claims remain part of the internal research agenda unless and until they are validated.
+3. **Optional active probing**: Reflective Checkpoints may invite sensemaking after meaningful path shifts, but participation is non-mandatory and separate from natural-exploration coverage.
+4. **Category-neutral student language**: any student prompts are phrased as natural suggestions (e.g., “Try comparing…”, “What happens if…”) without naming dimensions.
+5. **Teacher-visible probabilistic insights**: teachers see category-weighted coverage, possible follow-up areas, checkpoint metacognitive signals, and suggested follow-ups.
+6. **Multiple outcome measures**: validate signals using more than one outcome (e.g., retention, transfer tasks, performance checks, confidence calibration, optional assessments).
+7. **Subject-specific interpretation**: weights change which low-coverage dimensions count as higher-priority follow-up concerns.
+8. **Cautious product positioning**: stronger diagnostic claims remain part of the internal research agenda unless and until they are validated.
 
 ---
 
@@ -154,9 +165,10 @@ We define **structural coverage of conceptual engagement** operationally as:
 ### Teacher-support reporting
 - Treat these signals as **probabilistic** and **actionable**, not as definitive proofs of understanding.
 - Prefer recommendations like “next best prompts” (category-neutral for students) and “intervention themes” (category-visible for teachers).
+- Surface checkpoint response quality and opt-out patterns only as cautious metacognitive evidence. A single Skip or Snooze is an agency signal, not avoidance; repeated patterns may be shown as weak follow-up context.
 
-### Quiz / assessment
-Assessments may exist as one outcome signal, but **trigger mechanisms and adaptive logic are not yet specified** and must be defined in a future document.
+### Reflective checkpoint / assessment boundary
+The MVP Sensemaking Pause is an optional reflective checkpoint triggered by path dynamics, not a formal quiz/testing layer. It can produce useful response-quality and uncertainty signals, but it must not produce student-facing grades, mastery scores, or lockouts.
 
-Any future student-facing self-check or guidance mode should remain **category-neutral**, **low-stakes**, and clearly differentiated from teacher-facing interpretation and internal validation claims.
+Any future formal assessment or richer student-facing self-review mode should remain **category-neutral**, **low-stakes** unless explicitly specified otherwise, and clearly differentiated from teacher-facing interpretation and internal validation claims.
 

@@ -6,9 +6,9 @@
 
 ### Foundational Claim
 
-**Thesis**: More robust conceptual understanding may often develop through natural learner exploration across multiple conceptual dimensions. By observing authentic learning behavior, mapping exploration patterns to an internal analytic framework, and surfacing probabilistic teacher-support signals, the platform can help teachers and learners choose better follow-up actions while preserving learner agency.
+**Thesis**: More robust conceptual understanding may often develop through natural learner exploration across multiple conceptual dimensions. By observing authentic learning behavior, mapping exploration patterns to an internal analytic framework, occasionally inviting optional low-stakes sensemaking pauses when paths shift meaningfully, and surfacing probabilistic teacher-support signals, the platform can help teachers and learners choose better follow-up actions while preserving learner agency.
 
-**Core Principle**: Students explore concepts naturally. The system observes and interprets. Teachers decide whether and how to intervene.
+**Core Principle**: Students explore concepts naturally. The system observes and interprets. When it actively probes, it does so through optional category-neutral reflection, not mandatory testing. Teachers decide whether and how to intervene.
 
 **Non-goal**: The system is not framed here as a standalone autonomous assessment authority. Stronger diagnostic claims remain part of the research agenda unless validated.
 
@@ -98,7 +98,23 @@ Velocity (last 5 questions): Vary rising (0.0 → 0.3) — may be catching up.
 - Self-correction behaviors (metacognitive indicator)
 - Novel application attempts (transfer indicator)
 
-#### Phase 3: Teacher Integration (Guided Follow-Up)
+#### Phase 3: Optional Active Probing (Sensemaking Pause)
+
+When the classified path shows a meaningful shift in engagement—such as moving from defining/decomposing into predicting or testing limits—the system may invite a **Reflective Checkpoint / Sensemaking Pause**.
+
+This phase is explicitly different from passive observation:
+- It is **active probing**, not natural exploration data.
+- It is **optional**, with Try Now, Not Sure Yet, Snooze, and Skip choices.
+- It is **category-neutral** for students and never displays dimensions, scores, or mastery claims.
+- It treats responses and opt-outs as **metacognitive teacher-support signals**, not diagnostic grades.
+
+Interpretation examples:
+- **Try Now + partial answer**: possible follow-up signal around the prompt focus.
+- **Not Sure Yet**: explicit metacognitive uncertainty, not failure.
+- **Snooze**: temporary deferral; usually not teacher-visible unless repeated.
+- **Skip**: agency/opt-out event; only repeated patterns become weak, cautious support signals.
+
+#### Phase 4: Teacher Integration (Guided Follow-Up)
 
 The system provides **actionable teacher-support insights** to enable more targeted scaffolding, while leaving final pedagogical judgment to the teacher.
 
@@ -173,7 +189,8 @@ Suggested class follow-up:
 **Causal Chain**:
 ```
 Natural Exploration → Behavior Observation → Analytic Mapping →
-Teacher-Support Signals → Targeted Follow-Up → Improved Understanding
+Optional Sensemaking Pause → Teacher-Support Signals →
+Targeted Follow-Up → Improved Understanding
 ```
 
 ---
@@ -221,6 +238,7 @@ Beyond dimensional coverage, the system detects behavioral signals that may indi
 | **Novel Application** | Student applies concept to new context | Transfer capability |
 | **Contradiction Recognition** | Student identifies tensions/paradoxes | Critical analysis |
 | **Trajectory Shape** | Cumulative dimensional profile evolves over session | A shift from narrow to broader engagement may indicate deepening exploration |
+| **Reflective Checkpoint Response** | Student tries, marks uncertainty, snoozes, or skips an optional sensemaking prompt | Current metacognitive state or readiness for consolidation; not a grade |
 
 These signals complement dimensional coverage to provide richer teacher-support profiles.
 
@@ -239,6 +257,11 @@ This framework makes empirical claims requiring systematic validation:
 - Can we reliably classify exploration behavior into the 8 dimensions?
 - Do inter-rater agreement tests confirm classification consistency?
 - Are persistent low-engagement signals stable and meaningful rather than random noise?
+
+**Phase 2B: Active-Probing Validity**
+- Do dimensional-shift triggers identify moments where reflection is useful rather than disruptive?
+- Do Try Now, Not Sure Yet, Snooze, and Skip actions predict different readiness or follow-up needs without becoming punitive labels?
+- Does checkpoint exposure distort later natural exploration, and can that distortion be measured separately?
 
 **Phase 3: Predictive Validity**
 - Do some low-coverage patterns predict specific understanding failures?
@@ -272,9 +295,10 @@ Four explicit validation targets address the framework's foundational claims:
 |-------|-------|-------------|
 | 1. Prototype | Build observation infrastructure | Data collection system capturing exploration behavior |
 | 2. Classify | Develop analytic mapping | Reliable 8-dimension post-hoc classification |
-| 3. Validate | Test signal validity | Correlation studies: signals → later outcomes |
-| 4. Interface | Build teacher dashboard | Actionable teacher-support profiles and follow-up suggestions |
-| 5. Evaluate | Measure pedagogical impact | Controlled study: targeted follow-up vs. generic intervention |
+| 3. Active Probe | Add optional Sensemaking Pause | Dimensional-shift trigger, soft participation actions, response-quality logging |
+| 4. Validate | Test signal validity | Correlation studies: exploration + checkpoint signals → later outcomes |
+| 5. Interface | Build teacher dashboard | Actionable teacher-support profiles, checkpoint notes, and follow-up suggestions |
+| 6. Evaluate | Measure pedagogical impact | Controlled study: targeted follow-up vs. generic intervention |
 
 ---
 

@@ -38,11 +38,13 @@ At runtime, the student selects an exam, subject, chapter, and concept entry poi
 
 Each selected question is classified post hoc against an internal 8-dimension engagement model. The system records ordered node visits, offer sets, question selections, timestamps, revisits, and thread context so that the learner path can be reconstructed as a sequence of exploration events rather than a flat activity log.
 
-Those signals feed the teacher-support layer. Teachers can review a student's chapter path, see what was explored and what remains thin, inspect weighted coverage patterns, and use suggested follow-up prompts to prepare targeted scaffolding. The product is intended to inform teacher judgment, not replace it.
+When the classified path shows a meaningful dimensional shift, the product may invite an optional **Reflective Checkpoint / Sensemaking Pause**. This is a low-stakes, category-neutral prompt to help the learner notice current thinking. It offers Try Now, Not Sure Yet, Snooze, and Skip actions; it is not a quiz, grade, mastery claim, or mandatory progression gate.
+
+Those signals feed the teacher-support layer. Teachers can review a student's chapter path, see what was explored and what remains thin, inspect weighted coverage patterns, review checkpoint responses or opt-out patterns as cautious metacognitive signals, and use suggested follow-up prompts to prepare targeted scaffolding. The product is intended to inform teacher judgment, not replace it.
 
 ## 5. Product Principles and Boundaries
 
-The platform is guided by five operating rules.
+The platform is guided by six operating rules.
 
 First, **student-facing category invisibility is mandatory**. Student surfaces must not reveal category names, hidden dimension labels, scores, meters, or language that implies the system can infer internal cognitive state with certainty.
 
@@ -54,6 +56,8 @@ Fourth, **organic-first generation remains the runtime default**. Question gener
 
 Fifth, **the teacher is an informed conversational guide, not a replaced authority**. The product's value comes from making follow-up more targeted and timely, not from removing teacher judgment.
 
+Sixth, **Reflective Checkpoints are optional sensemaking pauses, not tests**. They may actively probe current thinking after meaningful path shifts, but student choices to answer, skip, snooze, or mark uncertainty must be interpreted as low-stakes metacognitive evidence rather than grades or proof of mastery.
+
 ## 6. MVP Scope and User Journey
 
 ### In scope for MVP
@@ -64,6 +68,7 @@ Fifth, **the teacher is an informed conversational guide, not a replaced authori
 - Session persistence and basic offline access so learners can resume chapter exploration and reopen previously stored session content across app restarts
 - Organic question discovery from node and thread context
 - Post-hoc dimensional classification for internal analysis
+- Optional Reflective Checkpoints / Sensemaking Pauses triggered by meaningful dimensional shifts in the classified learner path
 - AI responses to selected questions
 - Phrase-anchored child-node creation
 - Edge `+` question discovery on AI nodes
@@ -72,6 +77,7 @@ Fifth, **the teacher is an informed conversational guide, not a replaced authori
 - Podcast generation from exploration sessions as a reinforcement workflow
 - Pre-analyzed launch chapters through syllabus mapping and chapter analysis
 - Basic teacher view with per-student paths, explored vs unexamined concepts, weighted coverage patterns, and suggested follow-up prompts
+- Teacher-support visibility into checkpoint response quality and opt-out patterns as cautious, probabilistic metacognitive signals
 - Offer-set logging, path capture, and discovery/exploitation tagging from day one
 
 **Image-node clarification**: Image nodes are in MVP as supporting learning media. The MVP commitment is a minimum standalone image-node surface for adding/importing, viewing, manually linking, and deleting image nodes. Richer image-specific AI/search workflows may remain advanced enhancement-tier capabilities without moving image nodes themselves out of MVP.
@@ -79,9 +85,9 @@ Fifth, **the teacher is an informed conversational guide, not a replaced authori
 ### Out of scope for MVP
 
 - Full teacher dashboard with class-level analytics and ranked severity views
-- Reflective guidance and self-review system
+- Broader reflective guidance and self-review system beyond the bounded MVP Sensemaking Pause
 - Broader offline capability beyond basic reopening of previously stored session content as a later platform feature rather than a current MVP requirement
-- Quiz/testing framework as a core product layer
+- Formal quiz/testing framework, scoring, mastery certification, or mandatory assessment gates as a core product layer
 - Cross-chapter concept tracking
 - Collective-intelligence personalization from aggregate data
 - Advanced analytics and outcome prediction
@@ -89,11 +95,11 @@ Fifth, **the teacher is an informed conversational guide, not a replaced authori
 
 ### MVP happy path: student
 
-The student selects an exam, subject, chapter, and concept, opens an AI explanation node, and branches in only two ways: by selecting a phrase inside AI content or by tapping the left or right edge `+` on an AI node. Each selection creates a child AI node, extends the exploration path, and preserves context for later branching. Over the course of a session, the learner builds a bounded concept map that reflects what they actually explored rather than a generic content feed. The learner can leave and later reopen previously stored session content to continue the same chapter exploration, pull in previous year questions where useful, and optionally generate a reinforcement podcast from the explored session.
+The student selects an exam, subject, chapter, and concept, opens an AI explanation node, and branches in only two ways: by selecting a phrase inside AI content or by tapping the left or right edge `+` on an AI node. Each selection creates a child AI node, extends the exploration path, and preserves context for later branching. Over the course of a session, the learner builds a bounded concept map that reflects what they actually explored rather than a generic content feed. When the path makes a meaningful conceptual move, the learner may receive an optional, non-graded Sensemaking Pause with Try Now, Not Sure Yet, Snooze, and Skip options. The learner can leave and later reopen previously stored session content to continue the same chapter exploration, pull in previous year questions where useful, and optionally generate a reinforcement podcast from the explored session.
 
 ### MVP happy path: teacher
 
-Before the next class, the teacher opens the chapter-level teacher view, reviews each student's exploration path, checks which concepts were explored and which likely high-priority areas remain thin, and uses suggested follow-up prompts to prepare class discussion or targeted student follow-up. The product succeeds only if this view is useful enough to change what the teacher does next.
+Before the next class, the teacher opens the chapter-level teacher view, reviews each student's exploration path, checks which concepts were explored and which likely high-priority areas remain thin, reviews any checkpoint response quality or repeated opt-out patterns as low-stakes metacognitive signals, and uses suggested follow-up prompts to prepare class discussion or targeted student follow-up. The product succeeds only if this view is useful enough to change what the teacher does next.
 
 ### Minimum viable chapter coverage for launch
 
@@ -113,9 +119,9 @@ Deleting an AI path node should require clear confirmation and should also delet
 
 ## 8. Teacher Support Layer
 
-In MVP, teacher support is chapter-level, per-student, and action-oriented. Teachers should be able to see each student's exploration path within a chapter, which concepts were explored or skipped, which weighted areas appear relatively strong or thin, and suggested follow-up prompts framed for teacher use.
+In MVP, teacher support is chapter-level, per-student, and action-oriented. Teachers should be able to see each student's exploration path within a chapter, which concepts were explored or skipped, which weighted areas appear relatively strong or thin, optional checkpoint evidence where available, and suggested follow-up prompts framed for teacher use.
 
-The teacher uses this information to decide what to ask next, which concept to revisit, which comparison to surface in class, or which student may need more targeted support. The intended action is not high-stakes diagnosis or formal remediation planning; it is fast, evidence-informed instructional preparation.
+The teacher uses this information to decide what to ask next, which concept to revisit, which comparison to surface in class, or which student may need more targeted support. Optional checkpoint data may add evidence about current sensemaking or uncertainty, but the intended action is not high-stakes diagnosis or formal remediation planning; it is fast, evidence-informed instructional preparation.
 
 The teacher layer must be framed consistently: it surfaces probabilistic interpretation and possible follow-up areas, not certainty claims about what a student definitively understands.
 
@@ -128,6 +134,7 @@ This layer is central to the school-first distribution strategy. If teachers do 
 - Students complete at least one full concept exploration session per chapter
 - Students return for a second session on the same chapter
 - Average questions selected per session
+- Reflective Checkpoint action distribution: Try Now / Not Sure Yet / Snooze / Skip after eligible shifts
 - Breadth of distinct node exploration within a chapter
 - Offer-set engagement rate: questions offered versus questions selected
 
@@ -149,10 +156,10 @@ The core loop is likely not working if students stop after one shallow session, 
 
 ## 10. Later Phase Capabilities
 
-- **Student reflective guidance and self-review**: category-neutral recap, next-step support, and low-stakes review after the teacher-support structure is established. Source: `docs/student-reflective-guidance-and-self-review.md`.
+- **Expanded student reflective guidance and self-review**: richer category-neutral recap, next-step support, and low-stakes review beyond the MVP Sensemaking Pause. Source: `docs/student-reflective-guidance-and-self-review.md`.
 - **Expanded teacher dashboard**: class-level analytics, stronger prioritization views, and richer trend interpretation beyond the MVP teacher view.
 - **Broader offline continuity capability**: later offline behavior beyond basic MVP reopening of previously stored chapter/session content, including any richer offline workflows that are not part of current scope.
-- **Quiz and testing layer**: bounded assessment or checking workflows once trigger logic, validation, and product role are clearly defined.
+- **Formal quiz and testing layer**: bounded assessment or checking workflows beyond the non-mandatory MVP Sensemaking Pause, once validation and product role are clearly defined.
 - **Cross-chapter and aggregate intelligence layers**: broader concept tracking, content-library reuse, and later personalization based on converged path data. Source: `docs/content-library-specification.md`.
 - **Advanced optimization and prediction**: adaptive ranking, more advanced analytics, and outcome prediction only after measurement quality and validity requirements are met.
 
@@ -163,6 +170,7 @@ The core loop is likely not working if students stop after one shallow session, 
 - Which exact exam, subject, and chapter set constitutes the first launch syllabus tranche?
 - What is the smallest teacher-facing surface that is still useful enough for before-class MVP use: a dedicated dashboard, a lightweight chapter view, or another constrained surface?
 - What operational threshold should define when an area is significant enough to surface as a likely follow-up without overstating certainty?
+- How should checkpoint frequency, snooze cooldowns, and repeated opt-out thresholds be tuned to preserve learner agency while producing useful signals?
 - What outcome data will be realistically available early enough to test relationships between exploration depth and exam performance?
 
 ### Key risks

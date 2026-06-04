@@ -73,9 +73,9 @@
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                   LLM PROCESSING LAYER (Direct API)              │   │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐     │   │
-│  │  │    Organic     │  │   Post-Hoc     │  │   Secondary    │     │   │
-│  │  │   Question     │→ │  Categorical   │→ │  Enhancement   │     │   │
-│  │  │  Generation    │  │ Classification │  │    Layers      │     │   │
+│  │  │    Organic     │  │   Post-Hoc     │  │ Dimensional    │     │   │
+│  │  │   Question     │→ │  Categorical   │→ │ Shift Monitor  │     │   │
+│  │  │  Generation    │  │ Classification │  │ + Checkpoints  │     │   │
 │  │  └────────────────┘  └────────────────┘  └────────────────┘     │   │
 │  └──────────────────────────────┬──────────────────────────────────┘   │
 │                                 │                                       │
@@ -94,7 +94,7 @@
 │  │  ┌──────────────────────┐  ┌──────────────────────────────┐     │   │
 │  │  │  Student Guidance    │  │  Teacher Dashboard           │     │   │
 │  │  │  • Path recap        │  │  • Individual profiles       │     │   │
-│  │  │  • Self-checks       │  │  • Class-level concerns      │     │   │
+│  │  │  • Sensemaking pause │  │  • Checkpoint signals        │     │   │
 │  │  │  • Suggested Qs      │  │  • Low-selection patterns    │     │   │
 │  │  │    (category-neutral)│  │  • Follow-up themes          │     │   │
 │  │  └──────────────────────┘  └──────────────────────────────┘     │   │
@@ -230,6 +230,29 @@ Entropy is computed automatically and stored alongside scores. It requires no ad
 
 ---
 
+### Dimensional Shift Monitor (between Stage 2 and Stage 4)
+
+**Principle**: The system may invite a low-stakes reflection only when classified path data indicates a meaningful conceptual move. This monitor does not grade the student and does not expose category language.
+
+**Inputs**:
+- Stage 2 dimensional scores for each selected question
+- Per-question classification entropy
+- Rolling previous-phase and recent-phase vectors
+- Cumulative state entropy and recent-window entropy
+- Checkpoint history, cooldowns, and student opt-out state
+
+**Trigger Criteria (initial MVP policy)**:
+- At least 5 classified selections and enough content exposure in the current session
+- The latest selected question is not a hedged classification (`classification_entropy <= 2.8`)
+- Cosine distance between previous-phase and recent-phase vectors is `>= 0.35`
+- Dominant dimensions change between rolling windows, such as Define/Decompose → Predict/Delimit
+- Shannon entropy delta is meaningful, using `abs(H_recent - H_previous) >= 0.25` as an initial tunable threshold
+- Cooldown is clear: no recent checkpoint in the last 5 selections or equivalent time window
+
+**Output**: A checkpoint eligibility decision plus internal focus dimensions for Stage 4 prompt generation. If the new dominant dimension is `predict`, the prompt should invite prediction in student-neutral language; if it is `delimit`, it should invite thinking about limits or changed conditions without exposing the dimension name.
+
+---
+
 ### Stage 3: Secondary Enhancement (Conditional)
 
 **Principle**: Applied only when demonstrably beneficial, not as default processing.
@@ -260,6 +283,31 @@ def should_enhance(question, student_context):
     
     return enhancements
 ```
+
+---
+
+### Stage 4: Active Probing / Reflective Checkpoint Layer
+
+**Principle**: A Reflective Checkpoint, student-facing as a **Sensemaking Pause**, is an optional metacognitive invitation triggered by the Dimensional Shift Monitor. It is not a quiz, grade, mastery score, or mandatory progression gate.
+
+**Soft Participation Model**:
+
+| Student action | Meaning | Data treatment |
+|----------------|---------|----------------|
+| Try Now | Student attempts a short reflection | Evaluate response quality as a teacher-support signal |
+| Not Sure Yet | Student explicitly marks uncertainty | Treat as metacognitive self-awareness, not failure |
+| Snooze | Student defers temporarily | Re-offer at most once after more relevant exploration and cooldown |
+| Skip | Student opts out | Log as an agency/opt-out event; only repeated patterns become weak teacher-support signals |
+
+**Prompt Generation Context**:
+- Current chapter, concept, node, and recent selected question
+- Previous dominant dimensions and new dominant dimensions from the shift monitor
+- Student-visible summary of the transition, with category names removed
+- Thread context packet for phrase-anchored paths where applicable
+
+Example category-neutral prompt: “You’ve started looking at what happens when conditions change. Want to pause for a moment and predict what you think will happen?”
+
+**Data Boundary**: Checkpoint prompt vectors and response-quality signals are stored separately from exploration coverage. They may strengthen or qualify teacher-support interpretation, but they must not be merged into a diagnostic grade or mastery score.
 
 ---
 
@@ -585,13 +633,15 @@ def analyze_class_gaps(class_id, chapter_id, subject):
 ```
 
 
-## Quiz System
+## Quiz System and Reflective Checkpoint Boundary
 
-Trigger mechanisms and adaptive logic are **yet to be designed/specified** and will be defined in a future document.
+The MVP Reflective Checkpoint / Sensemaking Pause is a **non-mandatory active probing layer**, not a formal quiz/testing framework.
 
-**Category invisibility**: if/when quizzes exist, student-facing quiz UX and results remain category-neutral (no category names, axis labels, or “X/8 dimensions” language). Category-level interpretation remains teacher/admin-facing.
+**Category invisibility**: checkpoint and any future quiz UX and results remain category-neutral (no category names, axis labels, or “X/8 dimensions” language). Category-level interpretation remains teacher/admin-facing.
 
 **Student guidance boundary**: any teacher-absent learner support should be framed as low-stakes self-check, recap, and next-step guidance—not as teacher-equivalent judgment or definitive diagnosis.
+
+**Formal quiz boundary**: mandatory tests, scores, adaptive quiz gates, and mastery-certification workflows remain outside the current checkpoint layer unless separately specified and validated.
 
 See `docs/student-reflective-guidance-and-self-review.md` for the planned future-facing learner layer that fits within this boundary.
 
@@ -873,14 +923,16 @@ class ContentCacheManager:
 |-------|-------|--------------|
 | 1 | Core Infrastructure | Mind map UI, basic question generation, data collection |
 | 2 | Classification Pipeline | Post-hoc categorization, question bank storage |
+| 2 | Dimensional Shift Monitor | Rolling vector windows, cosine shift detection, entropy delta trigger policy |
 | 2 | Teacher Insights | Selection pattern analytics, accessibility rankings |
 | 3 | Coverage & Signal Engine | Coverage calculation, follow-up prioritization, subject weighting |
+| 3 | Reflective Checkpoint MVP | Optional Sensemaking Pause UI, Try/Not Sure/Snooze/Skip logging, response-quality capture |
 | 3 | Pattern Analysis | Question path identification, bridge question detection |
-| 4 | Student Guidance | Quiz system, self-awareness prompts |
+| 4 | Expanded Student Guidance | Richer self-review and formal quiz/self-check workflows beyond the MVP checkpoint |
 | 4 | Path Suggestions | Apply patterns to improve question suggestions |
 | 5 | Teacher Dashboard | Individual profiles, class analytics, recommendations |
 | 5 | Content Caching | Pre-generate content for common paths |
-| 6 | Refinement | Enhancement layers, adaptive quiz timing, cross-concept transfer |
+| 6 | Refinement | Enhancement layers, formal assessment timing, cross-concept transfer |
 
 ---
 
