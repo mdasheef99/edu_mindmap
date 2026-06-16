@@ -25,6 +25,11 @@ Treat all priority labels as **capability tiers**, not timeline commitments.
 - **Curiosity-Driven**: Exploration guided by student interest, not forced paths
 - **Category Invisibility**: Internal analytic categories never visible to students
 
+**Service Boundary Update**: All AI provider calls are backend-managed through the FastAPI
+monolith's LLM Gateway. The mobile app calls `/v1/student` endpoints for generation,
+summarization, offer sets, checkpoints, and podcast orchestration; it never holds Anthropic,
+OpenAI, Perplexity, or TTS credentials and never calls model providers directly.
+
 ---
 
 ## 6. AI Integration Features
@@ -37,11 +42,11 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Summarize content | Node toolbar → "AI" → "Summarize" | Basic | Generates concise summary | AI service, node content |
-| Expand content | Node toolbar → "AI" → "Expand" | Advanced | Adds detail to existing content | AI service, node content |
-| Explain simply | Node toolbar → "AI" → "Simplify" | Advanced | Rewrites at lower complexity | AI service, node content |
-| Translate content | Node toolbar → "AI" → "Translate" | Advanced | Translates to selected language | AI service, node content |
-| Generate caption (for images) | Image node toolbar → "AI" → "Caption" | Advanced | Describes image content | AI service, image |
+| Summarize content | Node toolbar → "AI" → "Summarize" | Basic | Generates concise summary | Backend LLM Gateway, node content |
+| Expand content | Node toolbar → "AI" → "Expand" | Advanced | Adds detail to existing content | Backend LLM Gateway, node content |
+| Explain simply | Node toolbar → "AI" → "Simplify" | Advanced | Rewrites at lower complexity | Backend LLM Gateway, node content |
+| Translate content | Node toolbar → "AI" → "Translate" | Advanced | Translates to selected language | Backend LLM Gateway, node content |
+| Generate caption (for images) | Image node toolbar → "AI" → "Caption" | Advanced | Describes image content | Backend LLM Gateway, image |
 
 ### 6.2 Dedicated AI Panel ("Ask")
 
@@ -49,16 +54,16 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Open AI panel | Bottom nav → "AI" tab | Basic | Full-screen chat interface | AI service |
-| Text input | AI panel → input field | Basic | Expandable, voice input button | AI service |
+| Open AI panel | Bottom nav → "AI" tab | Basic | Full-screen chat interface | Backend LLM Gateway |
+| Text input | AI panel → input field | Basic | Expandable, voice input button | Backend LLM Gateway |
 | Voice input | AI panel → microphone icon | Advanced | Speech-to-text conversion | Microphone permission |
-| Send message | AI panel → send button | Basic | Keyboard submit also works | AI service |
-| View conversation history | AI panel → scrollable chat | Basic | Message bubbles with timestamps | AI service |
-| Clear conversation | AI panel → "New Chat" | Basic | Starts fresh context | AI service |
+| Send message | AI panel → send button | Basic | Keyboard submit also works | Backend LLM Gateway |
+| View conversation history | AI panel → scrollable chat | Basic | Message bubbles with timestamps | Backend LLM Gateway |
+| Clear conversation | AI panel → "New Chat" | Basic | Starts fresh context | Backend LLM Gateway |
 | Copy AI response | Long-press message → "Copy" | Basic | Copies to clipboard | None |
 | Convert response to node | AI response → "Add to Board" | Basic | Creates node from AI content | Current board |
-| Suggested prompts | AI panel → prompt chips | Advanced | Context-aware suggestions | AI service |
-| Conversation context | Automatic | Basic | Maintains context within session | AI service |
+| Suggested prompts | AI panel → prompt chips | Advanced | Context-aware suggestions | Backend LLM Gateway |
+| Conversation context | Automatic | Basic | Maintains context within session | Backend LLM Gateway |
 
 ### 6.3 Context Menu AI Actions
 
@@ -66,7 +71,7 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Quick summarize | Long-press node → "Summarize" | Advanced | One-tap summary generation | AI service, node |
+| Quick summarize | Long-press node → "Summarize" | Advanced | One-tap summary generation | Backend LLM Gateway, node |
 
 ### 6.4 AI-Powered Search
 
@@ -74,10 +79,10 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Semantic search | Search bar → natural language query | Advanced | Finds conceptually related content | AI service, indexed content |
+| Semantic search | Search bar → natural language query | Advanced | Finds conceptually related content | Backend LLM Gateway, indexed content |
 | Search within board | Board → search icon | Basic | Keyword search (non-AI) | Current board |
 | Search across boards | Bottom sheet → search | Advanced | Searches all user boards | Authentication |
-| AI search suggestions | Search bar → suggestions | Advanced | AI-generated query completions | AI service |
+| AI search suggestions | Search bar → suggestions | Advanced | AI-generated query completions | Backend LLM Gateway |
 
 ### 6.5 Learning-Specific AI Features
 
@@ -88,9 +93,9 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Generate organic questions | Automatic (invisible) | Basic | Questions emerge from exploration context | AI service, chapter context |
-| Post-hoc analytic classification | Backend (invisible to user) | Basic | Scores questions across 8 analytic dimensions invisibly | AI service |
-| Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates low-stakes self-review questions | AI service, node content |
+| Generate organic questions | Automatic (invisible) | Basic | Questions emerge from exploration context via `/v1/student` | Backend LLM Gateway, chapter context |
+| Post-hoc analytic classification | Backend worker (invisible to user) | Basic | Scores selected questions asynchronously after choice | Backend LLM Gateway + Postgres job queue |
+| Quiz generation | Node toolbar → "Quiz Me" | Advanced | Creates low-stakes self-review questions | Backend LLM Gateway, node content |
 
 
 #### 6.5.1 Question Discovery Flow
@@ -101,10 +106,10 @@ All AI-powered capabilities organized by access point.
 |---------|-------------|----------|-------------------|--------------|
 | Edge + button | AI Node → center of left and right vertical edges → "+" circular button | Basic | 44×44pt touch target, appears after AI response loads | AI Node |
 | Open question popup | Tap "+" button | Basic | Opens small popup box near the button displaying 3-6 questions | Question generation |
-| View generated questions | Popup box → question list | Basic | Each question is a tappable card with preview text | AI service |
-| Select question to explore | Tap question card | Basic | Creates new AI Node (question as header, AI response as body), closes popup | Canvas, AI service |
+| View generated questions | Popup box → question list | Basic | Each question is a tappable card with preview text | Backend LLM Gateway |
+| Select question to explore | Tap question card | Basic | Creates new AI Node (question as header, AI response as body), closes popup | Canvas, Backend LLM Gateway |
 | Dismiss question popup | Tap outside popup | Basic | Returns to canvas without selection | None |
-| Refresh questions | Popup box → "Show different questions" | Advanced | Generates new set of organic questions | AI service |
+| Refresh questions | Popup box → "Show different questions" | Advanced | Generates new set of organic questions | Backend LLM Gateway |
 | Question loading state | Popup box → skeleton cards | Basic | Shows 3 placeholder cards while generating | None |
 
 **Question Discovery Flow — Detailed Specification**:
@@ -129,11 +134,12 @@ All AI-powered capabilities organized by access point.
 5. The **path edge** is labeled with the selected question text
 
 **Question Generation Context**:
-- Questions in the popup are generated by the LLM based on:
+- Questions in the popup are requested from the backend and generated by the LLM Gateway based on:
   - The **current node's content** (AI response text being viewed)
   - **Exploration context** (parent node chain, sibling nodes, chapter/subject)
   - **Thread context** from previous selections in the exploration path
 - Generation follows **organic-first** principles: no category labels, no framework references, no forced coverage
+- The mobile app sends chapter/node/thread context and receives student-safe options only; prompt assembly, provider calls, model credentials, and version stamping remain backend-owned.
 
 **Branching and Node Connections**:
 - **Multiple child nodes** can branch from a single parent node through repeated phrase selections or repeated edge `+` launches
@@ -157,10 +163,10 @@ All AI-powered capabilities organized by access point.
 |---------|-------------|----------|-------------------|--------------|
 | Open Reader (selectable text) | AI Node → long-press response → "Read / Select text" | Basic | Full response in scrollable reader | Bottom sheet |
 | Select phrase/word | Reader → native highlight gesture | Basic | Uses platform selection handles | React Native text surface |
-| Open phrase action sheet | After selection | Basic | Bottom sheet with fixed top actions + 3–5 recommended questions | AI service |
-| 1) Elaborate on "[phrase]" | Phrase action sheet (top slot) | Basic | One tap, no extra input | AI service |
-| 2) Ask custom question | Phrase action sheet (second slot) | Basic | Opens text input with phrase pre-filled as context | AI service |
-| 3) Recommended follow-up questions | Phrase action sheet (remaining slots) | Basic | 3–5 tappable cards | AI service |
+| Open phrase action sheet | After selection | Basic | Bottom sheet with fixed top actions + 3–5 recommended questions | Backend LLM Gateway |
+| 1) Elaborate on "[phrase]" | Phrase action sheet (top slot) | Basic | One tap, no extra input | Backend LLM Gateway |
+| 2) Ask custom question | Phrase action sheet (second slot) | Basic | Opens text input with phrase pre-filled as context | Backend LLM Gateway |
+| 3) Recommended follow-up questions | Phrase action sheet (remaining slots) | Basic | 3–5 tappable cards | Backend LLM Gateway |
 | Create child AI node + path edge | On any selection | Basic | Parent → child AI-generated path edge label = phrase or chosen question | Canvas |
 
 **Node/edge creation rules (Basic)**:
@@ -182,6 +188,7 @@ All AI-powered capabilities organized by access point.
 **Recommended question generation constraints**:
 - Must remain **organic-first** (no category labels, no framework references, no forced "cover all angles").
 - Output 3–5 questions specifically conditioned on the phrase-in-context.
+- The backend LLM Gateway owns prompt assembly, provider calls, and `prompt_version` / `model_id` stamping; the mobile app only submits the selected phrase/context and renders the returned student-safe offer set.
 
 **Analytics / logging requirements**:
 - Log **offer set impression** when the phrase action sheet is shown:
@@ -195,10 +202,10 @@ All AI-powered capabilities organized by access point.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Contextual image search | Image picker → "Search" tab | Advanced | Searches based on current node/exploration context | Perplexity API, network |
-| Contextual video search | Video node → "Search" → "Related" | Advanced | Finds videos related to exploration context | Perplexity API, network |
-| Media metadata extraction | Automatic on media selection | Advanced | Extracts descriptions, tags, context from Sonar API | Perplexity API |
-| Media-enhanced AI responses | Automatic (invisible) | Advanced | Uses media context to enrich AI summarization | AI service, Perplexity API |
+| Contextual image search | Image picker → "Search" tab | Advanced | Searches based on current node/exploration context | Backend-mediated search/enrichment, network |
+| Contextual video search | Video node → "Search" → "Related" | Advanced | Finds videos related to exploration context | Backend-mediated search/enrichment, network |
+| Media metadata extraction | Automatic on media selection | Advanced | Extracts descriptions, tags, context from server-side enrichment | Backend-mediated search/enrichment |
+| Media-enhanced AI responses | Automatic (invisible) | Advanced | Uses media context to enrich AI summarization | Backend LLM Gateway, server-side search/enrichment |
 | Search result caching | Automatic | Advanced | Caches recent search results for 24 hours | Local storage |
 | Fallback to standard search | Automatic on API failure | Advanced | Falls back to YouTube/image gallery if Sonar unavailable | Network |
 
@@ -206,7 +213,7 @@ All AI-powered capabilities organized by access point.
 
 | Component | Specification |
 |-----------|---------------|
-| API Endpoint | Perplexity Sonar API (images, videos, web content) |
+| API Endpoint | Backend-mediated search/enrichment endpoint; any Perplexity Sonar call is server-side only |
 | Search Trigger | User initiates search OR system suggests based on exploration context |
 | Context Passed | Current node content, connected nodes, chapter topic, recent questions |
 | Result Presentation | Grid view for images (2 columns), list view for videos (thumbnail + title) |

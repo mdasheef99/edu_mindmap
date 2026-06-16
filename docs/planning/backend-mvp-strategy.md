@@ -1,4 +1,8 @@
 # Backend / Infrastructure MVP Strategy
+
+> **Note**: This document has been partially superseded by `docs/architecture/backend-architecture.md`,
+> which resolves the open questions and provisional items marked below. Where the two documents conflict,
+> `backend-architecture.md` governs.
 ## 1. Purpose
 This document defines the minimum backend and infrastructure strategy required to ship the current MVP without expanding scope beyond the approved learner, teacher-support, persistence, offline, and podcast boundaries.
 
@@ -49,21 +53,24 @@ These decisions are stable enough to plan against now and later formalize as ADR
 
 ## 6. Provisional or Deferred Backend References
 These appear in the docs or supporting references but should not be treated as finalized MVP commitments:
-- ⚠️ **Exact backend runtime choice**: a lightweight API/service layer is required, but the final implementation form (for example FastAPI service vs Supabase Edge Functions or similar) is not yet locked.
-- ⚠️ **Realtime subscriptions**: mentioned in architecture references, but not clearly required for the first shippable slice.
+- ✅ **Backend runtime**: **FastAPI** confirmed as the implementation choice; see `backend-architecture.md` §3.
+- ⚠️ **Realtime subscriptions**: explicitly **deferred** — not required for the first shippable slice (no multi-user sync in MVP).
 - ⚠️ **Object/media storage details**: generated podcast audio may require temporary or durable storage, but retention policy and storage shape are not yet fixed.
-- ⚠️ **Background job infrastructure**: asynchronous generation may eventually benefit from workers/queues, but dedicated queue infrastructure is not yet confirmed as MVP-required.
+- ✅ **Background job infrastructure**: **Postgres `SELECT ... FOR UPDATE SKIP LOCKED` queue** confirmed as the MVP form; see `backend-architecture.md` §8.1. Dedicated queue infrastructure (Redis, Celery) deferred to scale only.
 - ⚠️ **Expanded analytics/storage layers**: broader experimentation, pattern mining, content-library promotion, or specialized analytics stores are beyond the minimum MVP need.
 - ⚠️ **Teacher access-control expansion**: broader admin workflows, privilege tiers, and operational tooling belong to later-phase references, not the bounded MVP surface.
+- ⚠️ **Redis**: explicitly **deferred to scale form only**; MVP uses the Postgres `SKIP LOCKED` pattern per `backend-architecture.md` §8.1.
+- ⚠️ **B2B institutional model**: `backend-architecture.md` §5 introduces a `school_admin` role, institutional membership model, roster enrollment flow, and `api/admin` router that go beyond the original MVP scope described in this document. This is a **scope expansion** that should be reviewed against the MVP boundary before implementation begins.
+- ⚠️ **Consent and DPDP Act 2023 handling**: `backend-architecture.md` §12 introduces consent as a **first-order design constraint** with structural consequences — consent gates projection building, and withdrawal triggers replay. This was not in the original strategy and is a **confirmed addition**; it affects the schema, event flow, and worker behavior from the first migration.
 
 ## 7. Open Questions
 These should remain explicitly open until decided in an ADR or more detailed service/schema spec:
-- ❓ What is the first persisted representation shape for session/path data: normalized relational, document snapshot, or hybrid?
+- ✅ **Persisted representation shape**: **resolved** — fully normalized relational schema with event sourcing (append-only event store + CQRS read models). See `backend-architecture.md` §7.
 - ❓ What is the minimum local-versus-remote event history split needed for MVP continuity, teacher-support, and podcast generation?
-- ❓ Should manual reference-link creation be fully evented from day one, or is final edge-state storage enough for the first release?
-- ❓ What is the exact first teacher entry point: dedicated dashboard, lighter chapter review surface, or another constrained entry?
-- ❓ What is the first teacher-student authorization linkage model?
-- ❓ Which podcast inputs are mandatory versus optional enrichments, and what generated-audio retention is actually required?
+- ✅ **Manual reference-link creation**: **resolved** — fully evented from day one via `edge_created` / `edge_deleted` events (distinguishing `ai_path` from `manual_reference`). See `backend-architecture.md` §6.2.
+- ✅ **Teacher entry point**: **resolved** — V1 class overview followed by authorized class/student/chapter drill-down. See `docs/teacher-dashboard-specification.md` and `docs/api/teacher-api-spec.md`.
+- ✅ **Teacher-student authorization linkage**: **resolved** — `teaching_assignments` table with active interval scoping (a teacher sees a student only while both hold active assignments/memberships in the same class). See `backend-architecture.md` §5.1 and §5.3.
+- ✅ **Podcast inputs**: **resolved** — session-derived path artifacts (node summaries, selected questions) are the mandatory inputs; optional enrichments include checkpoint responses and prior-session context. Retention and storage shape defined in `backend-architecture.md` §8.2 and §11 (podcast worker row).
 
 ## 8. Minimal MVP Service Boundary
 The MVP should be planned as five bounded layers:
@@ -129,10 +136,15 @@ These decisions are stable enough to convert into ADRs once implementation plann
 - ADR: Podcast MVP input/result boundary.
 
 ## 12. Recommended Immediate Follow-Up
-After this strategy, the next backend-focused artifact should be a **schema-and-endpoint decision set** that turns the shared session/path contract into:
+The recommended **schema-and-endpoint decision set** has now been drafted in `docs/api/` and `docs/database/`. Those documents turn the shared session/path contract into:
 - first-pass storage shape
 - first-pass write/read API surface
 - teacher authorization linkage model
 - podcast request/result contract
 
-That follow-up is the right next step because the MVP is no longer blocked by broad backend direction; it is now blocked by the first concrete persistence and service-interface decisions.
+The MVP is no longer blocked by broad backend direction or first-pass persistence/service-interface decisions. Development should now follow the phase gates in `docs/planning/development-approach.md`.
+
+**Version History**:
+- v1.0: Initial backend MVP strategy
+- v1.1: Open questions closed and provisional items resolved per `backend-architecture.md`; B2B scope expansion and DPDP consent addition flagged; supersession note added.
+- v1.2: Teacher entry point and schema/API decision-set status reconciled with `docs/api/` and `docs/database/`.

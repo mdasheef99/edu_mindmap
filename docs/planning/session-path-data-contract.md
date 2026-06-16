@@ -76,8 +76,9 @@ Edges define relationships between nodes and must preserve the difference betwee
 ## 8. Interaction Event Contract
 Events are required because final node/edge state alone is not enough to reconstruct the learner path.
 ### Required event categories
-- session opened/resumed; node viewed/visited; phrase offer set shown; phrase option selected
-- edge-`+` offer set shown; follow-up question selected; manual reference link created
+- session opened/resumed; app backgrounded/foregrounded (dwell-time integrity — backgrounded intervals must be subtractable)
+- node viewed/visited; phrase offer set shown; phrase option selected
+- edge-`+` offer set shown; follow-up question selected; manual reference link created; manual reference link removed (a retraction of relational evidence, distinct from node-cascade cleanup)
 - node deleted with confirmed cascade; podcast generation requested
 ### Required event fields
 - event identifier
@@ -109,6 +110,7 @@ Events are required because final node/edge state alone is not enough to reconst
 - Do not treat local persistence as support for offline AI generation, offline editing beyond the persisted state, offline sync queues, offline video behavior, or offline podcast playback.
 - Reopening while offline is limited to previously stored content/state that already exists on-device.
 - If required session content was never stored locally, the contract should allow safe failure rather than implying offline completion.
+- **Known analytic blind spot (accepted for MVP)**: interaction events during offline review (revisits, dwell) are not buffered or synced; they are lost. Teacher-support interpretations of revisitation and dwell must be read as lower bounds confounded by connectivity. If this proves material, the remedy is a minimal client-side event buffer (client-generated event identifier as idempotency key, flush on reconnect through the existing batch ingestion endpoint) — a deliberate scope decision, not a schema change.
 ## 12. Teacher-Support Input Contract
 ### Required teacher-support inputs
 - learner identifier
@@ -143,8 +145,9 @@ This contract is usable for MVP only if it supports:
 - deletion-aware teacher-support inputs
 - deletion-aware podcast inputs
 - narrow local reopening of previously stored content while offline
-## 15. Open Questions and ADR Follow-Up
-- Open Question: what is the exact first persisted representation format: normalized relational shape, document snapshot shape, or a hybrid?
-- Open Question: how much event history must be stored locally versus remotely for MVP continuity and interpretation?
-- Open Question: should manual reference-link creation be fully evented from day one or only stored as final edge state plus timestamp?
-- ADR follow-up: learner session/path data model; local persistence boundary; teacher-support authorization boundary; podcast service/input boundary
+## 15. Resolved Contract Decisions and ADR Follow-Up
+- Resolved: the first persisted representation is hybrid CQRS/event-sourcing. Remote truth is an append-only event store; `student_rm` stores normalized render/resume state; `analytic_rm` stores rebuildable projections.
+- Resolved: local storage keeps the student-safe board/session snapshot needed for narrow offline reopen. Raw analytic event history is remote-only and must not be exposed to the student client.
+- Resolved: manual reference-link creation and removal are fully evented from day one (`edge_created` / `edge_deleted` in the backend event registry). Manual links are the highest-confidence evidence tier for the realized subgraph (`docs/chapter-topology-specification.md` §4.2–4.3); final-state-only storage would lose retractions.
+- Resolved: deletion is append-only historically but destructive in the student read model. `node_deleted` records the root node and cascade result; `edge_deleted` distinguishes `deletion_cause: user_action` from `deletion_cause: node_cascade`.
+- ADR follow-up: exact event payload schemas, idempotency keys, consent-withdrawal replay scope, teacher projection freshness metadata, and podcast service/input boundary.

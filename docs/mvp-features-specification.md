@@ -217,8 +217,8 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 |-----------|---------------|
 | **Description** | Create the initial AI exploration node for the current chapter or concept entry point, either through a custom prompt or initial prompt options |
 | **UI Location** | FAB → "Ask AI" → Prompt input |
-| **Implementation** | Zustand `addNode(type: 'ai')`, API call to Claude/OpenAI |
-| **Dependencies** | Canvas, AI service, Chapter context |
+| **Implementation** | Zustand `addNode(type: 'ai')`, request to FastAPI `/v1/student` generation endpoint |
+| **Dependencies** | Canvas, Backend LLM Gateway, Chapter context |
 | **Priority Justification** | Starts the AI exploration flow within the selected chapter context |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 2.3 |
 
@@ -228,8 +228,8 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 |-----------|---------------|
 | **Description** | AI-generated answers and explanations populate the node automatically in learner-facing, category-neutral language |
 | **UI Location** | Response area within AI node |
-| **Implementation** | Streaming response display, auto-formatted markdown |
-| **Dependencies** | AI service, Chapter context |
+| **Implementation** | Backend response stream or polling result rendered as auto-formatted markdown |
+| **Dependencies** | FastAPI backend, LLM Gateway, Chapter context |
 | **Priority Justification** | Delivers the core explanatory content used for exploration |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 2.2 |
 | **Architecture Reference** | `system-architecture.md` LLM Processing Pipeline |
@@ -240,8 +240,8 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 |-----------|---------------|
 | **Description** | Select a word or phrase from AI content to open a bottom sheet with: (1) Elaborate, (2) Ask custom, (3) 3–5 recommended follow-up questions. Any selection creates a child AI node in the exploration path. |
 | **UI Location** | AI Node → Reader (selectable text) → Phrase action sheet (bottom sheet) |
-| **Implementation** | Phrase selection → generate phrase-conditioned offer set → create child AI node + parent→child AI-generated path edge → generate response using thread context packet → log offer set + selection |
-| **Dependencies** | AI service, bottom sheet UI, node/path-edge creation |
+| **Implementation** | Phrase selection → backend generates phrase-conditioned offer set → create child AI node + parent→child AI-generated path edge → generate response using thread context packet → log offer set + selection |
+| **Dependencies** | FastAPI backend, LLM Gateway, bottom sheet UI, node/path-edge creation |
 | **Priority Justification** | Enables organic exploration flow; core to learning methodology |
 | **Spec Reference** | `mobile-features-ai-integration.md` Section 6.5.2 |
 | **Architecture Reference** | `system-architecture.md` Stage 1 (Organic generation) + Learning path capture + Phrase selection logging |
@@ -268,8 +268,8 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 |-----------|---------------|
 | **Description** | Edge-attached `+` buttons on the left and right sides of an AI node open 3–6 generated follow-up questions; selecting one creates a child AI node connected by an AI-generated path edge |
 | **UI Location** | AI Node left/right vertical edge → "+" button → Popup box |
-| **Implementation** | Question generation API → edge-triggered popup with tappable cards → new child node + labeled AI-generated path edge + offer-set logging |
-| **Dependencies** | AI service, Question generation |
+| **Implementation** | FastAPI `/v1/student` offer-set API → edge-triggered popup with tappable cards → new child node + labeled AI-generated path edge + offer-set logging |
+| **Dependencies** | FastAPI backend, LLM Gateway, Question generation |
 | **Priority Justification** | Core learning loop; guides exploration without forcing paths |
 | **Spec Reference** | `mobile-features-ai-integration.md` Section 6.5.1 |
 
@@ -308,7 +308,7 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 | **Description** | Present a category-neutral reflection invitation, e.g. "Quick reflection pause", with options to Try Now, Not Sure Yet, Snooze, or Skip |
 | **UI Location** | Lightweight modal/bottom sheet anchored to the current AI node or transition moment |
 | **Implementation** | Non-blocking prompt component; records action and optional response; does not expose category labels, scores, or mastery language |
-| **Dependencies** | Trigger policy, current node context, AI service for prompt generation or retrieval |
+| **Dependencies** | Trigger policy, current node context, Backend LLM Gateway for prompt generation or retrieval |
 | **Priority Justification** | Supports sensemaking while preserving learner agency and organic exploration |
 | **Architecture Reference** | `docs/system-architecture.md` Stage 4 Active Probing / Reflective Checkpoint Layer |
 
@@ -377,8 +377,8 @@ Learner-facing branching in the mind map is limited to **two entry points only**
 |-----------|---------------|
 | **Description** | Transform an exploration session into a personalized reinforcement podcast generated from the learner's explored path and session context |
 | **UI Location** | Board menu → "Create Podcast" → Full-screen podcast wizard/player |
-| **Implementation** | AI script generation from session/path data → TTS service → audio playback |
-| **Dependencies** | AI service, TTS service, Session data |
+| **Implementation** | Backend podcast request → worker generates script from session/path data → backend-managed TTS → audio playback |
+| **Dependencies** | FastAPI backend, LLM Gateway, TTS service, Session data |
 | **Priority Justification** | Confirmed MVP reinforcement feature derived from the learner's exploration session |
 | **Spec Reference** | `docs/mobile-features-enhancements.md` Section 9.1.1 |
 
@@ -446,7 +446,7 @@ The following implementation sequence respects architectural dependencies.
 | Initial AI node creation | Phrase-selection flow and edge `+` question discovery |
 | Session persistence + session/path data | Continue Learning, Recent Sessions, and podcast generation |
 | Stage 2 classification + session/path data | Dimensional Shift Trigger and optional Reflective Checkpoint prompts |
-| AI + TTS services | AI exploration content, checkpoint prompt generation, and podcast generation |
+| Backend LLM Gateway + TTS services | AI exploration content, checkpoint prompt generation, classification, and podcast generation without mobile-side provider credentials |
 | Offer-set logging + path capture | Downstream teacher-support interpretation and measurement |
 
 ### Critical Path
@@ -455,7 +455,7 @@ The following implementation sequence respects architectural dependencies.
 2. **Curriculum Selection** → Required for content filtering
 3. **Canvas Infrastructure** → Required for all node features
 4. **Session Persistence** → Required for Continue Learning and podcast inputs
-5. **AI Service Integration** → Required for AI node creation, phrase branching, question discovery, checkpoint prompt generation, and podcast script generation
+5. **Backend AI Service Integration** → Required for AI node creation, phrase branching, question discovery, checkpoint prompt generation, classification, and podcast script generation
 6. **Post-hoc classification** → Required for dimensional shift detection and Reflective Checkpoint triggering
 7. **TTS Service Integration** → Required for podcast audio generation
 
@@ -528,9 +528,11 @@ The following implementation sequence respects architectural dependencies.
 | **State (Transient)** | Reanimated SharedValues | 60fps UI updates |
 | **Gestures** | React Native Gesture Handler | UI-thread gesture processing |
 | **Persistence** | AsyncStorage | Local session storage |
-| **Backend** | Supabase (PostgreSQL) | User data, curriculum, PYQ |
-| **AI** | Claude/OpenAI API | Content generation |
-| **TTS** | Platform TTS / AI voice service | Podcast audio generation |
+| **Backend service boundary** | FastAPI modular monolith | Student/teacher/admin routers, event append, session/path persistence, LLM orchestration, podcast orchestration |
+| **Backend data platform** | Supabase PostgreSQL | Auth-integrated data store for events, jobs, `student_rm`, `analytic_rm`, tenancy, curriculum, PYQ, and media metadata |
+| **Auth / Storage** | Supabase Auth + Supabase Storage | User identity, tenant membership resolution input, podcast audio/media storage |
+| **AI** | Backend-managed LLM Gateway | Content generation, checkpoint prompt generation, post-hoc classification; no mobile-side provider credentials |
+| **TTS** | Backend-managed TTS/audio service | Session-derived podcast audio generation and storage |
 
 ---
 

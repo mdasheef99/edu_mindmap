@@ -3,13 +3,13 @@
 **Document Version**: 1.0  
 **Status**: Current MVP Scope  
 **Last Updated**: March 2026  
-**Related Documents**: `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, `docs/framework-design-philosophy.md`, `docs/measurement-and-experimentation.md`, `docs/teacher-access-control-specification.md`
+**Related Documents**: `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, `docs/framework-design-philosophy.md`, `docs/measurement-and-experimentation.md`, `docs/teacher-dashboard-specification.md`, `docs/architecture/backend-architecture.md`, `docs/teacher-access-control-specification.md`
 
 ---
 
 ## 1. Purpose
 
-This document defines the smallest teacher-facing surface and access boundary included in the current MVP. It exists to make the teacher-support layer concrete without expanding the product into a full teacher dashboard, intervention system, or admin operations suite.
+This document defines the smallest teacher-facing surface and access boundary included in the current MVP. It exists to make the teacher-support layer concrete without expanding the product into a full teacher dashboard, intervention system, or admin operations suite. Under the v1.3+ backend architecture, teacher support is served only from consent-gated `analytic_rm` projections and must remain physically separate from student-facing `student_rm` state.
 
 ---
 
@@ -112,12 +112,12 @@ Checkpoint evidence should be displayed separately from exploration coverage. It
 
 ---
 
-## 9. Open Follow-Up Items
+## 9. Resolved Decisions and Remaining Follow-Up Items
 
-- the exact first teacher entry point: dedicated teacher dashboard versus a lighter chapter review surface
-- the first version of teacher-student authorization linkage: roster import, school-managed assignment, or another constrained model
-- the minimum teacher overview needed before drilling into a single student chapter view
-- the minimum repetition threshold before opt-out patterns become visible enough to mention without overstating certainty
+- Resolved: the first teacher entry point is the V1 class overview defined in `docs/teacher-dashboard-specification.md`, with drill-down into a single student chapter view.
+- Resolved: teacher-student authorization is tenant-scoped B2B roster/class membership plus active teaching assignment and active behavioral-analytics consent.
+- Resolved: the minimum overview before drill-down is roster/activity/consent context, not ranked severity or diagnostic labels.
+- Remaining: the minimum repetition threshold before opt-out patterns become visible enough to mention without overstating certainty.
 
 This document intentionally defines the current MVP boundary only. It does not settle the broader later-phase teacher dashboard, intervention, or admin-control architecture.
 

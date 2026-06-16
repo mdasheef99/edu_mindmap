@@ -257,6 +257,21 @@ class SuccessFactorAnalyzer:
         return self._parse_factors(response.content[0].text)
 ```
 
+> **Boundary note — where success factors may and may not flow.** The extracted factors
+> (semantic bridge, linguistic framing, contextual setup) are **analytic artifacts for the
+> Content Library promotion/caching decisions and human review only**. They must not be injected
+> into Stage 1 generation prompts at runtime: silent feedback of selection-rate-optimized
+> phrasings into generation would (a) optimize for *selection* rather than learning — selection
+> rate is a popularity signal, confounded with novelty and phrasing appeal; (b) homogenize the
+> question pool toward what already gets clicked, eroding the discovery floor's purpose; and
+> (c) make path data unreadable as evidence of organic choice (ADR-0004). If validated factors
+> ever inform generation, the path is an explicit, versioned prompt revision (`prompt_version`
+> bump, golden-set regression per `docs/architecture/llm-pipeline.md`) — auditable, never
+> adaptive per-student. A natural extension once the topology layer ships: compute success
+> factors **per intended edge** (which framings successfully carry students across a given
+> conceptual bridge) — useful for the steering candidate pool review (topology spec §7), under
+> the same versioned-revision rule.
+
 ### When ML might be considered (optional, later)
 
 Machine learning models are **optional enhancements** that could be considered only after simpler approaches have been validated:

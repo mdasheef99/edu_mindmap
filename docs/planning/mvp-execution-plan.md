@@ -126,12 +126,14 @@ These decisions should become ADRs because they are cross-cutting and hard to re
 - ADR 4: AI generation vs teacher-support interpretation boundary
 - ADR 5: Podcast MVP service boundary (only if still needed after the shared data/session contract is drafted)
 
-## 12. Open Questions and Deferred Decisions
-- Open Question: what is the exact first teacher entry point: dedicated teacher dashboard, or a lighter protected chapter-review surface?
-- Open Question: what is the first teacher-student authorization linkage model: roster import, school-managed assignment, or another constrained model?
-- Open Question: what is the minimum teacher overview needed before drilling into a student’s chapter view?
-- Open Question: what exact session/path artifacts are mandatory podcast inputs versus optional enrichments?
-- Deferred: broader offline/reconnect workflows; downloaded media/podcast playback; broader class-level teacher analytics and later-phase dashboard expansion.
+## 12. Resolved Decisions and Remaining Deferred Items
+- Resolved: the backend shape is a FastAPI modular monolith backed by Supabase PostgreSQL, not a Supabase-only thin-functions backend.
+- Resolved: session/path persistence is event-sourced. Raw events are append-only; `student_rm` renders/resumes learner state; `analytic_rm` powers teacher-support projections.
+- Resolved: the first teacher entry point is the V1 class overview, with drill-down into protected per-student, per-chapter review.
+- Resolved: teacher-student authorization is B2B/tenant-scoped through school-managed roster membership, active class membership, active teaching assignment, and consent-gated analytics.
+- Resolved: the minimum teacher overview before drill-down is roster/activity/consent context, never ranked severity.
+- Remaining: exact session/path artifacts for podcast input snapshots, audio retention, and retry behavior belong in the API/database specs.
+- Deferred: broader offline/reconnect workflows; queued offline sync; downloaded media/podcast playback; high-scale Redis/Celery queues; broader class-level teacher analytics beyond the bounded V4 extension.
 
 ## 13. Immediate Next Planning Artifacts
 This execution plan should directly feed:

@@ -51,12 +51,12 @@ App-wide functionality that operates across all screens.
 | Auto-sync on change | Automatic | Basic | Syncs after each edit (debounced) | Network, authentication |
 | Sync status indicator | Header → cloud icon | Basic | Shows syncing/synced/offline | Network |
 | Manual sync trigger | Pull-to-refresh | Basic | Forces sync check | Network, authentication |
-| Conflict resolution | Sync dialog | Advanced | Shows conflicting changes, pick version | Sync service |
+| Conflict resolution | N/A | Exclude for MVP | No offline concurrent editing or queued writes in current scope | N/A |
 | Sync history | Settings → "Sync" → "History" | Advanced | Shows recent sync events | Sync service |
 
 ### 7.3 Basic Offline Access
 
-*Current MVP scope includes only basic offline access to previously stored session/board state and content already generated online so learners can reopen and resume later. Broader offline capability remains later-phase only and should not be read into this section. This section does not imply offline editing, queued sync, explicit offline downloads, offline video behavior, or AI generation without network.*
+*Current MVP scope includes only basic offline access to previously stored session/board state and content already generated online so learners can reopen and resume later. Broader offline capability remains later-phase only and should not be read into this section. This section explicitly excludes offline editing, queued sync, conflict resolution, explicit offline downloads, offline video behavior, podcast offline playback, and AI generation without network. Offline review events such as dwell/revisit are not buffered in MVP and should be treated as an accepted analytics blind spot unless a later minimal event buffer is specified.*
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
@@ -147,15 +147,17 @@ App-wide functionality that operates across all screens.
 | Regulation | Requirement | Implementation |
 |------------|-------------|----------------|
 | **DPDP Act 2023 (India)** | Data localization for Indian users | Data stored in India-region servers for Indian users |
-| **DPDP Act 2023 (India)** | Consent before data processing | Explicit opt-in consent dialog on first launch |
-| **DPDP Act 2023 (India)** | Right to erasure | "Delete My Data" feature with 72-hour processing |
-| **DPDP Act 2023 (India)** | Parental consent for minors | Verified parental consent for users under 18 |
+| **DPDP Act 2023 (India)** | Consent before data processing | Backend consent records gate processing by consent kind |
+| **DPDP Act 2023 (India)** | Behavioral analytics consent for minors | Teacher-support analytics are built only when active guardian consent exists |
+| **DPDP Act 2023 (India)** | Right to erasure | Request routed to backend compliance workflow; tenancy-table PII and pseudonymous event handling follow legal policy |
+| **DPDP Act 2023 (India)** | Parental consent for minors | Verified parental/guardian consent via parent OTP or approved signed-form reference |
 | **DPDP Act 2023 (India)** | Data breach notification | In-app and SMS notification within 72 hours |
 | **General** | Data minimization | Collect only data necessary for learning features |
 | **General** | Purpose limitation | Data used only for stated educational purposes |
 
-**Data Retention Policy**:
-- Active account data: Retained while account is active
-- Exploration session data: 2 years for learning analytics
-- Deleted account data: Purged within 30 days of deletion request
-- Anonymous aggregate data: Retained indefinitely for platform improvement
+**Backend consent-gated analytics model**:
+- Consent is stored as a backend entity, not as a mobile-only checkbox.
+- Data-processing consent and behavioral-analytics consent are distinct.
+- Students without active behavioral-analytics consent may still use the student product, but classification/projection workers skip them and teacher views render consent-pending/withdrawn states.
+- Consent withdrawal stops future analytic inclusion and requires projection rebuild/replay without the withdrawn student where applicable.
+- Raw PII remains in tenancy/consent tables only; event payloads carry pseudonymous identifiers.

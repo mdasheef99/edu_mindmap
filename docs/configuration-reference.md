@@ -1,0 +1,103 @@
+# Configuration Reference
+
+**Document Version**: 1.0 (draft)  
+**Status**: Current MVP configuration baseline  
+**Related Documents**: `docs/planning/development-approach.md`, `docs/api/README.md`, `docs/database/README.md`, `docs/mvp-features-specification.md`
+
+---
+
+## 1. Purpose
+
+This document centralizes constants, thresholds, feature flags, and operational defaults that must not be scattered through implementation code. Values are conservative MVP defaults and may be revised through the worklog when implementation or pilot evidence warrants it.
+
+## 2. Scope Rules
+
+- Configuration must preserve Category Invisibility.
+- Student-facing config must not expose analytic dimensions, classifier thresholds, or teacher-support logic.
+- Secrets are never documented here; only variable names and ownership are listed.
+- Redis, Celery, and TimescaleDB are not MVP configuration targets.
+
+## 3. Canvas and Mobile Limits
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `CANVAS_NODE_WARNING_COUNT` | 50 | show warning as board approaches complexity limit |
+| `CANVAS_NODE_HARD_LIMIT` | 65 | prevent unbounded canvas growth |
+| `CANVAS_MIN_ZOOM` | 0.25 | 25% |
+| `CANVAS_MAX_ZOOM` | 4.0 | 400% |
+| `CANVAS_GRID_SIZE_PX` | 15 | snap-to-grid size |
+| `CANVAS_PERFORMANCE_GATE_NODES` | 40 | 60fps gate on reference Android device |
+
+## 4. Event and API Limits
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `EVENT_BATCH_MAX_SIZE` | 100 | upper bound for client event batch ingestion |
+| `IDEMPOTENCY_KEY_TTL_HOURS` | 24 | retry safety window |
+| `VIEWPORT_EVENT_THROTTLE_MS` | 1000 | required to prevent noisy pan/zoom event volume |
+| `NODE_POSITION_PERSIST_MODE` | `drag_end` | persist final drag position; sampled intermediates only if later justified |
+
+## 5. Worker Queue Defaults
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `JOB_MAX_ATTEMPTS` | 5 | dead-letter after repeated failure |
+| `JOB_CLAIM_BATCH_SIZE` | 10 | small MVP batch to keep locks short and behavior easy to inspect |
+| `JOB_RETRY_BACKOFF` | `1m,5m,15m,1h,6h` | exponential-ish schedule across 5 attempts |
+| `JOB_QUEUE_BACKEND` | `postgres_skip_locked` | Redis/Celery deferred |
+
+## 6. Teacher and Privacy Thresholds
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `SMALL_COHORT_SUPPRESSION_K` | 5 | suppress aggregate cells below K |
+| `PROJECTION_STALENESS_WARNING_MINUTES` | 15 | teacher responses include freshness metadata |
+| `CHECKPOINT_OPT_OUT_VISIBILITY_THRESHOLD` | 3 | repeated opt-out patterns require at least 3 relevant events |
+
+## 7. Checkpoint Policy Defaults
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `CHECKPOINT_COSINE_DISTANCE_THRESHOLD` | 0.35 | current MVP planning value for meaningful shift |
+| `CHECKPOINT_MIN_PRIOR_CONTEXT_EVENTS` | 5 | minimum classified learner choices before offering checkpoint |
+| `CHECKPOINT_COOLDOWN_MINUTES` | 15 | prevent repeated interruption |
+| `CHECKPOINT_DELIVERY_MODE` | `poll_only` | `GET /v1/student/sessions/{session_id}/checkpoint` |
+
+## 8. Podcast Defaults
+
+| Setting | Value | Notes |
+|---|---:|---|
+| `PODCAST_LIFECYCLE` | `script_then_audio` | `script_ready` requires user confirmation before audio |
+| `PODCAST_LENGTH_PRESETS` | `3m,5m,8m` | short MVP lengths for cost and UX control |
+| `PODCAST_AUDIO_URL_TTL_MINUTES` | 60 | signed URL/access window default |
+| `PODCAST_RETRY_POLICY` | worker default | uses `JOB_MAX_ATTEMPTS` unless overridden |
+
+## 9. LLM Gateway Defaults
+
+| Setting | Value | Notes |
+|---|---|---|
+| `LLM_PROVIDER` | Anthropic | backend-only provider access |
+| `LLM_GENERATION_MODEL` | Claude Sonnet 4 | per development approach |
+| `LLM_CLASSIFICATION_MODEL` | Claude Haiku 4 | Stage 2 classification |
+| `LLM_CI_MODE` | recorded fixtures | no live LLM calls in CI |
+| `LLM_DAILY_TENANT_BUDGET_USD` | 10 | conservative pilot tenant guard; raise only with worklog entry |
+| `LLM_DAILY_GLOBAL_BUDGET_USD` | 50 | conservative global MVP guard; raise only with worklog entry |
+
+## 10. Environment Variable Names
+
+Values are not documented here.
+
+| Variable | Owner | Purpose |
+|---|---|---|
+| `DATABASE_URL` | backend/worker | Postgres connection |
+| `SUPABASE_URL` | backend/mobile/web | Supabase project URL |
+| `SUPABASE_ANON_KEY` | mobile/web | client-safe Supabase key |
+| `SUPABASE_SERVICE_ROLE_KEY` | backend only | privileged server operations |
+| `ANTHROPIC_API_KEY` | backend only | LLM Gateway |
+| `SENTRY_DSN_BACKEND` | backend | error tracking |
+| `SENTRY_DSN_MOBILE` | mobile | error tracking |
+| `SENTRY_DSN_WEB` | teacher web | error tracking |
+
+## 11. Change Control
+
+Any config change affecting teacher interpretation, checkpoint triggering, classification, consent, or Category Invisibility requires a worklog entry and, where persistent outputs change, a projection/replay plan.

@@ -98,10 +98,10 @@ S1-S3 should be validated alongside the sequence above where relevant.
 - **Acceptance focus:** podcast input comes from the shared session/path contract; playback is in-app and online-only for MVP.
 ### RC8. Authorized teacher opens the protected per-student, per-chapter teacher-support view
 - **Goal:** prove the bounded teacher-support MVP surface.
-- **Preconditions:** teacher account exists; authorization relationship exists for the target student/chapter context.
-- **Happy path:** authorized teacher opens protected teacher-facing surface → selects or lands on an authorized student/chapter → sees chapter path, explored vs relatively thin areas, weighted follow-up areas, and suggested prompts.
-- **Contract touchpoints:** learner identifier, chapter identifier, ordered AI-path progression, node visits/revisits, offer-set exposure and selection history, deletion-aware current structure.
-- **Acceptance focus:** teacher-facing interpretation stays protected and separate from learner-facing surfaces.
+- **Preconditions:** teacher account exists; teacher has active teaching assignment; student has active class membership; tenant context matches; behavioral-analytics consent is active; analytic projections exist for the chapter.
+- **Happy path:** authorized teacher opens V1 class overview → selects an authorized class/student/chapter → backend verifies tenant, roster, assignment, membership, and consent → dashboard renders probabilistic chapter path, explored vs relatively thin areas, weighted follow-up areas, checkpoint interpretation, and suggested prompts.
+- **Contract touchpoints:** learner identifier, chapter identifier, ordered AI-path progression, node visits/revisits, offer-set exposure and selection history, deletion-aware current structure, projection freshness metadata, `teacher_view_accessed`, `teacher_feedback`.
+- **Acceptance focus:** teacher-facing interpretation stays protected, tenant-scoped, consent-gated, probabilistic, and separate from learner-facing surfaces.
 ## 8. Supporting / Secondary Flow Notes
 ### S1. Learner creates a manual reference link
 - Important for canvas completeness, but secondary to the release boundary.
@@ -112,10 +112,10 @@ S1-S3 should be validated alongside the sequence above where relevant.
 ### S3. Offline reopen fails safely when content is missing
 - Required guardrail tied to RC6.
 - The product should fail safely rather than implying unsupported offline completion.
-## 9. Open Questions
-- Open Question: what is the exact first teacher entry point before the per-student, per-chapter view: dedicated teacher dashboard or lighter chapter-review surface?
-- Open Question: what is the first teacher-student authorization linkage model: roster import, school-managed assignment, or another constrained model?
-- Open Question: what exact session/path artifacts are mandatory podcast inputs versus optional enrichments?
+## 9. Resolved Decisions and Remaining Open Questions
+- Resolved: the first teacher entry point is V1 class overview with drill-down into student/chapter review.
+- Resolved: teacher-student authorization is school-managed roster/class membership plus active teaching assignment within the same tenant.
+- Remaining: exact podcast input snapshot fields, audio retention, and retry semantics belong in the API specification.
 ## 10. Immediate Use of This Document
 This flow pack should now drive:
 - detailed acceptance criteria and QA checks

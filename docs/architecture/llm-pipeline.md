@@ -31,12 +31,12 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 
 **Stage 2: Post-Hoc Classification**
 - Model: Claude Haiku 4 (`claude-haiku-4-20250514`)
-- Purpose: Score each question across all 8 analytic dimensions as an independent engagement vector (0.0–1.0 per dimension)
+- Purpose: Score each question across all 8 analytic dimensions as an independent engagement vector on the discrete ordinal scale {0.0, 0.3, 0.6, 0.9} per dimension. The model returns scores only; entropy and all flags are computed in code (superseded: earlier drafts requested `classification_entropy` from the model, which is unreliable). See `docs/classification-reliability-protocol.md` §5 and `docs/architecture/adr-log.md` ADR-0006.
 - Invisible to students (teacher/admin interpretation and analytics only)
 - 10x cheaper than Sonnet (see `docs/scalability-analysis.md` §4.5)
-- **Entropy-based quality gate**: `MAX_CLASSIFICATION_ENTROPY = 2.8`
-  - Classifications with Shannon entropy above this threshold are flagged as `needs_review` — the classifier is hedging across too many dimensions
-  - `MIN_CLASSIFICATION_ENTROPY = 0.5` — classifications below this threshold are flagged as suspiciously confident ("snapping" to a single dimension)
+- **Entropy-based quality gate** (computed in code): `MAX_CLASSIFICATION_ENTROPY = 2.8`
+  - Shannon entropy above this threshold flags `needs_review` — the classifier is hedging across too many dimensions
+  - `MIN_CLASSIFICATION_ENTROPY = 0.5` — flags suspiciously confident ("snapping" to a single dimension)
   - Rationale: Entropy replaces a single confidence score because dimensional vectors have 8 degrees of freedom; a scalar confidence cannot capture whether the classifier is hedging vs. confident across a multi-dimensional output
 
 ---
@@ -150,16 +150,15 @@ class OrganicQuestionPipeline:
         Scores are independent — they do NOT need to sum to 1.
         A question can score high on multiple dimensions simultaneously.
 
-        Return JSON: {{
+        Return JSON:
+        {{
           "dimensions": {{"define": float, "distinguish": float, "decompose": float,
                          "connect": float, "delimit": float, "predict": float,
-                         "contextualize": float, "vary": float}},
-          "classification_entropy": float
+                         "contextualize": float, "vary": float}}
         }}
 
-        classification_entropy = Shannon entropy of the normalised score vector.
-        Low entropy (<1.5) = confident, peaked classification.
-        High entropy (>2.8) = hedging across many dimensions.
+        Scores must be one of: 0.0, 0.3, 0.6, 0.9. The caller will compute
+        entropy and quality flags from the returned vector in code.
         """
 
         response = await self.client.messages.create(
@@ -170,8 +169,20 @@ class OrganicQuestionPipeline:
 
         classification = self._parse_classification(response.content[0].text)
 
-        # Entropy-based quality gate
-        entropy = classification.get('classification_entropy', 0.0)
+        # Entropy-based quality gate (computed in code, not from model)
+        import math
+        scores = [
+            classification['dimensions'].get(k, 0.0)
+            for k in ('define', 'distinguish', 'decompose', 'connect',
+                      'delimit', 'predict', 'contextualize', 'vary')
+        ]
+        total = sum(scores)
+        if total > 0:
+            probs = [s / total for s in scores]
+            entropy = -sum(p * math.log(p) for p in probs if p > 0)
+        else:
+            entropy = 0.0
+        classification['computed_entropy'] = entropy
         if entropy > self.MAX_CLASSIFICATION_ENTROPY:
             # Hedging: classifier spread scores too uniformly
             classification['is_classified'] = False
@@ -231,18 +242,20 @@ from pydantic import BaseModel, Field
 from anthropic import Anthropic
 
 class DimensionalScores(BaseModel):
-    define: float = Field(ge=0.0, le=1.0)
-    distinguish: float = Field(ge=0.0, le=1.0)
-    decompose: float = Field(ge=0.0, le=1.0)
-    connect: float = Field(ge=0.0, le=1.0)
-    delimit: float = Field(ge=0.0, le=1.0)
-    predict: float = Field(ge=0.0, le=1.0)
-    contextualize: float = Field(ge=0.0, le=1.0)
-    vary: float = Field(ge=0.0, le=1.0)
+    # Discrete ordinal scale: 0.0, 0.3, 0.6, 0.9. Instructor/JSON schema enforces this.
+    define: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    distinguish: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    decompose: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    connect: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    delimit: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    predict: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    contextualize: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
+    vary: float = Field(description="Score: 0.0, 0.3, 0.6, or 0.9")
 
 class QuestionClassification(BaseModel):
-    dimensions: DimensionalScores = Field(description="Independent engagement scores per dimension")
-    classification_entropy: float = Field(ge=0.0, description="Shannon entropy of normalised score vector")
+    dimensions: DimensionalScores = Field(description="Independent engagement scores per dimension (discrete scale)")
+    # Superseded: entropy and all quality flags are computed in code (ADR-0006).
+    # Do not request computed quantities from the model.
 
 client = instructor.from_anthropic(Anthropic())
 

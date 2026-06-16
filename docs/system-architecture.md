@@ -1,6 +1,6 @@
 # System Architecture: Path-Based Conceptual Exploration Platform
 
-> **Scope note:** This document is authoritative for overall pipeline structure and system flow, but some downstream surface examples in it describe broader or later-phase reference material. Current MVP scope decisions should be taken from `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, and `docs/teacher-support-mvp-specification.md`, especially for the bounded teacher-support surface and the narrow basic-offline-access boundary.
+> **Scope note:** This document is authoritative for overall pipeline structure and system flow, but some downstream surface examples in it describe broader or later-phase reference material. Current MVP scope decisions should be taken from `docs/prd/master-prd.md`, `docs/mvp-features-specification.md`, `docs/teacher-support-mvp-specification.md`, and the newer planning/backend architecture set, especially `docs/planning/development-approach.md`, `docs/planning/session-path-data-contract.md`, `docs/architecture/backend-architecture.md`, and `docs/architecture/adr-log.md`. Where this document mentions Redis, TimescaleDB, direct client AI calls, or broader dashboard/quiz surfaces, those references are superseded by the newer modular-monolith MVP direction unless explicitly restated there.
 
 ## Design Principles
 
@@ -71,7 +71,7 @@
 │                                 │                                       │
 │                                 ▼                                       │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                   LLM PROCESSING LAYER (Direct API)              │   │
+│  │        LLM PROCESSING LAYER (Backend LLM Gateway)                │   │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐     │   │
 │  │  │    Organic     │  │   Post-Hoc     │  │ Dimensional    │     │   │
 │  │  │   Question     │→ │  Categorical   │→ │ Shift Monitor  │     │   │
@@ -793,7 +793,7 @@ def suggest_questions_for_new_student(student_session, chapter_id):
 
 **Important clarification (terminology)**:
 - **Content Library** = persistent, promoted, versioned pre-generated content derived from statistically significant aggregate usage.
-- **Cache** = fast serving layer (e.g., Redis) for recently-used library items and hot results.
+- **Cache** = fast serving layer for recently-used library items and hot results. Redis is an example of a later scale form, not an MVP requirement.
 
 See: `docs/content-library-specification.md` for the full serving + write-time lifecycle (exact match → prefix match → hybrid → LLM fallback), maturity phases, and promotion rules.
 
@@ -836,6 +836,14 @@ class ContentCacheManager:
 
 ## Technical Stack
 
+> **v1.3+ backend alignment:** The MVP backend is a **FastAPI modular monolith** backed by
+> Supabase PostgreSQL. The first deployable unit contains `/v1/student`, `/v1/teacher`,
+> `/v1/admin`, and `/v1/internal` routers, with a separate worker entrypoint using the same
+> codebase. Runtime state is event-sourced through a Postgres append-only event store; derived data
+> is separated into `student_rm` and `analytic_rm` schemas to enforce Category Invisibility. The
+> MVP async lane is a Postgres `SKIP LOCKED` jobs table. Redis, Celery, TimescaleDB, and broader
+> cache/fleet infrastructure are deferred scale forms, not Phase 1 requirements.
+
 ### Overview
 
 ```
@@ -843,12 +851,12 @@ class ContentCacheManager:
 │                         TECHNICAL STACK                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  LLM LAYER                                                              │
-│  ─────────                                                              │
-│  • Direct API calls (Anthropic Claude / OpenAI GPT-4)                  │
-│  • Custom async pipeline orchestration                                  │
-│  • Optional: Instructor library for structured output validation       │
-│  • NO LangChain or heavyweight frameworks                              │
+│  BACKEND / LLM LAYER                                                    │
+│  ───────────────────                                                    │
+│  • FastAPI modular monolith + worker entrypoint                         │
+│  • Backend-managed LLM Gateway for Anthropic calls                      │
+│  • Structured output validation via Pydantic / Instructor               │
+│  • NO mobile-side provider credentials; NO LangChain/frameworks         │
 │                                                                         │
 │  PATTERN ANALYSIS LAYER                                                │
 │  ─────────────────────                                                 │
@@ -860,31 +868,37 @@ class ContentCacheManager:
 │                                                                         │
 │  DATA LAYER                                                            │
 │  ──────────                                                            │
-│  • PostgreSQL (Supabase): Question bank, student sessions, analytics  │
-│  • Redis: Content caching, session state, real-time data              │
-│  • Time-series storage: Exploration patterns, behavioral sequences    │
+│  • PostgreSQL (Supabase): events, jobs, read models, tenancy, auth     │
+│  • Append-only event store + event registry                            │
+│  • Separate schemas: student_rm and analytic_rm                        │
+│  • Redis / TimescaleDB: deferred scale forms                           │
 │                                                                         │
 │  APPLICATION LAYER                                                     │
 │  ─────────────────                                                     │
 │  • Python backend (FastAPI)                                            │
-│  • React Native frontend (Hybrid Views + Skia Edges + Zustand)        │
-│  • Supabase Realtime: Mind map sync                                    │
+│  • Expo (React Native) dev builds: mobile frontend                     │
+│  • Skia (react-native-skia) for edges + Native Views for node content │
+│  • react-native-gesture-handler + react-native-reanimated (pan/zoom)   │
+│  • Zustand (state) + AsyncStorage (persistence)                        │
+│  • Supabase Realtime: Mind map sync — deferred post-MVP (development-   │
+│    approach.md §7; no multi-user sync in Phase 1)                     │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Layer Specifications
 
-#### LLM Layer
+#### Backend and LLM Layer
 
 | Component | Specification |
 |-----------|--------------|
-| Provider | Anthropic Claude (primary) / OpenAI GPT-4 (fallback) |
-| Integration | Direct API calls with async/await |
-| Orchestration | Custom Python pipeline (no framework) |
-| Structured outputs | Optional Instructor library for Pydantic validation |
-| Rate limiting | Custom implementation with exponential backoff |
-| Cost management | Token counting, caching, request batching |
+| API runtime | FastAPI modular monolith; routers are logical boundaries, not microservices |
+| Worker runtime | Same codebase, separate worker entrypoint; MVP queue is Postgres `SKIP LOCKED` |
+| Provider access | Backend-only LLM Gateway; mobile/web clients never hold provider credentials |
+| Integration | Direct Anthropic API calls from the gateway; no LangChain or agent framework |
+| Structured outputs | Pydantic / Instructor validation where structured model output is required |
+| Rate limiting | Gateway-owned retries, backoff, cost accounting, and budget guards |
+| Category boundary | Generation code cannot import classification/analytic modules; student router serializes only from student-safe types |
 
 #### Pattern Analysis Layer
 
@@ -900,20 +914,25 @@ class ContentCacheManager:
 
 | Store | Purpose | Technology |
 |-------|---------|------------|
-| Primary database | Question bank, sessions, user data | PostgreSQL (Supabase) |
-| Cache | Content cache, session state | Redis |
-| Analytics | Aggregated patterns, dashboards | PostgreSQL (same Supabase instance, dedicated schema) |
-| Time-series | Behavioral sequences | TimescaleDB extension on Supabase |
+| Primary database | Events, sessions, jobs, read models, tenancy, curriculum, PYQ | PostgreSQL (Supabase) |
+| Event store | Append-only raw history with registry-validated event payloads | PostgreSQL table, partitioned as needed |
+| Student read model | Render/resume state only; cannot express analytic categories | `student_rm` schema |
+| Analytic read model | Classification, coverage, projections, teacher-support data | `analytic_rm` schema |
+| Cache / queue scale form | Content cache or high-scale async transport if later justified | Redis/Celery deferred |
+| Time-series scale form | Specialized behavioral/time-series workloads if later justified | TimescaleDB deferred |
 
 ### Key Technical Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| LLM integration | Direct API, no framework | Transparency, control, organic-first alignment |
+| Backend shape | FastAPI modular monolith + worker entrypoint | One deployable unit while enforcing module boundaries and future extraction seams |
+| LLM integration | Backend LLM Gateway; direct provider API only inside backend | Transparency, prompt/version control, key custody, Organic-First alignment |
+| Async jobs | Postgres `SKIP LOCKED` jobs table for MVP; Redis/Celery deferred | Asynchronous classification/projection without new infrastructure |
+| Category invisibility | Separate `student_rm` and `analytic_rm` schemas + router/type boundaries | Student surfaces cannot accidentally serialize analytic fields |
 | Pattern detection | Statistical, not ML | Sufficient for needs, simpler, interpretable |
-| Database | PostgreSQL (Supabase) | Managed hosting, Auth integration, Realtime, Row Level Security |
-| Caching | Redis | Performance, TTL support, session management |
-| Frontend | React Native (Hybrid Animated Views + Skia Edges + Zustand + Reanimated) | Mobile-first for Indian student market; native Views for nodes (free text/touch/accessibility), Skia for edge rendering (Bézier curves) |
+| Database | PostgreSQL (Supabase) | Managed hosting, Auth integration, Row Level Security, event store, jobs, read models |
+| Caching | No Redis in MVP | Add Redis only when measured queue/cache latency requires it |
+| Frontend | Expo (React Native) + react-native-skia (edges) + Native Views (content) + react-native-gesture-handler + react-native-reanimated + Zustand + AsyncStorage | Mobile-first for Indian student market; Skia renders edges (Bézier curves) at 60fps on mid-range Android; Native Views preserve text selection for phrase-selection branching; gesture-handler drives pan/zoom on the UI thread; AsyncStorage persists session state; MMKV deferred until measured need |
 
 ---
 
@@ -936,12 +955,13 @@ class ContentCacheManager:
 
 ---
 
-*Document Version 1.2 | System Architecture Specification*
+*Document Version 1.3 | System Architecture Specification*
 *Aligned with: Organic-First Generation, Post-Hoc Classification, Chapter-Bounded Scope*
 
 **Version History**:
 - v1.0: Initial architecture specification
 - v1.1: Added Collective Intelligence Layer (Question Paths, Teacher Insights, Content Caching)
 - v1.2: Replaced LangChain with Direct API architecture; Added Pattern Analysis Implementation section (no ML required); Added Technical Stack specification
+- v1.3: Frontend stack aligned with development-approach.md §7; Supabase Realtime deferred to post-MVP; gesture-handler, AsyncStorage, Expo dev builds, and native/Skia split rationale made explicit.
 
 

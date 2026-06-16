@@ -431,42 +431,46 @@ Side panels use **React Native Bottom Sheet** (`@gorhom/bottom-sheet`), consiste
 
 | Feature | Spec Reference | Architecture Component | Priority |
 |---------|----------------|----------------------|----------|
-| Generate questions from phrase | 6.1 | Direct Anthropic API call | MVP |
-| Stream AI response | 6.1 | `stream: true` in API request | MVP |
+| Generate questions from phrase | 6.1 | `/v1/student` backend generation endpoint → LLM Gateway | MVP |
+| Stream AI response | 6.1 | Backend response stream or polling contract; provider stream stays server-side | MVP |
 | Populate AI node | 6.1 | API response → `updateNode()` action | MVP |
 | Cache responses | 6.1 | Zustand with TTL middleware | Extended |
-| Post-hoc classification | 6.2 | Background API call (invisible), uses Claude Haiku | MVP |
+| Post-hoc classification | 6.2 | Backend worker job after `offer_set_choice`; invisible to mobile | MVP |
 
-**LLM Model Split**:
-- **Question generation** (Stage 1): `claude-sonnet-4-20250514` — requires nuanced, organic question phrasing
-- **Post-hoc classification** (Stage 2): `claude-haiku-4-20250514` — constrained structured-output task (10x cheaper, see `docs/scalability-analysis.md` §4.5)
+**Backend LLM Boundary**:
+- **Question generation** (Stage 1): the mobile app calls the FastAPI backend; the backend LLM Gateway selects the generation model, assembles prompts, stamps `prompt_version` / `model_id`, and stores offer-set events.
+- **Post-hoc classification** (Stage 2): a backend worker classifies selected questions asynchronously after `offer_set_choice`; classification results never return to the student client.
+- Mobile clients never hold provider credentials and never import provider SDKs.
 
 ```typescript
-// AI Integration with Zustand
+// AI Integration with Zustand via backend API boundary
 const useGenerateQuestions = () => {
   const updateNode = useMindMapStore((s) => s.updateNode);
   const currentNode = useMindMapStore((s) =>
     s.nodes.find(n => n.id === s.selectedNodeId)
   );
 
-  const generate = async (phrase: string) => {
+  const generate = async (phrase: string, sessionId: string) => {
     // Update node to loading state
     updateNode(currentNode.id, { isLoading: true });
 
     try {
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: buildQuestionPrompt(phrase, currentNode.context)
-        }]
+      const response = await fetch('/v1/student/offer-sets/phrase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          source_node_id: currentNode.id,
+          selected_phrase: phrase,
+          source_excerpt: currentNode.selectedExcerpt,
+        }),
       });
+      const offerSet = await response.json();
 
-      // Update node with response
+      // Render backend-generated, student-safe options.
       updateNode(currentNode.id, {
         isLoading: false,
-        content: response.content[0].text
+        currentOfferSet: offerSet,
       });
     } catch (error) {
       updateNode(currentNode.id, { isLoading: false, error: error.message });
@@ -569,7 +573,7 @@ Quick reference: which architectural components each feature requires.
 | **Section 6: AI Integration** | ❌ | ❌ | ✅ | ❌ | ❌* |
 | **Section 7: System** | ❌ | ❌ | ✅ | ❌ | ✅ |
 
-*API calls are pure TypeScript, no UI components
+*API calls are pure TypeScript calls to the backend service boundary; provider SDKs and credentials remain server-side.
 
 > **Key change from full Skia approach**: Nodes are now React Native Animated.View components (not Skia draw calls). Skia is used **only** for edge rendering (Bézier curves). This eliminates the need for custom hit testing, text overlay hacks, and custom scrolling within nodes.
 
