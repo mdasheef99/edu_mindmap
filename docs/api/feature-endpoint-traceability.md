@@ -37,8 +37,8 @@ This document proves that the API surface preserves Category Invisibility and Or
 | Remove manual reference | `DELETE /v1/student/sessions/{session_id}/edges/{edge_id}` | `edge_deleted` | `student_rm.edges` | `project` |
 | Phrase offer set | `POST /v1/student/offer-sets/phrase` | `phrase_selected`, `phrase_offer_set_created`, `offer_set_impression` | `student_rm.current_offer_sets` | none |
 | Edge `+` offer set | `POST /v1/student/offer-sets/edge` | `offer_set_created`, `offer_set_impression` | `student_rm.current_offer_sets` | none |
-| Select offer-set option | `POST /v1/student/offer-sets/{offer_set_id}/choices` | `offer_set_choice`, `node_created`, `edge_created` | `student_rm.nodes`, `student_rm.edges` | `classify`, `compress`, `project` |
-| Dismiss offer set | same choice endpoint | `offer_set_choice` with no-selection outcome | `student_rm.current_offer_sets` | `project` |
+| Select offer-set option | `POST /v1/student/offer-sets/{offer_set_id}/choices` | `offer_set_choice`, `phrase_offer_set_choice` when phrase-launched, `node_created`, `edge_created` | `student_rm.nodes`, `student_rm.edges` | `classify`, `compress`, `project` |
+| Dismiss offer set | same choice endpoint | `offer_set_choice`, `phrase_offer_set_choice` when phrase-launched, with no-selection outcome | `student_rm.current_offer_sets` | `project` only; no `classify`/`compress` |
 | Post-hoc classification | no student endpoint | `question_classified` | `analytic_rm.question_classifications` | `classify` |
 | Analytic projection update | no student endpoint | derived from event stream | `analytic_rm` | `project` |
 | Poll checkpoint | `GET /v1/student/sessions/{session_id}/checkpoint` | `checkpoint_offered` when delivered | student-safe checkpoint state | upstream `classify`, `project` |
@@ -64,7 +64,7 @@ This document proves that the API surface preserves Category Invisibility and Or
 
 ## 4. Organic-First Proof
 
-The student sees only organic, category-neutral options. After the learner selects or dismisses an option, the backend appends `offer_set_choice`. Only then does the worker enqueue/run `classify`, append `question_classified`, and update `analytic_rm`.
+The student sees only organic, category-neutral options. After the learner selects an option, the backend appends `offer_set_choice` and, for phrase-launched flows, `phrase_offer_set_choice`; only selected choices enqueue `classify`. Dismissed/no-selection outcomes are projected for exposure history but are not classified.
 
 Classification never blocks the student response and never returns through `/v1/student`.
 

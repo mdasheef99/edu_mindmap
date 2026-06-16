@@ -80,6 +80,7 @@ Payloads must match the session/path contract fields where applicable:
 | Node | node identifier, node type, parent node identifier, creation source marker, content payload, position |
 | Edge | edge identifier, source node identifier, target node identifier, edge type, creation label/trigger text |
 | Offer choice | offer-set identifier, selected option identifier/text, dismissed/no-selection outcome, thread-context reference |
+| Phrase offer choice | offer-set identifier, selected option identifier/text or no-selection outcome, selected phrase, source excerpt, source node, thread-context reference |
 | Phrase | selected phrase, source excerpt, source node, thread-context reference |
 | Deletion | root deleted node, cascade result, removed node IDs, removed edge IDs |
 | Checkpoint | prompt identifier/text, action, optional response, trigger type, policy version |
@@ -123,7 +124,7 @@ Table: `jobs`
 
 | Job | Trigger | Writes Events | Writes Tables |
 |---|---|---|---|
-| `classify` | `offer_set_choice` | `question_classified` | `analytic_rm.question_classifications` |
+| `classify` | selected `offer_set_choice` / `phrase_offer_set_choice` with selected option text; not dismissed/no-selection outcomes | `question_classified` | `analytic_rm.question_classifications` |
 | `compress` | `node_created` for AI/content nodes | `node_summary_compressed` | `student_rm.node_summaries` |
 | `project` | new events past watermark | usually no | `analytic_rm.*`, selected student-safe projections |
 | `replay` | internal/operator request | replayed derived events where needed | `analytic_rm.*` |
@@ -135,6 +136,7 @@ Table: `jobs`
 - Workers claim queued jobs with Postgres `SELECT ... FOR UPDATE SKIP LOCKED`.
 - Event append and job enqueue should be transactional when one directly triggers the other.
 - Handlers must be idempotent.
+- Dismissed/no-selection offer-set outcomes may enqueue `project` for exposure history, but must not enqueue `classify` or `compress`.
 - Retry uses exponential backoff.
 - Dead-letter after configured attempts, default 5 per ADR-0002.
 - Redis/Celery are deferred; handlers must not depend on those transports.

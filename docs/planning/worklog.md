@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Status**: Active once implementation starts  
-**Related Documents**: `docs/planning/development-approach.md`, `docs/planning/testing-strategy.md`, `docs/api/README.md`, `docs/database/README.md`
+**Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/sdd/phase-1-walking-skeleton-sdd.md` (active blueprint), `docs/planning/development-approach.md`, `docs/planning/testing-strategy.md`, `docs/api/README.md`, `docs/database/README.md`
 
 ---
 
@@ -14,8 +14,66 @@ Use one entry per focused work session. Keep entries factual and concise.
 
 ## Current Phase
 
-- **Current phase**: Phase 0 / pre-implementation documentation finalization
-- **Next phase gate**: Phase 0 core-bet validation per `docs/planning/development-approach.md`
+- **Current phase**: Phase 1 — Walking Skeleton. SDD finalized (`docs/planning/sdd/phase-1-walking-skeleton-sdd.md`); red tests not yet started.
+- **Next phase gate**: Phase 1 exit gate per the SDD §10 Definition of Done.
+- **Blocking pre-work**: resolve the consent-gate decision (see Open Decisions) before writing migration 0001.
+
+## Phase 1 Live Tracker
+
+This section tracks **status only**. The active SDD is authoritative for requirement text; update the SDD, not this table, if a requirement changes. Status values: `not-started` · `red` (written, failing) · `green` · `deferred`.
+
+### Red tests (SDD §9)
+
+| # | Short name | Layer | Status | PR/commit |
+|---|---|---|---|---|
+| 1 | registry rejects unknown event type | L1 | not-started | |
+| 2 | events reject UPDATE/DELETE | L3 | not-started | |
+| 3 | session start appends `session_started` | L4 | not-started | |
+| 4 | session start writes `student_rm` session | L2/L4 | not-started | |
+| 5 | student response has no analytic fields | L3 | not-started | |
+| 6 | offer choice selected appends `offer_set_choice` | L4 | not-started | |
+| 7 | offer choice selected enqueues `classify` | L4 | not-started | |
+| 8 | offer choice dismissed does not enqueue `classify` | L4 | not-started | |
+| 9 | worker claims job with `SKIP LOCKED` | L4 | not-started | |
+| 10 | worker appends `question_classified` | L4 | not-started | |
+| 11 | `question_classified` not visible to student API | L3 | not-started | |
+| 12 | tenant A cannot read tenant B session | L3/L4 | not-started | |
+| 13 | import-linter blocks `api/student ⇏ analytic` | L3 | not-started | |
+| 14 | tenant isolation holds through connection pool | L3/L4 | not-started | |
+| 15 | first projection rebuild is byte-identical | L2 | not-started | |
+| 16 | projection is idempotent on replay | L2 | not-started | |
+| 17 | response returns with `classify` still queued | L4 | not-started | |
+| 18 | `student_rm` has no forbidden columns | L3 | not-started | |
+| 19 | `question_classified` row carries version stamps | L2 | not-started | |
+| 20 | RLS denies cross-tenant when app guard bypassed | L3 | not-started | |
+| 21 | generation cannot import classification/analytic | L3 | not-started | |
+| 22 | append + classify enqueue are atomic | L4 | not-started | |
+| 23 | duplicate offer choice does not double-enqueue | L4 | not-started | |
+| 24 | student API exposes no raw event endpoint | L3 | not-started | |
+| 25 | mobile-supplied `tenant_id` is ignored | L4 | not-started | |
+
+### Definition of Done (SDD §10) — checklist
+
+- [ ] migration 0001 with tenant/version primitives
+- [ ] `events` table append-only
+- [ ] registry validates `session_started` / `node_created` / `offer_set_choice` / `question_classified`
+- [ ] `jobs` table supports `SKIP LOCKED`
+- [ ] selected choice enqueues `classify`; dismissed does not
+- [ ] worker processes one `classify` job in fixture mode
+- [ ] `question_classified` lands in event store **and** `analytic_rm` row
+- [ ] derived rows carry `projection_version` + lineage stamps
+- [ ] projections pass replay-determinism **and** idempotency
+- [ ] `/v1/student` returns no analytic fields and no raw event endpoint
+- [ ] import-linter passes (`student ⇏ analytic` **and** `generation ⇏ classification`)
+- [ ] RLS created in migration 0001; isolation runs **through the pool** + DB-level backstop
+- [ ] mobile-supplied `tenant_id` ignored
+- [ ] LLM cost/usage counter records from first call
+- [ ] CI green incl. L1/L2/L3/L4 + import-linter + formatter + mypy
+- [ ] worklog updated
+
+### Open Decisions
+
+- **Consent gate on `classify` → `analytic_rm` projection** — UNRESOLVED. Resolve before migration 0001 (`backend-architecture.md` §12 "from the first migration"; `read-models-schema.md` §9). Options: (a) gate it in Phase 1 with a red test; (b) explicit deferral ADR acknowledging the retrofit risk.
 
 ## Entry Template
 
