@@ -1,7 +1,7 @@
 # Phase 1 Walking Skeleton — Software Design Document (SDD)
 
-**Document Version**: 1.0 (draft)  
-**Status**: Ready for implementation  
+**Document Version**: 1.1  
+**Status**: Active — implementation near Phase 1 exit gate  
 **Phase / milestone**: Phase 1 — Walking Skeleton (`development-approach.md` §4)  
 **Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/worklog.md` (live tracker), `docs/planning/sdd-template.md`, `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/planning/testing-strategy.md`, `docs/configuration-reference.md`
 
@@ -14,9 +14,11 @@
 | Increment name | Phase 1 Walking Skeleton — thin end-to-end loop |
 | Phase / milestone | Phase 1 (precedes M1) |
 | Owner | (developer) |
-| Status | Draft — implement test-first |
+| Status | Active — local tests green (`35 passed, 2 skipped`); Supabase migrations 0001–0003 applied; backend Sentry smoke received; CI/deploy/mobile proof still open |
 
 Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop touching every architectural layer (mobile → API → event store → worker → LLM → projection), proving every integration point at once.
+
+Current implementation status (`development-approach.md` §4.1, §6; `testing-strategy.md` §6): the backend walking skeleton is implemented and validated locally; the live `TEST_DATABASE_URL` check connects to Supabase successfully but skips RLS proof when the supplied role bypasses RLS, so a non-bypass app role is still required for that specific runtime assertion.
 
 ## 2. Source-of-Truth References (mandatory)
 
@@ -27,7 +29,7 @@ Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop to
 - `api/student-api-spec.md` §5 (session endpoints), §8 (AI offer-set workflow)
 - `database/event-store-and-job-queue-schema.md` §2–§3 (events + append rules), §7–§9 (jobs + `SKIP LOCKED`)
 - `database/read-models-schema.md` §3–§4 (`student_rm` allowed scope + tables), §7 (`analytic_rm.question_classifications`)
-- `configuration-reference.md` §5 (`JOB_MAX_ATTEMPTS=5`, `JOB_QUEUE_BACKEND=postgres_skip_locked`), §9 (`LLM_CI_MODE=recorded fixtures`)
+- `configuration-reference.md` §5 (`JOB_MAX_ATTEMPTS=5`, `JOB_QUEUE_BACKEND=postgres_skip_locked`), §9 (`LLM_STAGE1_MODEL_ID`, `LLM_STAGE2_MODEL_ID`, `LLM_CI_MODE=recorded fixtures`)
 - `testing-strategy.md` §2 (layers L1–L6), §6 (Definition of Done)
 
 ## 3. Scope of Increment
@@ -38,6 +40,9 @@ Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop to
   append-only `events`; `jobs` table for `SKIP LOCKED`; `student_rm` + `analytic_rm` schemas;
   base tenancy tables; `consent_records` table + `consent_recorded` event so the `classify`
   worker can gate projection into `analytic_rm` from the first migration.
+- Supabase remediation migrations 0002 and 0003: RLS enabled on tenancy tables, fixed function
+  search paths, FK/tenant indexes added, and RLS policies optimized via `current_app_tenant_id()`;
+  Supabase security advisor lints are resolved.
 - Event registry (`events/registry.py`) validating the three Phase 1 client/server events `session_started`, `node_created`, `offer_set_choice` plus the worker-only `question_classified` (`development-approach.md` §4.1).
 - `POST /v1/student/sessions` (start chapter-scoped session) and `POST /v1/student/offer-sets/{offer_set_id}/choices` (selected and dismissed outcomes).
 - One `classify` worker job claimed via `SELECT ... FOR UPDATE SKIP LOCKED`, running in `llm_gateway` fixture mode.
@@ -88,7 +93,11 @@ Per `backend-architecture.md` §4 (the contracts that carry product guarantees).
   tenancy tables; `consent_records` table with `consent_kind`, `grantor`, `granted_at`,
   `withdrawn_at`, and the `consent_recorded` event so `classify` can gate `analytic_rm` writes
   from day one.
-- **Config bindings** (`configuration-reference.md`): `JOB_MAX_ATTEMPTS=5` (dead-letter, ADR-0002), `JOB_QUEUE_BACKEND=postgres_skip_locked`, `LLM_CI_MODE=recorded fixtures`.
+- **Migrations 0002–0003 (Supabase advisor remediation)**: `tenants` and `memberships` have RLS
+  enabled; all Phase 1 tenant policies use `(SELECT public.current_app_tenant_id())`; trigger/helper
+  functions use fixed `search_path = public, pg_temp`; FK/tenant indexes are present. Supabase
+  security advisor returns no lints after application.
+- **Config bindings** (`configuration-reference.md`): `JOB_MAX_ATTEMPTS=5` (dead-letter, ADR-0002), `JOB_QUEUE_BACKEND=postgres_skip_locked`, `LLM_STAGE1_MODEL_ID`, `LLM_STAGE2_MODEL_ID`, and `LLM_CI_MODE=recorded fixtures`.
 
 ## 7. Invariant Enforcement
 
@@ -198,6 +207,7 @@ Gap-closing additions (G1–G12), required before the Phase 1 gate:
 This increment is done only when:
 
 - migration 0001 exists with tenant/version primitives
+- Supabase migrations 0001, 0002, and 0003 are applied; security advisor returns no lints
 - `events` table is append-only
 - event registry validates at least:
   - `session_started`
@@ -216,7 +226,7 @@ This increment is done only when:
 - import-linter passes (`api/student ⇏ analytic` **and** `generation ⇏ classification`)
 - RLS policies created in migration 0001; the tenant-isolation test runs **through the connection pool** and passes for at least two test tenants, with a DB-level backstop test that denies cross-tenant rows when the app guard is bypassed
 - mobile-supplied `tenant_id` is ignored in favor of backend-resolved context
-- LLM cost/usage counter records from the first `llm_gateway` call (`development-approach.md` §6.9)
+- LLM cost/usage counter records from the first `llm_gateway` call, using the configured Stage 1/Stage 2 model id rather than a hardcoded provider model name (`development-approach.md` §6.9)
 - CI is green including L1/L2/L3/L4 relevant tests, import-linter, **formatter, and mypy** (`testing-strategy.md` §3/§6)
 - worklog is updated
 

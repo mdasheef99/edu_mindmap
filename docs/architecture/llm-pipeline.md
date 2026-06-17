@@ -14,7 +14,7 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 - **Full transparency**: No hidden abstractions obscuring prompt behavior
 - **Maximum control**: Direct access to prompts and response handling
 - **Simpler debugging**: Clear stack traces and observable API calls
-- **Framework independence**: Easy to swap LLM providers (Anthropic ↔ OpenAI ↔ local models)
+- **Framework independence**: Easy to swap LLM providers through the backend `llm_gateway`
 - **Alignment with organic-first**: Nothing hidden from understanding
 
 ---
@@ -24,16 +24,16 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 ### Two-Stage Architecture
 
 **Stage 1: Organic Question Generation**
-- Model: Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- Model: configured **Stage 1 Generation Model** (`LLM_STAGE1_MODEL_ID`)
 - Purpose: Generate 4-6 natural, context-driven questions
 - No categorical structure imposed
 - Student-facing, category-neutral output
 
 **Stage 2: Post-Hoc Classification**
-- Model: Claude Haiku 4 (`claude-haiku-4-20250514`)
+- Model: configured **Stage 2 Classification Model** (`LLM_STAGE2_MODEL_ID`)
 - Purpose: Score each question across all 8 analytic dimensions as an independent engagement vector on the discrete ordinal scale {0.0, 0.3, 0.6, 0.9} per dimension. The model returns scores only; entropy and all flags are computed in code (superseded: earlier drafts requested `classification_entropy` from the model, which is unreliable). See `docs/classification-reliability-protocol.md` §5 and `docs/architecture/adr-log.md` ADR-0006.
 - Invisible to students (teacher/admin interpretation and analytics only)
-- 10x cheaper than Sonnet (see `docs/scalability-analysis.md` §4.5)
+- selected for constrained structured-output economics; exact provider/model is environment-configured and costed by `llm_gateway`
 - **Entropy-based quality gate** (computed in code): `MAX_CLASSIFICATION_ENTROPY = 2.8`
   - Shannon entropy above this threshold flags `needs_review` — the classifier is hedging across too many dimensions
   - `MIN_CLASSIFICATION_ENTROPY = 0.5` — flags suspiciously confident ("snapping" to a single dimension)
@@ -46,7 +46,6 @@ The LLM pipeline uses **direct API calls** with custom async orchestration rathe
 ### Core Pipeline Class
 
 ```python
-import anthropic
 from dataclasses import dataclass
 from typing import Optional
 import asyncio
@@ -66,8 +65,8 @@ class OrganicQuestionPipeline:
     MAX_CLASSIFICATION_ENTROPY = 2.8   # Above = hedging (too uniform)
     MIN_CLASSIFICATION_ENTROPY = 0.5   # Below = snapping (suspiciously peaked)
 
-    def __init__(self, client: anthropic.Anthropic):
-        self.client = client
+    def __init__(self, gateway):
+        self.gateway = gateway
 
     async def generate_organic_questions(
         self,
@@ -98,8 +97,8 @@ class OrganicQuestionPipeline:
         Return as JSON array: [{{"text": "question text"}}]
         """
 
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-20250514",
+        response = await self.gateway.messages.create(
+            model=self.gateway.stage1_model_id,
             max_tokens=1000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -120,9 +119,9 @@ class OrganicQuestionPipeline:
         Stage 2: Post-hoc classification.
         Applied AFTER generation, invisible to students.
         Used for internal analysis and teacher-support interpretation.
-        Uses Claude Haiku (not Sonnet) — classification is a constrained
-        structured-output task that doesn't require Sonnet's capabilities.
-        See docs/scalability-analysis.md §4.5 for cost rationale (10x cheaper).
+        Uses the configured Stage 2 Classification Model — a constrained
+        structured-output model role selected independently from the Stage 1
+        Generation Model. The concrete provider/model id is an environment value.
         """
         prompt = f"""
         Score this question's engagement with each analytic dimension.
@@ -161,8 +160,8 @@ class OrganicQuestionPipeline:
         entropy and quality flags from the returned vector in code.
         """
 
-        response = await self.client.messages.create(
-            model="claude-haiku-4-20250514",
+        response = await self.gateway.messages.create(
+            model=self.gateway.stage2_model_id,
             max_tokens=300,
             messages=[{{"role": "user", "content": prompt}}]
         )
@@ -236,10 +235,8 @@ class OrganicQuestionPipeline:
 For complex classification outputs, the **Instructor** library can provide type-safe validation:
 
 ```python
-# Optional: Using Instructor for structured outputs
-import instructor
+# Optional: Using provider-specific structured outputs behind llm_gateway
 from pydantic import BaseModel, Field
-from anthropic import Anthropic
 
 class DimensionalScores(BaseModel):
     # Discrete ordinal scale: 0.0, 0.3, 0.6, 0.9. Instructor/JSON schema enforces this.
@@ -257,11 +254,11 @@ class QuestionClassification(BaseModel):
     # Superseded: entropy and all quality flags are computed in code (ADR-0006).
     # Do not request computed quantities from the model.
 
-client = instructor.from_anthropic(Anthropic())
+gateway = build_llm_gateway_from_env()
 
-# Classification uses Haiku (structured output task, 10x cheaper than Sonnet)
-classification = client.messages.create(
-    model="claude-haiku-4-20250514",
+# Classification uses the configured Stage 2 Classification Model.
+classification = gateway.messages.create(
+    model=gateway.stage2_model_id,
     response_model=QuestionClassification,
     messages=[{"role": "user", "content": classification_prompt}]
 )
@@ -285,7 +282,7 @@ classification = client.messages.create(
 ## Related Documents
 
 - **[System Architecture](../system-architecture.md)** - Parent document with full system design
-- **[Scalability Analysis](../scalability-analysis.md)** - Cost analysis for Sonnet vs Haiku (§4.5)
+- **[Scalability Analysis](../scalability-analysis.md)** - Cost analysis for model-role choices (§4.5)
 - **[Mobile Features Index](../mobile-features-index.md)** - Active source of truth for AI node and branching references
 - **[Framework Design Philosophy](../framework-design-philosophy.md)** - Organic-first principles
 

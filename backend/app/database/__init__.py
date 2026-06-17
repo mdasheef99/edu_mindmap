@@ -1,0 +1,1 @@
+"""Database schema validation helpers for Phase 1 tests."""

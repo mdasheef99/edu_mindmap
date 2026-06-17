@@ -1,0 +1,42 @@
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "backend"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Student API must not import analytic internals"
+type = "forbidden"
+source_modules = ["app.api.student"]
+forbidden_modules = [
+  "app.analytic",
+  "app.domain.analytic",
+  "app.classification",
+  "app.projections",
+]
+
+[[tool.importlinter.contracts]]
+name = "Generation must not import classification or analytic internals"
+type = "forbidden"
+source_modules = ["app.generation", "app.api.generation"]
+forbidden_modules = [
+  "app.analytic",
+  "app.domain.analytic",
+  "app.classification",
+  "app.projections",
+]

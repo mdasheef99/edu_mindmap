@@ -76,9 +76,9 @@ This document centralizes constants, thresholds, feature flags, and operational 
 
 | Setting | Value | Notes |
 |---|---|---|
-| `LLM_PROVIDER` | Anthropic | backend-only provider access |
-| `LLM_GENERATION_MODEL` | Claude Sonnet 4 | per development approach |
-| `LLM_CLASSIFICATION_MODEL` | Claude Haiku 4 | Stage 2 classification |
+| `LLM_PROVIDER` | configurable provider key | backend-only provider access; no mobile-side credentials |
+| `LLM_STAGE1_MODEL_ID` | Stage 1 Generation Model id | environment-specific model id used for organic generation |
+| `LLM_STAGE2_MODEL_ID` | Stage 2 Classification Model id | environment-specific model id used for post-hoc classification |
 | `LLM_CI_MODE` | recorded fixtures | no live LLM calls in CI |
 | `LLM_DAILY_TENANT_BUDGET_USD` | 10 | conservative pilot tenant guard; raise only with worklog entry |
 | `LLM_DAILY_GLOBAL_BUDGET_USD` | 50 | conservative global MVP guard; raise only with worklog entry |
@@ -90,10 +90,11 @@ Values are not documented here.
 | Variable | Owner | Purpose |
 |---|---|---|
 | `DATABASE_URL` | backend/worker | Postgres connection |
+| `TEST_DATABASE_URL` | tests only | opt-in live Postgres / pooled-RLS verification connection |
 | `SUPABASE_URL` | backend/mobile/web | Supabase project URL |
 | `SUPABASE_ANON_KEY` | mobile/web | client-safe Supabase key |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend only | privileged server operations |
-| `ANTHROPIC_API_KEY` | backend only | LLM Gateway |
+| `LLM_PROVIDER_API_KEY` | backend only | LLM Gateway provider credential |
 | `SENTRY_DSN_BACKEND` | backend | error tracking |
 | `SENTRY_DSN_MOBILE` | mobile | error tracking |
 | `SENTRY_DSN_WEB` | teacher web | error tracking |

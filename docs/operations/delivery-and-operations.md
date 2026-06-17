@@ -59,7 +59,7 @@ Secrets must not be placed in source control, command history, URLs, screenshots
 Backend-only secrets include:
 
 - Supabase service role key
-- Anthropic API key
+- LLM provider API key
 - TTS provider key
 - Sentry auth tokens if used
 
@@ -112,7 +112,7 @@ Database rollback is not assumed for append-only event history. Instead:
 
 ## 10. Pre-Deploy Checklist
 
-- [ ] CI green: tests, import-linter, formatter
+- [ ] CI green: tests, import-linter, formatter, mypy
 - [ ] Render staging backend deployed
 - [ ] Render staging worker deployed
 - [ ] migration reviewed
@@ -123,3 +123,28 @@ Database rollback is not assumed for append-only event history. Instead:
 - [ ] Sentry test errors received
 - [ ] backup settings confirmed
 - [ ] worklog updated with release candidate status
+
+### Current verification status (2026-06-17)
+
+- [x] migrations `0001_phase_1_walking_skeleton`, `0002_security_and_performance_remediation`, and `0003_rls_policy_helper_optimization` applied to the connected Supabase project
+- [x] Supabase security advisor returns no lints for the Phase 1 schema baseline
+- [x] backend local validation green: `python -m pytest tests -v` → `35 passed, 2 skipped`
+- [x] backend Sentry smoke verified in the `mindmap-backend` project
+- [x] worker entrypoint uses Postgres-backed queue/store adapters
+- [ ] GitHub Actions CI run confirmed on remote
+- [ ] Render staging backend deployed
+- [ ] Render staging worker deployed
+- [ ] physical-device Expo verification recorded
+
+## 11. Phase 1 Verification Commands
+
+Run these only against staging or a disposable Supabase branch; they write smoke-test rows/events.
+
+1. Apply the current Phase 1 migration baseline (`0001` + `0002` + `0003`) to the staging database.
+2. Run CI locally or on GitHub Actions: `python -m pytest tests -q`, `lint-imports`, `ruff`, `mypy`.
+3. Enable the opt-in real Postgres/RLS check with `TEST_DATABASE_URL`; if the role bypasses RLS,
+   treat connection as verified but do not claim pooled-RLS proof until a non-bypass app role is used.
+4. Send backend Sentry smoke after deploy: `python -m app.observability.sentry_smoke` (already verified locally once on 2026-06-17).
+5. Use the Expo dev build with `mobile/Phase1WalkingSkeletonScreen.tsx` on a physical Android
+   device and record the `/v1/student/sessions` response plus Sentry mobile smoke evidence in the
+   worklog.

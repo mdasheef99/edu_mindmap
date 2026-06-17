@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: mindmap-phase1-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=backend uvicorn app.main:create_app --factory --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: LLM_PROVIDER
+        sync: false
+      - key: LLM_STAGE1_MODEL_ID
+        sync: false
+      - key: LLM_STAGE2_MODEL_ID
+        sync: false
+      - key: LLM_PROVIDER_API_KEY
+        sync: false
+      - key: SENTRY_DSN_BACKEND
+        sync: false
+
+  - type: worker
+    name: mindmap-phase1-worker
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=backend python -m app.worker.phase1_worker
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JOB_QUEUE_BACKEND
+        value: postgres_skip_locked
+      - key: LLM_PROVIDER
+        sync: false
+      - key: LLM_STAGE2_MODEL_ID
+        sync: false
+      - key: LLM_PROVIDER_API_KEY
+        sync: false
+      - key: SENTRY_DSN_BACKEND
+        sync: false

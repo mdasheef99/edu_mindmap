@@ -64,6 +64,11 @@ same codebase with a different entrypoint. Both read the same Postgres. No micro
 serverless-per-function. Module boundaries (§4) are logical, enforced by import rules, and become
 extraction seams only if scale demands it later.
 
+**Phase 1 implementation note**: the current backend worker entrypoint is already wired to the
+Postgres-backed queue/store adapters described in §8 and §9. Local validation is green and the
+backend Sentry smoke has been received; remaining operational proof is the remote CI run plus
+Render/mobile deployment verification.
+
 **Technology** (consistent with `docs/system-architecture.md` Key Technical Decisions):
 
 | Concern | Choice | Notes |
@@ -73,7 +78,7 @@ extraction seams only if scale demands it later.
 | Identity | Supabase Auth | JWT carries `user_id`; role and tenant resolved server-side (§5.4) |
 | Job queue (MVP) | Postgres table + `SELECT ... FOR UPDATE SKIP LOCKED` | No new infrastructure; see §8.1 |
 | Job queue (scale) | Redis + worker pool | Deferred per `docs/planning/backend-mvp-strategy.md` §10 |
-| LLM access | Direct Anthropic API via the `llm_gateway` module | No LangChain; structured output mandatory |
+| LLM access | Direct provider API via the `llm_gateway` module | Provider/model ids are environment-configured; no LangChain; structured output mandatory |
 | Media | Supabase Storage + platform players | Podcast audio, uploaded images |
 
 ---
@@ -237,6 +242,11 @@ platform-level step; an institutional membership does not bypass it.
 - **Postgres Row-Level Security** on every table: policies compare `tenant_id` against the
   request's resolved tenant (set per-connection via `SET LOCAL app.tenant_id = ...` by the
   `tenancy` module). Supabase RLS is already part of the chosen stack.
+- **Phase 1 migration baseline**: migrations `0001_phase_1_walking_skeleton`,
+  `0002_security_and_performance_remediation`, and `0003_rls_policy_helper_optimization` are the
+  current Supabase baseline. They enable RLS for all Phase 1 tables, fix function search paths,
+  add FK/tenant indexes, and route policies through `(SELECT public.current_app_tenant_id())` so
+  Supabase security advisor lints are clear.
 - **Application-level checks are still mandatory** (RLS is the backstop, not the mechanism):
   the `tenancy` module resolves `(user_id → memberships → tenant, role, classes)` once per
   request and injects an authorization context that every router dependency consumes.
@@ -411,6 +421,13 @@ the events it was derived from.
 
 **MVP form** (respecting `docs/planning/backend-mvp-strategy.md` §10 — no Redis/Celery yet):
 a `jobs` table in Postgres claimed with `SELECT ... FOR UPDATE SKIP LOCKED`, one worker process.
+The Phase 1 worker entrypoint uses the Postgres-backed queue/store adapters in fixture mode; it
+must not run an in-memory queue in staging or production.
+
+Runtime validation note: the opt-in live Postgres check using `TEST_DATABASE_URL` now verifies
+connectivity to the Supabase instance and correctly skips the RLS assertion when the supplied role
+has `BYPASSRLS`; use a non-bypass app role for the final pooled-RLS proof required by the Phase 1
+exit gate.
 
 ```sql
 CREATE TABLE jobs (
@@ -436,8 +453,8 @@ when queue depth or latency data demands it.
 
 | Job | Trigger | What it does |
 |-----|---------|--------------|
-| `classify` | `offer_set_choice` event; quiz question generation; nightly batch over unselected offer-set options (lowest priority — gates nothing in-session) | Stage 2 median-of-3 via `llm_gateway`; code computes entropy/dispersion/flags and resolves concept attribution against P4 edge IDs (topology spec §4.1); appends `question_classified` event; updates `analytic_rm.question_classifications` |
-| `compress` | `node_created` (AI node) | Node summary compression (Haiku) per chapter-analysis spec §6.1; terminology scan in code |
+| `classify` | `offer_set_choice` event; quiz question generation; nightly batch over unselected offer-set options (lowest priority — gates nothing in-session) | Stage 2 Classification Model median-of-3 via `llm_gateway`; code computes entropy/dispersion/flags and resolves concept attribution against P4 edge IDs (topology spec §4.1); appends `question_classified` event; updates `analytic_rm.question_classifications` |
+| `compress` | `node_created` (AI node) | Node summary compression via the configured compression-capable model per chapter-analysis spec §6.1; terminology scan in code |
 | `project` | New events past a watermark (poll or NOTIFY) | Incrementally update analytic projections |
 | `replay` | Operator request via `api/internal` | Re-run classification or projections over an event range under a new `prompt_version`/`projection_version`, writing results alongside old ones |
 | `podcast` | `podcast_requested` event | Session-derived script + TTS; stores audio to Supabase Storage; appends `podcast_generated` |
@@ -465,7 +482,10 @@ waits for ever depends on a job completing. Classification lag is invisible by d
 ## 9. The LLM Gateway Module
 
 The single chokepoint for every model call (runtime and chapter-analysis pipeline). No other
-module constructs an Anthropic client (import rule §4.4).
+module constructs a provider client (import rule §4.4). Provider and model ids are configured
+with environment variables (`LLM_PROVIDER`, `LLM_STAGE1_MODEL_ID`, `LLM_STAGE2_MODEL_ID`) and
+stamped onto events/rows as `model_id`; product logic must refer to Stage 1/Stage 2 roles, not
+hardcoded provider model names.
 
 **Responsibilities**:
 
