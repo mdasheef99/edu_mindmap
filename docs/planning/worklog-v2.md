@@ -25,10 +25,10 @@
 
 ## Current Phase
 
-- **Current phase**: Phase 1 — Walking Skeleton. Local CI gates are green; live Supabase RLS and
-  `SKIP LOCKED` verification now run with a non-bypass role and pass.
-- **Next phase gate**: Phase 1 exit gate per SDD §10. Remaining proof items: remote GitHub Actions
-  rerun on the latest pushed commit, Render deployment, and physical-device mobile verification.
+- **Current phase**: Phase 1 — Walking Skeleton. Local CI gates and GitHub Actions are green; live
+  Supabase RLS and `SKIP LOCKED` verification now run with a non-bypass role and pass.
+- **Next phase gate**: Phase 1 exit gate per SDD §10. Remaining proof items: Render deployment and
+  physical-device mobile verification.
 - **Open decisions**: none for Phase 1; consent gate resolved in `worklog.md` and ADR-0014.
 
 ## Phase 1 Live Tracker
@@ -39,7 +39,7 @@
 - [x] local CI-equivalent gates pass: Ruff format, Ruff lint, mypy, import-linter, pytest
 - [x] live `TEST_DATABASE_URL` uses non-bypass role; RLS / `SKIP LOCKED` tests pass actively
 - [x] backend Sentry smoke received
-- [ ] GitHub Actions CI green on latest pushed commit
+- [x] GitHub Actions CI green on latest pushed commit (`10bb751`, run `27716220823`)
 - [ ] Render backend + worker deployment verified
 - [ ] physical-device Expo verification recorded
 
@@ -73,10 +73,11 @@
 - `PYTHONPATH=backend lint-imports --config pyproject.toml --no-cache` → contracts kept.
 - `python -m pytest tests -q` → 35 passed, 2 skipped.
 - `pytest tests/database/test_optional_postgres_rls_contract.py` with `.env` loaded → 2 passed.
+- GitHub Actions `Phase 1 CI` run `27716220823` for commit `10bb751` → passed.
 
 **Gate status**:
-- Phase 1 backend and database proof is green locally and against live Supabase RLS. Remote CI rerun
-  still needs verification after this commit is pushed.
+- Phase 1 backend, database, and remote CI proof are green. Remaining Phase 1 proof items are Render
+  deployment and physical-device mobile verification.
 
 **Next step**:
-- Push the CI/doc fixes and verify the GitHub Actions run for the new `main` commit.
+- Prepare Render backend/worker verification steps, then record physical-device Expo proof.

@@ -14,7 +14,7 @@
 | Increment name | Phase 1 Walking Skeleton — thin end-to-end loop |
 | Phase / milestone | Phase 1 (precedes M1) |
 | Owner | (developer) |
-| Status | Active — local CI gates green; live non-bypass Supabase RLS verified; backend Sentry smoke received; remote CI rerun/deploy/mobile proof still open |
+| Status | Active — local and GitHub Actions CI gates green; live non-bypass Supabase RLS verified; backend Sentry smoke received; deploy/mobile proof still open |
 
 Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop touching every architectural layer (mobile → API → event store → worker → LLM → projection), proving every integration point at once.
 
