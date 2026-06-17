@@ -16,7 +16,7 @@ Use one entry per focused work session. Keep entries factual and concise.
 
 - **Current phase**: Phase 1 — Walking Skeleton. SDD finalized (`docs/planning/sdd/phase-1-walking-skeleton-sdd.md`); red tests not yet started.
 - **Next phase gate**: Phase 1 exit gate per the SDD §10 Definition of Done.
-- **Blocking pre-work**: resolve the consent-gate decision (see Open Decisions) before writing migration 0001.
+- **Blocking pre-work**: ~~resolve the consent-gate decision (see Open Decisions) before writing migration 0001.~~ RESOLVED 2026-06-17 — implement the consent gate in Phase 1 (Option A); see `adr-log.md` ADR-0014.
 
 ## Phase 1 Live Tracker
 
@@ -73,7 +73,16 @@ This section tracks **status only**. The active SDD is authoritative for require
 
 ### Open Decisions
 
-- **Consent gate on `classify` → `analytic_rm` projection** — UNRESOLVED. Resolve before migration 0001 (`backend-architecture.md` §12 "from the first migration"; `read-models-schema.md` §9). Options: (a) gate it in Phase 1 with a red test; (b) explicit deferral ADR acknowledging the retrofit risk.
+- **Consent gate on `classify` → `analytic_rm` projection** — RESOLVED 2026-06-17.
+  - Decision: **Option A** — implement the gate in Phase 1.
+  - Rationale: DPDP Act 2023 makes consent a first-order constraint; retrofitting onto an
+    event store is not feasible, so the `consent_records` table and `consent_recorded` event ship
+    in migration 0001 (`backend-architecture.md` §12; `read-models-schema.md` §9).
+  - Implementation: `classify` worker skips `analytic_rm.question_classifications` writes when no
+    valid `behavioral_analytics` consent exists; the `offer_set_choice` event and `classify` job still
+    flow normally, and the student experience is unaffected.
+  - Traceability: SDD red test #26 (`test_classify_worker_skips_analytic_projection_without_consent`);
+    DoD bullet; ADR-0014.
 
 ## Entry Template
 

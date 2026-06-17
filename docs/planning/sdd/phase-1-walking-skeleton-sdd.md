@@ -33,7 +33,11 @@ Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop to
 ## 3. Scope of Increment
 
 **In scope:**
-- Migration 0001 with non-retrofittable primitives (`development-approach.md` §6.1): `tenant_id` + version-stamp columns on every table; append-only `events`; `jobs` table for `SKIP LOCKED`; `student_rm` + `analytic_rm` schemas; base tenancy tables for backend context resolution.
+- Migration 0001 with non-retrofittable primitives (`development-approach.md` §6.1,
+  `backend-architecture.md` §12): `tenant_id` + version-stamp columns on every table;
+  append-only `events`; `jobs` table for `SKIP LOCKED`; `student_rm` + `analytic_rm` schemas;
+  base tenancy tables; `consent_records` table + `consent_recorded` event so the `classify`
+  worker can gate projection into `analytic_rm` from the first migration.
 - Event registry (`events/registry.py`) validating the three Phase 1 client/server events `session_started`, `node_created`, `offer_set_choice` plus the worker-only `question_classified` (`development-approach.md` §4.1).
 - `POST /v1/student/sessions` (start chapter-scoped session) and `POST /v1/student/offer-sets/{offer_set_id}/choices` (selected and dismissed outcomes).
 - One `classify` worker job claimed via `SELECT ... FOR UPDATE SKIP LOCKED`, running in `llm_gateway` fixture mode.
@@ -77,7 +81,13 @@ Per `backend-architecture.md` §4 (the contracts that carry product guarantees).
 
 - **Registry** (`events/registry.py`): register `session_started`, `node_created`, `offer_set_choice` with `producer` in {`client`,`server`}; register `question_classified` as `producer: worker` only — client batches that submit it are rejected (`event-store-and-job-queue-schema.md` §3).
 - **Stamps made non-nullable per type** (`backend-architecture.md` §6.2): `tenant_id` + `event_version` on all four; `question_classified` additionally carries `prompt_version`, `model_id`, and projection lineage (`projection_version`).
-- **Migration 0001 (non-retrofittable, `development-approach.md` §6.1)**: `tenant_id` + version-stamp columns on every table; `events` UPDATE/DELETE revoked at the DB privilege level; `jobs` with `status`, `attempts`, `run_after`, `locked_at`, `locked_by` supporting `SKIP LOCKED`; `student_rm` + `analytic_rm` schemas; base tenancy tables.
+- **Migration 0001 (non-retrofittable, `development-approach.md` §6.1,
+  `backend-architecture.md` §12)**: `tenant_id` + version-stamp columns on every table; `events`
+  UPDATE/DELETE revoked at the DB privilege level; `jobs` with `status`, `attempts`, `run_after`,
+  `locked_at`, `locked_by` supporting `SKIP LOCKED`; `student_rm` + `analytic_rm` schemas; base
+  tenancy tables; `consent_records` table with `consent_kind`, `grantor`, `granted_at`,
+  `withdrawn_at`, and the `consent_recorded` event so `classify` can gate `analytic_rm` writes
+  from day one.
 - **Config bindings** (`configuration-reference.md`): `JOB_MAX_ATTEMPTS=5` (dead-letter, ADR-0002), `JOB_QUEUE_BACKEND=postgres_skip_locked`, `LLM_CI_MODE=recorded fixtures`.
 
 ## 7. Invariant Enforcement
@@ -176,6 +186,10 @@ Gap-closing additions (G1–G12), required before the Phase 1 gate:
 23. `test_duplicate_offer_choice_does_not_double_enqueue_classify` (G10 — idempotency key; `event-store-and-job-queue-schema.md` §3/§9)
 24. `test_student_api_exposes_no_raw_event_endpoint` (G11 — `schema-traceability-and-validation.md` §3)
 25. `test_mobile_supplied_tenant_id_is_ignored` (G12 — `backend-architecture.md` §5.4)
+26. `test_classify_worker_skips_analytic_projection_without_consent` (consent-gate resolution —
+    `backend-architecture.md` §12.3, `read-models-schema.md` §9): a selected offer choice with no
+    valid `behavioral_analytics` consent record must enqueue the `classify` job but the worker must
+    skip writing to `analytic_rm.question_classifications`; the student app remains unaffected.
 
 ---
 
@@ -194,7 +208,8 @@ This increment is done only when:
 - selected offer choice enqueues `classify`
 - dismissed offer choice does not enqueue `classify`
 - worker processes one `classify` job in fixture mode
-- `question_classified` lands in the event store **and** the minimal `analytic_rm.question_classifications` row (ADR-0003/0004 — not either/or)
+- the `classify` worker checks valid `behavioral_analytics` consent before writing to `analytic_rm.question_classifications`; without consent the job succeeds but produces no analytic row (`backend-architecture.md` §12.3, `read-models-schema.md` §9)
+- `question_classified` lands in the event store **and** the minimal `analytic_rm.question_classifications` row (ADR-0003/0004 — not either/or) **when consent is present**
 - every derived row carries `projection_version` + lineage stamps (`prompt_version`/`model_id`); `analytic_rm` row stamping verified
 - the first projections pass **replay-determinism** (rebuild → byte-identical) and **idempotency** (apply-twice = no-op) tests (`development-approach.md` §6.4)
 - `/v1/student` never returns analytic fields and exposes no raw event endpoint

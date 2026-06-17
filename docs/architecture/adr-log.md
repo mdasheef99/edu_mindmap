@@ -364,6 +364,40 @@ for the primary branching mechanism (phrase-selection inside AI node content, pe
 
 ---
 
+## ADR-0014 — Consent gate for `classify` → `analytic_rm` projection implemented in Phase 1
+
+**Status**: Accepted
+
+**Context**: The `classify` worker produces `analytic_rm.question_classifications` rows containing
+inferences about a student's engagement. Under the DPDP Act 2023, processing such behavioral data
+for school-managed minors requires verifiable consent, and the architecture explicitly requires
+consent to gate processing (`backend-architecture.md` §12). The Phase 1 Walking Skeleton left this
+as an open decision: gate it now or defer to a later phase with an explicit ADR.
+
+**Decision**: Implement the consent gate in Phase 1, not deferred. The `consent_records` table and
+`consent_recorded` event ship in migration 0001 alongside the event store and read models. The
+`classify` worker checks for a valid `behavioral_analytics` consent record before writing to
+`analytic_rm.question_classifications`. If consent is absent or withdrawn, the job still succeeds
+but skips the analytic projection; the `offer_set_choice` event, `classify` job, and `question_classified`
+event remain unaffected, and the student experience is unchanged. This is Option A from the Open
+Decisions tracker.
+
+**Consequences**:
+- No retrofit risk: the event store never needs to be rebuilt to add consent later.
+- Phase 1 scope expands slightly (one table, one event, one worker check, one red test) but stays
+  within the existing module boundaries.
+- Withdrawal is structurally cheap: stop including the student in future analytic projections
+  (the event-sourced design supports replay without a withdrawn student per
+  `backend-architecture.md` §12.4).
+- The DPDP legal position still requires counsel review (noted in `backend-architecture.md` §12.5);
+  the schema and worker logic implement the architectural intent.
+
+**References**: `docs/architecture/backend-architecture.md` §12; `docs/database/read-models-schema.md` §9;
+`docs/planning/sdd/phase-1-walking-skeleton-sdd.md` red test #26 and Definition of Done;
+`docs/planning/worklog.md` Open Decisions.
+
+---
+
 ## Index
 
 | ADR | Title | Status |
@@ -381,6 +415,7 @@ for the primary branching mechanism (phrase-selection inside AI node content, pe
 | 0011 | Chapter topology as a second post-hoc analytic axis | Proposed |
 | 0012 | Offer-set steering as curation, never generation | Proposed |
 | 0013 | Hybrid Mobile Canvas Architecture | Accepted |
+| 0014 | Consent gate for `classify` → `analytic_rm` projection implemented in Phase 1 | Accepted |
 
 ---
 
