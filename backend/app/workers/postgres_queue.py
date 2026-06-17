@@ -6,7 +6,6 @@ import json
 from typing import Any, Mapping
 from uuid import UUID
 
-
 ENQUEUE_CLASSIFY_SQL = """
 INSERT INTO jobs (job_type, tenant_id, payload, idempotency_key)
 VALUES ('classify', %(tenant_id)s, %(payload)s::jsonb, %(idempotency_key)s)
@@ -56,15 +55,17 @@ class PostgresJobQueue:
         )
         params = {
             "tenant_id": event["tenant_id"],
-            "payload": json.dumps({
-                "event_id": str(event["event_id"]),
-                "student_user_id": str(student_user_id),
-                "session_id": payload["session_id"],
-                "offer_set_id": payload["offer_set_id"],
-                "selected_option_id": payload["selected_option_id"],
-                "selected_option_text": payload["selected_option_text"],
-                "thread_context_id": payload["thread_context_id"],
-            }),
+            "payload": json.dumps(
+                {
+                    "event_id": str(event["event_id"]),
+                    "student_user_id": str(student_user_id),
+                    "session_id": payload["session_id"],
+                    "offer_set_id": payload["offer_set_id"],
+                    "selected_option_id": payload["selected_option_id"],
+                    "selected_option_text": payload["selected_option_text"],
+                    "thread_context_id": payload["thread_context_id"],
+                }
+            ),
             "idempotency_key": idempotency_key,
         }
         cursor = self.connection.execute(ENQUEUE_CLASSIFY_SQL, params)
@@ -86,7 +87,8 @@ class PostgresJobQueue:
 
     def mark_failed(self, job_id: UUID, *, error: str) -> None:
         self.connection.execute(
-            "UPDATE jobs SET status = 'failed', last_error = %s, updated_at = now() WHERE job_id = %s",
+            "UPDATE jobs SET status = 'failed', last_error = %s, updated_at = now() "
+            "WHERE job_id = %s",
             (error, job_id),
         )
 

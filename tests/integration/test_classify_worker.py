@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-
 FORBIDDEN_ANALYTIC_FIELD_FRAGMENTS = (
     "dimension",
     "classification",
@@ -166,9 +165,10 @@ def test_question_classified_row_carries_version_stamps() -> None:
     assert row["model_id"] == classified_event["model_id"]
     assert row["source_event_id"] == source_event["event_id"]
     assert row["source_event_type"] == "offer_set_choice"
-    assert row["chapter_analysis_id"] == runtime.student_sessions.sessions[session_id][
-        "chapter_analysis_id"
-    ]
+    assert (
+        row["chapter_analysis_id"]
+        == runtime.student_sessions.sessions[session_id]["chapter_analysis_id"]
+    )
 
 
 def test_classify_worker_skips_analytic_projection_without_consent() -> None:

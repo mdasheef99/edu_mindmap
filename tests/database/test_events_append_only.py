@@ -4,7 +4,9 @@ from pathlib import Path
 def test_events_table_rejects_update_and_delete() -> None:
     """T2: migration 0001 must make events append-only at the database layer."""
     repo_root = Path(__file__).resolve().parents[2]
-    migration = repo_root / "backend" / "migrations" / "versions" / "0001_phase_1_walking_skeleton.py"
+    migration = (
+        repo_root / "backend" / "migrations" / "versions" / "0001_phase_1_walking_skeleton.py"
+    )
 
     assert migration.exists(), "migration 0001 must exist before DB append-only checks can pass"
 
@@ -25,7 +27,9 @@ def test_events_table_rejects_update_and_delete() -> None:
 def test_migration_creates_llm_usage_counter_table() -> None:
     """Phase 1 DoD: first llm_gateway call must have a durable usage/cost table."""
     repo_root = Path(__file__).resolve().parents[2]
-    migration = repo_root / "backend" / "migrations" / "versions" / "0001_phase_1_walking_skeleton.py"
+    migration = (
+        repo_root / "backend" / "migrations" / "versions" / "0001_phase_1_walking_skeleton.py"
+    )
 
     migration_text = migration.read_text(encoding="utf-8").lower()
 

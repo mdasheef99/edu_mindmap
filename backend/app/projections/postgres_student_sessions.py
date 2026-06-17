@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from app.tenancy.postgres_context import set_local_tenant
 
 SELECT_SESSION_SQL = """
 SELECT *
@@ -22,7 +23,7 @@ class PostgresStudentSessionStore:
 
     def get_for_tenant(self, session_id: str | UUID, tenant_id: UUID) -> dict[str, Any] | None:
         with self.connection.transaction():
-            self.connection.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+            set_local_tenant(self.connection, tenant_id)
             cursor = self.connection.execute(
                 SELECT_SESSION_SQL,
                 {"session_id": session_id, "tenant_id": tenant_id},

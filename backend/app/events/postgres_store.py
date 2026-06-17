@@ -6,7 +6,7 @@ import json
 from typing import Any, Mapping
 
 from app.events.registry import validate_event
-
+from app.tenancy.postgres_context import set_local_tenant
 
 INSERT_EVENT_SQL = """
 INSERT INTO events (
@@ -41,10 +41,7 @@ class PostgresEventStore:
         params["payload"] = json.dumps(event.get("payload", {}), default=str)
         params["producer"] = producer
         with self.connection.transaction():
-            self.connection.execute(
-                "SET LOCAL app.tenant_id = %s",
-                (str(event["tenant_id"]),),
-            )
+            set_local_tenant(self.connection, event["tenant_id"])
             cursor = self.connection.execute(INSERT_EVENT_SQL, params)
             row = cursor.fetchone()
         return _row_to_dict(row) | {"producer": producer}
@@ -52,7 +49,7 @@ class PostgresEventStore:
     def get_event_by_id(self, event_id: str, *, tenant_id: Any | None = None) -> dict[str, Any]:
         with self.connection.transaction():
             if tenant_id is not None:
-                self.connection.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+                set_local_tenant(self.connection, tenant_id)
             cursor = self.connection.execute(SELECT_EVENT_SQL, {"event_id": event_id})
             row = cursor.fetchone()
         if row is None:

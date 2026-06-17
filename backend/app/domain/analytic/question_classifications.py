@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 from uuid import UUID, uuid4
 
-
 QUESTION_CLASSIFICATION_PROJECTION_VERSION = "analytic-question-classification-v1"
 
 

@@ -23,13 +23,16 @@ from app.domain.student.sessions import (
 )
 from app.events.store import InMemoryEventStore
 from app.llm_gateway.usage import InMemoryLLMUsageStore
+from app.observability.sentry import init_sentry
 from app.projections.question_classifications import (
     InMemoryQuestionClassificationProjectionStore,
 )
-from app.projections.student_sessions import InMemoryStudentSessionProjectionStore, project_session_started
+from app.projections.student_sessions import (
+    InMemoryStudentSessionProjectionStore,
+    project_session_started,
+)
 from app.tenancy.consent import InMemoryConsentRecordStore
 from app.tenancy.pool import InMemoryTenantConnectionPool
-from app.observability.sentry import init_sentry
 from app.workers.queue import InMemoryJobQueue
 
 
@@ -62,7 +65,8 @@ class SessionRuntime:
         event_store: InMemoryEventStore | None = None,
         job_queue: InMemoryJobQueue | None = None,
         student_sessions: InMemoryStudentSessionProjectionStore | None = None,
-        analytic_question_classifications: InMemoryQuestionClassificationProjectionStore | None = None,
+        analytic_question_classifications: InMemoryQuestionClassificationProjectionStore
+        | None = None,
         consent_records: InMemoryConsentRecordStore | None = None,
         llm_usage: InMemoryLLMUsageStore | None = None,
         tenant_pool: InMemoryTenantConnectionPool | None = None,

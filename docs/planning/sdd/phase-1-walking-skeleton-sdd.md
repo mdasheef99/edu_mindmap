@@ -3,7 +3,7 @@
 **Document Version**: 1.1  
 **Status**: Active — implementation near Phase 1 exit gate  
 **Phase / milestone**: Phase 1 — Walking Skeleton (`development-approach.md` §4)  
-**Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/worklog.md` (live tracker), `docs/planning/sdd-template.md`, `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/planning/testing-strategy.md`, `docs/configuration-reference.md`
+**Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/worklog-v2.md` (active live tracker), `docs/planning/worklog.md` (rotated archive), `docs/planning/sdd-template.md`, `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/planning/testing-strategy.md`, `docs/configuration-reference.md`
 
 ---
 
@@ -14,11 +14,11 @@
 | Increment name | Phase 1 Walking Skeleton — thin end-to-end loop |
 | Phase / milestone | Phase 1 (precedes M1) |
 | Owner | (developer) |
-| Status | Active — local tests green (`35 passed, 2 skipped`); Supabase migrations 0001–0003 applied; backend Sentry smoke received; CI/deploy/mobile proof still open |
+| Status | Active — local CI gates green; live non-bypass Supabase RLS verified; backend Sentry smoke received; remote CI rerun/deploy/mobile proof still open |
 
 Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop touching every architectural layer (mobile → API → event store → worker → LLM → projection), proving every integration point at once.
 
-Current implementation status (`development-approach.md` §4.1, §6; `testing-strategy.md` §6): the backend walking skeleton is implemented and validated locally; the live `TEST_DATABASE_URL` check connects to Supabase successfully but skips RLS proof when the supplied role bypasses RLS, so a non-bypass app role is still required for that specific runtime assertion.
+Current implementation status (`development-approach.md` §4.1, §6; `testing-strategy.md` §6): the backend walking skeleton is implemented and validated locally. A dedicated non-bypass Supabase role now backs `TEST_DATABASE_URL`, so the live RLS / `SKIP LOCKED` contract runs actively and passes instead of skipping for `BYPASSRLS`.
 
 ## 2. Source-of-Truth References (mandatory)
 

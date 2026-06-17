@@ -9,7 +9,7 @@
 ## Start Here
 
 - **Understand the product and learning model**: start with `theory-of-change.md`, then `framework-design-philosophy.md`
-- **Understand the system and implementation approach**: start with `architecture/backend-architecture.md`, `architecture/adr-log.md`, and `planning/development-approach.md`, then use `system-architecture.md` as the reconciled high-level architecture map
+- **Understand the system and implementation approach**: start with `architecture/backend-architecture.md`, the ADR sequence (`architecture/adr-log.md` then `architecture/adr-log-02.md`), and `planning/development-approach.md`, then use `system-architecture.md` as the reconciled high-level architecture map
 - **Understand current MVP scope boundaries**: use `prd/master-prd.md`, `mvp-features-specification.md`, and the v1.3+ planning docs as the current scope anchors, including for basic offline access versus broader offline capability
 - **Understand learner-facing guidance boundaries**: read `student-reflective-guidance-and-self-review.md` after the theory/system docs
 - **Understand teacher-support MVP scope and broader teacher/admin references**: read `teacher-support-mvp-specification.md`, then `analytics-dashboard-inventory.md`, then `teacher-access-control-specification.md`
@@ -18,10 +18,16 @@
 
 When documents conflict, apply this order:
 
-1. `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/architecture/adr-log.md`, and `docs/planning/session-path-data-contract.md` govern v1.3+ backend architecture, event sourcing, async jobs, read-model separation, and Category Invisibility.
+1. `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, the ADR log sequence (`docs/architecture/adr-log.md` then active continuation `docs/architecture/adr-log-02.md`), and `docs/planning/session-path-data-contract.md` govern v1.3+ backend architecture, event sourcing, async jobs, read-model separation, and Category Invisibility.
 2. `docs/prd/master-prd.md` and `docs/mvp-features-specification.md` govern product/MVP scope.
 3. `docs/teacher-dashboard-specification.md`, `docs/teacher-support-mvp-specification.md`, and `docs/operations/b2b-onboarding-runbook.md` govern B2B/teacher support and access assumptions.
 4. Older broad drafts remain useful reference material, but Redis, Celery, TimescaleDB, direct mobile AI-provider calls, broad offline sync, and broad intervention dashboards are deferred unless reaffirmed by the documents above.
+
+**Documentation governance protocol:** active high-growth files are capped at 350 lines. When an
+active ADR/worklog file would exceed the cap, continue in the next sequential file and begin it with
+`AGENT ROTATION INSTRUCTION — READ FIRST` plus a `Legacy Context Summary` linking to the previous
+file. Current active ADR continuation: `docs/architecture/adr-log-02.md`. Current active worklog:
+`docs/planning/worklog-v2.md`; `docs/planning/worklog.md` is the closed first archive.
 
 ---
 
@@ -37,7 +43,7 @@ When documents conflict, apply this order:
 
 ### 🏗️ Architecture & Technical Design
 - **[Backend Architecture](architecture/backend-architecture.md)** - v1.3+ FastAPI modular monolith, event store, read models, worker lane, and API surface
-- **[ADR Log](architecture/adr-log.md)** - accepted architectural decisions, including Organic-First, async jobs, and Category Invisibility enforcement
+- **[ADR Log Sequence](architecture/adr-log-02.md)** - active ADR continuation; previous ADRs 0001–0014 are in `architecture/adr-log.md`
 - **[System Architecture](system-architecture.md)** - Reconciled high-level system design; older scale technologies annotated as deferred
 - **[API Documentation Index](api/README.md)** - `/v1/student` and `/v1/teacher` API source of truth and boundary rules
 - **[Student API Specification](api/student-api-spec.md)** - student-safe session, canvas, offer-set, checkpoint, podcast, and PYQ endpoints
@@ -177,7 +183,8 @@ When documents conflict, apply this order:
 | operations/delivery-and-operations.md | ✅ Current | Jun 2026 | 1.0 draft |
 | planning/worklog.md | ✅ Active | Jun 2026 | 1.0 |
 | architecture/backend-architecture.md | ✅ Source of Truth | Mar 2026 | v1.3+ |
-| architecture/adr-log.md | ✅ Source of Truth | Mar 2026 | v1.3+ |
+| architecture/adr-log.md | 🔒 Rotated Source Archive | Jun 2026 | ADR-0001–0014 |
+| architecture/adr-log-02.md | ✅ Active Source of Truth | Jun 2026 | starts ADR-0015 |
 | planning/development-approach.md | ✅ Source of Truth | Mar 2026 | v1.3+ |
 | planning/session-path-data-contract.md | ✅ Reconciled | Mar 2026 | v1.3+ |
 | system-architecture.md | ✅ Reconciled | Mar 2026 | 1.0 + v1.3 alignment |

@@ -8,7 +8,6 @@ Traceability:
 
 from alembic import op
 
-
 revision = "0002_security_and_performance_remediation"
 down_revision = "0001_phase_1_walking_skeleton"
 branch_labels = None

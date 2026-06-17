@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Mapping
 
+from app.tenancy.postgres_context import set_local_tenant
 
 INSERT_QUESTION_CLASSIFICATION_SQL = """
 INSERT INTO analytic_rm.question_classifications (
@@ -34,7 +35,7 @@ class PostgresQuestionClassificationProjectionStore:
         for key in ("scores_payload", "entropy_payload", "dispersion_payload"):
             params[key] = json.dumps(params[key], default=str)
         with self.connection.transaction():
-            self.connection.execute("SET LOCAL app.tenant_id = %s", (str(row["tenant_id"]),))
+            set_local_tenant(self.connection, row["tenant_id"])
             cursor = self.connection.execute(INSERT_QUESTION_CLASSIFICATION_SQL, params)
             stored = cursor.fetchone()
         return dict(stored)

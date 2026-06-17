@@ -12,7 +12,7 @@ def init_sentry() -> bool:
     if not dsn:
         return False
     try:
-        import sentry_sdk  # type: ignore[import-not-found]
+        import sentry_sdk
     except ImportError:
         return False
 
@@ -23,7 +23,7 @@ def init_sentry() -> bool:
 def capture_phase1_smoke_error(extra: dict[str, Any] | None = None) -> bool:
     """Send a deliberate non-fatal exception to Sentry for the Phase 1 gate."""
     try:
-        import sentry_sdk  # type: ignore[import-not-found]
+        import sentry_sdk
     except ImportError:
         return False
 

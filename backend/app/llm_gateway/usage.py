@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID, uuid4
 
-
 LLMPurpose = Literal["generation", "classification", "analysis", "podcast"]
 
 

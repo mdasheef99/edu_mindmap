@@ -42,13 +42,22 @@ def test_api_student_import_linter_blocks_analytic_imports(tmp_path: Path) -> No
     lint_imports = shutil.which("lint-imports")
     if lint_imports is None:
         script_name = "lint-imports.exe" if os.name == "nt" else "lint-imports"
-        user_scripts = Path(site.getuserbase()) / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts"
-        for candidate in [Path(sysconfig.get_path("scripts")) / script_name, user_scripts / script_name]:
+        user_scripts = (
+            Path(site.getuserbase())
+            / f"Python{sys.version_info.major}{sys.version_info.minor}"
+            / "Scripts"
+        )
+        for candidate in [
+            Path(sysconfig.get_path("scripts")) / script_name,
+            user_scripts / script_name,
+        ]:
             if candidate.exists():
                 lint_imports = str(candidate)
                 break
 
-    assert lint_imports is not None, "lint-imports executable must be available for architecture tests"
+    assert lint_imports is not None, (
+        "lint-imports executable must be available for architecture tests"
+    )
 
     result = subprocess.run(
         [lint_imports, "--config", str(tmp_path / "pyproject.toml"), "--no-cache"],
@@ -102,13 +111,22 @@ def test_generation_cannot_import_classification_or_analytic(tmp_path: Path) -> 
     lint_imports = shutil.which("lint-imports")
     if lint_imports is None:
         script_name = "lint-imports.exe" if os.name == "nt" else "lint-imports"
-        user_scripts = Path(site.getuserbase()) / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts"
-        for candidate in [Path(sysconfig.get_path("scripts")) / script_name, user_scripts / script_name]:
+        user_scripts = (
+            Path(site.getuserbase())
+            / f"Python{sys.version_info.major}{sys.version_info.minor}"
+            / "Scripts"
+        )
+        for candidate in [
+            Path(sysconfig.get_path("scripts")) / script_name,
+            user_scripts / script_name,
+        ]:
             if candidate.exists():
                 lint_imports = str(candidate)
                 break
 
-    assert lint_imports is not None, "lint-imports executable must be available for architecture tests"
+    assert lint_imports is not None, (
+        "lint-imports executable must be available for architecture tests"
+    )
 
     result = subprocess.run(
         [lint_imports, "--config", str(tmp_path / "pyproject.toml"), "--no-cache"],

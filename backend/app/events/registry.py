@@ -175,8 +175,6 @@ def validate_event(event: Mapping[str, Any], *, producer: str) -> Mapping[str, A
         field for field in spec.required_payload_fields if payload.get(field) is None
     )
     if missing_payload_fields:
-        raise InvalidEventPayloadError(
-            f"Missing required payload fields: {missing_payload_fields}"
-        )
+        raise InvalidEventPayloadError(f"Missing required payload fields: {missing_payload_fields}")
 
     return event

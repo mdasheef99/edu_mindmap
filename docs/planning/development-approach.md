@@ -308,9 +308,29 @@ simulator or flagship.
 5. **Real users embarrassingly early.** One real student at M2, one real teacher at M6 — their
    behavior outranks any internal judgment about whether questions get tapped or cards get
    acted on.
-6. **A worklog, not a wiki.** A single running `docs/planning/worklog.md` (created when work
-   starts) records date, what shipped, gate status, and decisions taken — enough for any future
-   contributor (human or AI) to reconstruct state without replaying chat history.
+6. **A worklog, not a wiki.** The active worklog records date, what shipped, gate status, and
+   decisions taken — enough for any future contributor (human or AI) to reconstruct state without
+   replaying chat history.
+
+## 8.1 Documentation Governance
+
+- Active high-growth files have a strict 350-line limit, starting with ADR logs and worklogs.
+- When the active file would exceed 350 lines, rotate instead of appending: `adr-log-02.md`,
+  `adr-log-03.md`; `worklog-v2.md`, `worklog-v3.md`.
+- Every continuation file starts with `AGENT ROTATION INSTRUCTION — READ FIRST`, then a `Legacy
+  Context Summary` linking to the previous file and summarizing final state, resolved decisions,
+  active milestone, open blockers, and next action.
+- Rotated files are closed archives. Do not append except to add the closed-file header.
+- The active continuation file becomes the file future agents read first after the hierarchy docs.
+
+## 8.2 Code Organization Standards
+
+- No single source file should exceed **300–350 lines**. If a file approaches the limit, split it by
+  responsibility before adding more behavior.
+- Keep modules cohesive: routers orchestrate, domain modules hold pure rules, adapters isolate I/O,
+  and shared infrastructure helpers replace repeated SQL/config/observability patterns.
+- Generated or AI-assisted changes must stay reviewable: small diffs, typed boundaries, explicit
+  tests, no hidden side effects, and no secrets in code, docs, tool arguments, or logs.
 
 ---
 
@@ -330,27 +350,4 @@ simulator or flagship.
 
 ## 10. Other Documents Required
 
-Gaps that exist after this document, in the order they will block work:
-
-| Document | Blocks | When to write |
-|----------|--------|---------------|
-| **API specification** (endpoint contracts for `/v1/student` and `/v1/teacher`) | M1 — mobile and backend need one contract | ✅ Written — `docs/api/README.md`, `docs/api/student-api-spec.md`, `docs/api/teacher-api-spec.md`, `docs/api/feature-endpoint-traceability.md` |
-| **Database schema specification** | Migration 0001, event store, jobs, read-model separation | ✅ Written — `docs/database/README.md` and companion schema docs |
-| **Configuration reference** | Prevents threshold/config drift during implementation | ✅ Written — `docs/configuration-reference.md` |
-| **Testing strategy** | §6 discipline consistency | ✅ Written — `docs/planning/testing-strategy.md` |
-| **Delivery & operations** (deploy target decision, environments, migration runbook, secret handling, backup/restore) | First deploy | ✅ Baseline written — `docs/operations/delivery-and-operations.md`; deploy target chosen during Phase 1 |
-| **Worklog** (§8.6) | Nothing — but cheap and immediately useful | ✅ Created — `docs/planning/worklog.md`; use from the first implementation session |
-
-Deliberately **not** needed now: design-system/UI-kit doc (premature before M3), data-retention
-policy beyond the consent records already specified (revisit at B2B pilot), and any further
-architecture documents — the architecture set is sufficient.
-
----
-
-## 11. Changelog
-
-| Date | Change |
-|------|--------|
-| — | v1.0 draft: phases 0–1, milestone order, disciplines, pinned stack, method, risks, doc gaps |
-| — | §10: testing strategy written (`docs/planning/testing-strategy.md`); gap closed |
-| 2026-06-16 | §10: API specs, database schema suite, configuration reference, delivery/operations baseline, and worklog created; remaining deploy-target choice deferred to Phase 1 |
+Previously blocking docs are written: API specs (`docs/api/`), database specs (`docs/database/`), configuration reference, testing strategy, delivery/operations baseline, and worklog. The deploy target remains a Phase 1 choice. Not needed now: design-system/UI-kit doc, expanded retention policy, or further architecture docs.

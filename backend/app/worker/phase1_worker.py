@@ -56,6 +56,7 @@ def run_loop(connection, *, worker_id: str, poll_seconds: float = 2.0) -> None:
         if not did_work:
             time.sleep(poll_seconds)
 
+
 def main() -> None:
     database_url = os.getenv("DATABASE_URL")
     if not database_url:

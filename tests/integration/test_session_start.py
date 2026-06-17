@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-
 FORBIDDEN_ANALYTIC_FIELD_FRAGMENTS = (
     "dimension",
     "classification",
@@ -123,9 +122,7 @@ def test_student_api_exposes_no_raw_event_endpoint() -> None:
 
     app = create_app()
     student_routes = {
-        route.path
-        for route in app.routes
-        if getattr(route, "path", "").startswith("/v1/student")
+        route.path for route in app.routes if getattr(route, "path", "").startswith("/v1/student")
     }
 
     assert "/v1/student/events" not in student_routes

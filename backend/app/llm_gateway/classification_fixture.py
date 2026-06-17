@@ -8,7 +8,6 @@ from uuid import UUID
 from app.llm_gateway.config import stage2_classification_model_id
 from app.llm_gateway.usage import InMemoryLLMUsageStore, record_llm_usage
 
-
 CLASSIFICATION_PROMPT_VERSION = "question-classifier-fixture-v1"
 
 

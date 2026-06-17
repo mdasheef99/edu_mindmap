@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 FORBIDDEN_STUDENT_RM_COLUMN_PATTERNS = (
     "dimension",
     "dimensional",

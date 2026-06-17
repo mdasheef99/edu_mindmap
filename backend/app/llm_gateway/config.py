@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 
-
 DEFAULT_STAGE1_MODEL_ID = "stage-1-generation-fixture-model"
 DEFAULT_STAGE2_MODEL_ID = "stage-2-classification-fixture-model"
 

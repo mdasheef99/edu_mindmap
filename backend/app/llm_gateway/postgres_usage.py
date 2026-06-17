@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.llm_gateway.usage import LLMUsageRecord
-
+from app.tenancy.postgres_context import set_local_tenant
 
 INSERT_LLM_USAGE_SQL = """
 INSERT INTO llm_usage_records (
@@ -28,6 +28,6 @@ class PostgresLLMUsageStore:
     def append(self, record: LLMUsageRecord) -> LLMUsageRecord:
         with self.connection.transaction():
             if record.tenant_id is not None:
-                self.connection.execute("SET LOCAL app.tenant_id = %s", (str(record.tenant_id),))
+                set_local_tenant(self.connection, record.tenant_id)
             self.connection.execute(INSERT_LLM_USAGE_SQL, record.__dict__)
         return record

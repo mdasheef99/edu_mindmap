@@ -34,7 +34,9 @@ class ClassifyWorker:
             self.runtime.job_queue.mark_failed(job["job_id"], error="session_not_found")
             return None
 
-        source_event = self._get_source_event(job["payload"]["event_id"], tenant_id=job["tenant_id"])
+        source_event = self._get_source_event(
+            job["payload"]["event_id"], tenant_id=job["tenant_id"]
+        )
         classification = classify_selected_option(
             job["payload"]["selected_option_text"],
             tenant_id=job["tenant_id"],
@@ -58,7 +60,9 @@ class ClassifyWorker:
         self.runtime.job_queue.mark_done(job["job_id"])
         return stored_event
 
-    def _get_source_event(self, event_id: str, *, tenant_id: Any | None = None) -> Mapping[str, Any]:
+    def _get_source_event(
+        self, event_id: str, *, tenant_id: Any | None = None
+    ) -> Mapping[str, Any]:
         if hasattr(self.runtime.event_store, "get_event_by_id"):
             return self.runtime.event_store.get_event_by_id(event_id, tenant_id=tenant_id)
         return next(

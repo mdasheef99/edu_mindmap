@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from app.tenancy.postgres_context import set_local_tenant
 
 HAS_VALID_BEHAVIORAL_ANALYTICS_SQL = """
 SELECT 1
@@ -33,7 +34,7 @@ class PostgresConsentRecordStore:
         student_user_id: UUID,
     ) -> bool:
         with self.connection.transaction():
-            self.connection.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+            set_local_tenant(self.connection, tenant_id)
             cursor = self.connection.execute(
                 HAS_VALID_BEHAVIORAL_ANALYTICS_SQL,
                 {"tenant_id": tenant_id, "student_user_id": student_user_id},

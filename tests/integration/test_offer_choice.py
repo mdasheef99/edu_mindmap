@@ -153,8 +153,7 @@ def test_offer_choice_response_returns_with_classify_still_queued() -> None:
     }
     assert runtime.job_queue.jobs[0]["status"] == "queued"
     assert not any(
-        event["event_type"] == "question_classified"
-        for event in runtime.event_store.events
+        event["event_type"] == "question_classified" for event in runtime.event_store.events
     )
     assert runtime.analytic_question_classifications.rows == []
 

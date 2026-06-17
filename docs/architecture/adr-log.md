@@ -1,3 +1,13 @@
+> **AGENT ROTATION INSTRUCTION — READ FIRST**
+>
+> This file is **rotated and closed for new ADRs** because it exceeded the 350-line governance
+> threshold. Do **not** append new decisions here. Continue the sequence in
+> `docs/architecture/adr-log-02.md`.
+>
+> Rotation rule: active high-growth documentation files must stay at or below 350 lines. When an
+> active ADR/worklog file would exceed that threshold, create the next sequential file and begin it
+> with a `Legacy Context Summary` linking to the previous file.
+
 # Architecture Decision Record (ADR) Log
 
 **Document Version**: 1.0

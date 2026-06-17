@@ -9,7 +9,6 @@ Traceability:
 
 from alembic import op
 
-
 revision = "0001_phase_1_walking_skeleton"
 down_revision = None
 branch_labels = None

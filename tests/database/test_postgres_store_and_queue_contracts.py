@@ -1,6 +1,7 @@
 def test_postgres_event_store_uses_events_table_and_tenant_context() -> None:
     """Postgres event store must append through migration 0001 table under tenant context."""
     from app.events.postgres_store import INSERT_EVENT_SQL
+    from app.tenancy.postgres_context import SET_LOCAL_TENANT_SQL
 
     sql = INSERT_EVENT_SQL.lower()
 
@@ -8,6 +9,7 @@ def test_postgres_event_store_uses_events_table_and_tenant_context() -> None:
     assert "tenant_id" in sql
     assert "event_version" in sql
     assert "returning" in sql
+    assert "set_config('app.tenant_id'" in SET_LOCAL_TENANT_SQL
 
 
 def test_postgres_queue_claim_uses_for_update_skip_locked() -> None:

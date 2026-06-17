@@ -1,7 +1,15 @@
+> **AGENT ROTATION INSTRUCTION — READ FIRST**
+>
+> This file is **rotated and closed for new entries**. Continue in
+> `docs/planning/worklog-v2.md`.
+>
+> Rotation rule: active worklog files must stay at or below 350 lines. This file closed at the end
+> of the first Phase 1 implementation/proof sequence.
+
 # Development Worklog
 
 **Document Version**: 1.0  
-**Status**: Active  
+**Status**: Rotated archive — active continuation is `docs/planning/worklog-v2.md`  
 **Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/sdd/phase-1-walking-skeleton-sdd.md` (active blueprint), `docs/planning/development-approach.md`, `docs/planning/testing-strategy.md`, `docs/api/README.md`, `docs/database/README.md`
 
 ---

@@ -33,11 +33,7 @@ def test_rls_helper_migration_removes_current_setting_from_policy_definitions() 
     """Follow-up migration should keep current_setting out of policy expressions."""
     repo_root = Path(__file__).resolve().parents[2]
     migration = (
-        repo_root
-        / "backend"
-        / "migrations"
-        / "versions"
-        / "0003_rls_policy_helper_optimization.py"
+        repo_root / "backend" / "migrations" / "versions" / "0003_rls_policy_helper_optimization.py"
     )
 
     text = migration.read_text(encoding="utf-8").lower()

@@ -6,7 +6,7 @@ type: always_apply
 ACTIVE MILESTONE: Phase 1 — Walking Skeleton (precedes M1). Do not design Phase 2/3
 work (Teacher V3, advanced analytics, podcast, checkpoints) unless explicitly opened.
 ACTIVE SDD (the ONLY increment in flight): docs/planning/sdd/phase-1-walking-skeleton-sdd.md
-LIVE TRACKER: docs/planning/worklog.md (Phase 1 Live Tracker + Open Decisions).
+LIVE TRACKER: docs/planning/worklog-v2.md (Phase 1 Live Tracker + Open Decisions).
 OPEN DECISION: consent gate on `classify` → `analytic_rm` projection — RESOLVED 2026-06-17.
 Decision: implement the gate in Phase 1 (Option A). The `consent_records` table and
 `consent_recorded` event ship in migration 0001; the `classify` worker skips `analytic_rm`
@@ -17,7 +17,7 @@ writes without valid `behavioral_analytics` consent. See ADR-0014, SDD red test 
 
 1. `docs/planning/development-approach.md`
 2. `docs/architecture/backend-architecture.md`
-3. `docs/architecture/adr-log.md`
+3. `docs/architecture/adr-log.md` then active continuation `docs/architecture/adr-log-02.md`
 4. `docs/planning/session-path-data-contract.md`
 5. `docs/prd/master-prd.md`
 6. `docs/mvp-features-specification.md`
@@ -58,6 +58,14 @@ TimescaleDB, `exploration_events` / `learning_sessions` / `path_patterns` tables
 - No mobile-side AI/TTS credentials (backend gateway only). LLM in CI = recorded
   fixtures (LLM_CI_MODE). Cost/usage counter from first call.
 - Constants: K=5 small-cohort suppression; 0.35 checkpoint cosine threshold.
+
+## Code organization constraints
+- Source files should stay under 300–350 lines. If a file approaches or exceeds
+  the limit, refactor into cohesive modules before adding behavior.
+- Prefer small, typed, reviewable diffs; keep routers, domain logic, adapters,
+  projections, worker orchestration, and observability helpers separated.
+- Repeated infrastructure patterns (tenant GUCs, RLS helpers, queue claims,
+  usage accounting) belong in shared helpers with tests, not copy-paste blocks.
 
 ## Behavioral rules
 - Every requirement/edit must cite a source-of-truth §. Never originate requirements.

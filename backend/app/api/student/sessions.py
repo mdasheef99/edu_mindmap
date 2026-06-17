@@ -6,7 +6,6 @@ from fastapi import APIRouter, Request, status
 
 from app.domain.student.sessions import SessionStartRequest, StudentSession
 
-
 router = APIRouter(prefix="/v1/student", tags=["student"])
 
 

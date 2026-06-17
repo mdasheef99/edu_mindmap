@@ -4,7 +4,11 @@ from uuid import uuid4
 
 def test_first_projection_rebuild_is_byte_identical() -> None:
     """T15: the first projection rebuild must be byte-identical."""
-    from app.domain.student.sessions import SessionContext, SessionStartRequest, build_session_started
+    from app.domain.student.sessions import (
+        SessionContext,
+        SessionStartRequest,
+        build_session_started,
+    )
     from app.projections.student_sessions import (
         InMemoryStudentSessionProjectionStore,
         project_session_started,
@@ -36,7 +40,11 @@ def test_first_projection_rebuild_is_byte_identical() -> None:
 
 def test_projection_is_idempotent_on_replay() -> None:
     """T16: applying the same projection events twice must be a no-op."""
-    from app.domain.student.sessions import SessionContext, SessionStartRequest, build_session_started
+    from app.domain.student.sessions import (
+        SessionContext,
+        SessionStartRequest,
+        build_session_started,
+    )
     from app.projections.student_sessions import (
         InMemoryStudentSessionProjectionStore,
         apply_session_projection_events,

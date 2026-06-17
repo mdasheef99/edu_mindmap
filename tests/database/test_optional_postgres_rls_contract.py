@@ -2,10 +2,12 @@ import os
 from uuid import uuid4
 
 import pytest
+from app.tenancy.postgres_context import set_local_tenant
 
 
 def _test_database_url_missing() -> bool:
     import os
+
     return os.getenv("TEST_DATABASE_URL") is None
 
 
@@ -31,7 +33,7 @@ def test_real_postgres_rls_isolation_through_tenant_context() -> None:
             _insert_tenant_and_session(conn, tenant_id=tenant_a, student_user_id=user_a)
             _insert_tenant_and_session(conn, tenant_id=tenant_b, student_user_id=uuid4())
 
-            conn.execute("SET LOCAL app.tenant_id = %s", (str(tenant_a),))
+            set_local_tenant(conn, tenant_a)
             rows = conn.execute(
                 "SELECT tenant_id FROM student_rm.sessions ORDER BY tenant_id",
             ).fetchall()
@@ -76,9 +78,10 @@ def test_real_postgres_skip_locked_claims_each_job_once() -> None:
             pytest.skip("TEST_DATABASE_URL role bypasses RLS; use a non-bypass app role.")
 
         conn1.execute("BEGIN")
-        conn1.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+        set_local_tenant(conn1, tenant_id)
         conn1.execute(
-            "INSERT INTO public.tenants (tenant_id, kind, name) VALUES (%s, 'individual', 'skip locked test')",
+            "INSERT INTO public.tenants (tenant_id, kind, name) "
+            "VALUES (%s, 'individual', 'skip locked test')",
             (tenant_id,),
         )
         conn1.execute(
@@ -91,7 +94,7 @@ def test_real_postgres_skip_locked_claims_each_job_once() -> None:
         assert first_claim is not None
 
         conn2.execute("BEGIN")
-        conn2.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+        set_local_tenant(conn2, tenant_id)
         second_claim = conn2.execute(claim_sql, ("worker-2",)).fetchone()
         assert second_claim is None
     finally:
@@ -103,15 +106,14 @@ def test_real_postgres_skip_locked_claims_each_job_once() -> None:
 
 def _current_role_bypasses_rls(conn) -> bool:
     row = conn.execute(
-        "SELECT rolsuper OR rolbypassrls AS bypasses_rls "
-        "FROM pg_roles WHERE rolname = current_user"
+        "SELECT rolsuper OR rolbypassrls AS bypasses_rls FROM pg_roles WHERE rolname = current_user"
     ).fetchone()
     return bool(row["bypasses_rls"])
 
 
 def _insert_tenant_and_session(conn, *, tenant_id, student_user_id) -> None:
     session_id = uuid4()
-    conn.execute("SET LOCAL app.tenant_id = %s", (str(tenant_id),))
+    set_local_tenant(conn, tenant_id)
     conn.execute(
         "INSERT INTO public.tenants (tenant_id, kind, name) VALUES (%s, 'individual', 'rls test')",
         (tenant_id,),

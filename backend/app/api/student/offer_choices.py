@@ -8,7 +8,6 @@ from fastapi import APIRouter, Request, status
 
 from app.domain.student.offer_choices import OfferChoiceRequest, OfferChoiceResponse
 
-
 router = APIRouter(prefix="/v1/student", tags=["student"])
 
 

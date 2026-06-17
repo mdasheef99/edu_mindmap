@@ -7,7 +7,6 @@ Traceability:
 
 from alembic import op
 
-
 revision = "0003_rls_policy_helper_optimization"
 down_revision = "0002_security_and_performance_remediation"
 branch_labels = None
