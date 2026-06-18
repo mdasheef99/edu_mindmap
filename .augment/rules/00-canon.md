@@ -6,7 +6,7 @@ type: always_apply
 ACTIVE MILESTONE: Phase 2 — Curriculum Ingestion (first milestone after Walking Skeleton).
 Phase 1 is CLOSED (2026-06-18). Do not reopen Phase 1 items. Do not design Phase 3+
 work (Teacher V3, advanced analytics, podcast, checkpoints) unless explicitly opened.
-ACTIVE SDD: docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md (to be created at Phase 2 kickoff).
+ACTIVE SDD: docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md (created 2026-06-18, draft v1.0).
 LIVE TRACKER: docs/planning/worklog-v2.md (append Phase 2 entries until 350-line rotation to worklog-v3.md).
 DEFERRED FROM PHASE 1: physical-device Expo verification; Render deployment — pick up in Phase 2 sprint 1.
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.

@@ -122,6 +122,21 @@ app/
 5. `projections` is the only writer of read-model tables; API routers are read-only on them.
 6. Everything except `domain` may import `tenancy`; `domain` imports nothing.
 
+**Phase 2 boundary note — `chapter_analysis` ingestion + `curriculum` content schema**
+(`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §5–§6): Phase 2 activates the
+`chapter_analysis` module to run P0–P4
+(`docs/chapter-analysis-pipeline-specification.md`). It is **operator/worker-driven, never
+request-driven**, and its outputs are *content*, not student behavior:
+
+- `chapter_analysis` calls models only through `llm_gateway` (rule §4.4) and **must not import**
+  `classification`, `generation`, or `api/*`. These are merge-blocking import-linter contracts added
+  in Phase 2 (`chapter_analysis ⇏ classification`, `chapter_analysis ⇏ generation`,
+  `chapter_analysis ⇏ api/*`), alongside the existing `api/student ⇏ analytic` and
+  `generation ⇏ classification` contracts.
+- P0–P4 outputs persist to a third, content-only schema, `curriculum` (§7.5), which is neither
+  `student_rm` nor `analytic_rm`: it holds no per-student data, so Category Invisibility is not
+  engaged. A single curriculum writer owns these tables; routers read them read-only.
+
 ---
 
 ## 5. Tenancy and the Institutional Model (B2B + B2C)
@@ -412,6 +427,23 @@ the events it was derived from.
   aggregate views and keeps probabilistic signals from being over-read on tiny samples.
 - Teacher individual-student views remain governed by §5.3 scope rules and the
   teacher-support MVP boundary; school admins get aggregates only.
+
+### 7.5 Curriculum content schema (Phase 2)
+
+Distinct from the two read models above, the `curriculum` schema holds **chapter content
+analysis**, not student behavior. It is the persisted output of the `chapter_analysis` P0–P4
+pipeline (`docs/chapter-analysis-pipeline-specification.md` P0–P4) and the spine that real student
+sessions and the Teacher Dashboard V1 render against
+(`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6).
+
+- Tables: `curriculum.chapters` (with `chapter_analysis_id` pin + `segment_index_version`),
+  `curriculum.segments` (P0 segment index), `curriculum.concepts` (merged P1+P2→P3 inventory),
+  `curriculum.concept_edges` (P4 typed edges with deterministic IDs).
+- Every row carries `tenant_id` and version stamps (§2.5, §10); RLS is enabled and routed through
+  `current_app_tenant_id()` (§5.3), matching the 0002/0003 baseline.
+- It contains **no per-student dimensional data**, so Category Invisibility is not engaged; it is
+  readable by `/v1/teacher` (render) and resolvable by `/v1/student` session start for
+  `chapter_id`/`chapter_analysis_id` only. Ships in migration 0004.
 
 ---
 

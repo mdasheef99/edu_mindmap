@@ -99,6 +99,24 @@ Values are not documented here.
 | `SENTRY_DSN_MOBILE` | mobile | error tracking |
 | `SENTRY_DSN_WEB` | teacher web | error tracking |
 
+### 10.1 Phase 2 placeholders — Supabase Auth + curriculum ingestion
+
+Names only; values are never documented here. Auth rows back `backend-architecture.md` §5.4 (JWT →
+backend-resolved tenant/role) and ADR-0015 (`adr-log-02.md`); ingestion rows back
+`chapter-analysis-pipeline-specification.md` P0–P4 and
+`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6. The exact JWT verification mechanism
+(shared HS256 secret vs JWKS asymmetric) is fixed by ADR-0015; both placeholders are listed so
+either choice is ready.
+
+| Variable | Owner | Purpose |
+|---|---|---|
+| `SUPABASE_JWT_SECRET` | backend only | verify Supabase Auth JWTs (HS256 path) |
+| `SUPABASE_JWT_JWKS_URL` | backend only | JWKS endpoint for asymmetric JWT verification (ADR-0015 alternative) |
+| `SUPABASE_AUTH_URL` | backend/mobile/web | Supabase Auth issuer/base URL |
+| `CURRICULUM_SOURCE_DIR` | ingestion operator | path to source chapter PDF/text inputs for P0 |
+| `CHAPTER_ANALYSIS_FIXTURE_DIR` | tests/CI | recorded P1–P4 LLM fixtures keyed by `prompt_version` (CI never calls live LLM) |
+| `CHAPTER_ANALYSIS_OUTPUT_DIR` | ingestion operator | versioned P0–P4 JSON artifacts before/with DB persistence |
+
 ## 11. Change Control
 
 Any config change affecting teacher interpretation, checkpoint triggering, classification, consent, or Category Invisibility requires a worklog entry and, where persistent outputs change, a projection/replay plan.

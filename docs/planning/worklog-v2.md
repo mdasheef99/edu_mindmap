@@ -94,3 +94,46 @@
 - Worklog status updated to reflect Phase 1 closure.
 
 **Gate status**: Phase 1 exit gate **PASSED**. All non-deferred DoD items verified.
+
+---
+
+### 2026-06-18 — Phase 2 kickoff: Curriculum Ingestion SDD + supporting docs initialized
+
+**Phase / milestone**: Phase 2 — Curriculum Ingestion (active milestone per `00-canon.md`)
+
+**Spec sections used**:
+- `docs/planning/development-approach.md` §3 (Phase 0 P0–P4), §5 (M4 auth + M6 teacher render note), §6 (day-one disciplines), §7.1/§7.7 (auth stack + content pipeline tooling), §8 (working method)
+- `docs/architecture/backend-architecture.md` §3 (deployment), §4 (module boundaries + new `chapter_analysis` + `curriculum` contracts), §5.1/§5.3/§5.4 (tenancy, RLS, identity resolution), §6 (event store), §7.5 (curriculum schema), §9 (LLM Gateway), §11 (API surface)
+- `docs/chapter-analysis-pipeline-specification.md` P0–P4 + §5 (verification gate)
+- `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3–§11 (the new active SDD)
+- `docs/planning/testing-strategy.md` §2/§3.1 (L1–L6 matrix + Phase 2 additions)
+- `docs/configuration-reference.md` §10.1 (Phase 2 env placeholders)
+- `docs/architecture/adr-log-02.md` ADR-0015 (Supabase Auth strategy, Proposed)
+
+**Work completed**:
+- Created `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` (draft v1.0): defines Phase 2
+  scope as P0–P4 ingestion, Supabase Auth + tenant resolution, and Teacher Dashboard V1 render.
+  Listed Render deployment and physical-device Expo verification as the first implementation
+  priorities (deferred from Phase 1), with Expo explicitly gated on a mobile curriculum surface
+  existing (SDD §7.4).
+- Updated `docs/architecture/backend-architecture.md`: added §4 Phase 2 boundary note for
+  `chapter_analysis` and new §7.5 `curriculum` content schema.
+- Updated `docs/planning/testing-strategy.md`: added §3.1 Phase 2 test matrix (Auth L3, Ingestion L2
+  determinism/idempotency, plus L1/L4/L5/L6 rows).
+- Updated `docs/configuration-reference.md`: added §10.1 Supabase Auth + ingestion env placeholders
+  (names only, no values).
+- Updated `docs/architecture/adr-log-02.md`: refreshed legacy summary to Phase 2; added ADR-0015
+  (Supabase Auth JWT validation strategy) as Proposed.
+- Updated `.augment/rules/00-canon.md`: active SDD line marked as created (draft v1.0).
+
+**Gate status**: Phase 2 entry gate **OPEN**; no production code yet. First red tests (SDD §9) must be
+written before implementation.
+
+**Deferred / non-deferred items for next session**:
+- Render deployment: **do not defer** — no frontend dependency; should be the first proof item.
+- Physical-device Expo smoke: **may remain deferred** until a mobile curriculum session surface
+  exists (SDD §7.4).
+
+**Next step**:
+- Record ADR-0015 acceptance and start either Render deployment verification or Supabase Auth
+  red-test-first implementation (SDD §3.1 priority order).

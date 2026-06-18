@@ -116,6 +116,26 @@ Owned by existing protocols; this strategy only fixes their cadence:
 | Milestone gate | L6 manual device checklist + the milestone's named gate | Phase-gate-blocking (`development-approach.md` §5) |
 | Stage 1 prompt change | L5 spot-check sheet | Worklog-recorded review |
 
+### 3.1 Phase 2 test matrix — Curriculum Ingestion + Auth
+
+Adds to the layers above for Phase 2
+(`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §8). It introduces **no new layer**; it
+binds Phase 2 guarantees to existing layers, so all rows are merge-blocking on every push.
+
+| Guarantee | Layer | Test focus | Source |
+|---|---|---|---|
+| Ingestion determinism | **L2** | re-run P0–P4 over the same fixtures + recorded LLM responses → byte-identical `curriculum` rows (modulo timestamps) | dev-approach §6.4; SDD §8 L2 |
+| Ingestion idempotency | **L2** | re-ingest same chapter → no duplicate rows; `chapter_analysis_id` + version stamps on every row | SDD §8 L2; backend-arch §7.5 |
+| P0/P3/P4 determinism | L1 | deterministic segment IDs, normalized-label dedup, deterministic typed edge IDs | pipeline-spec P0/P3/P4; SDD §9 |
+| Verification gate | L1 | reject uncited segment refs / malformed pass output | pipeline-spec §5 |
+| Auth JWT → tenant | **L3** | JWT resolves backend tenant/role; mobile-supplied tenant ignored | backend-arch §5.4; SDD §7.3 |
+| Curriculum RLS | **L3** | `curriculum` RLS denies cross-tenant rows through the pooled path | backend-arch §5.3; SDD §7.3 |
+| Curriculum import rules | L3 | `chapter_analysis ⇏ classification`/`generation`/`api` | backend-arch §4; SDD §5 |
+| Teacher render invisibility | L3 | `/v1/teacher/chapters/{id}` payload has no per-student fields | SDD §7.1 |
+| Real-chapter session | L4 | ingest (fixtures) → `POST /v1/student/sessions` against real `chapter_id` → student-safe node | SDD §8 L4 |
+| P1/P2/P4 LLM passes | L5 | fixture-keyed by `prompt_version`; schema/contract checks only, never exact text | §4; SDD §8 L5 |
+| Mobile curriculum smoke | L6 | physical-device Expo smoke once the mobile curriculum surface exists (deferred) | SDD §7.4 |
+
 ---
 
 ## 4. Tooling and Fixtures
