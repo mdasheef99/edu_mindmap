@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import jwt
 from fastapi.testclient import TestClient
 
 FORBIDDEN_ANALYTIC_FIELD_FRAGMENTS = (
@@ -19,26 +20,78 @@ FORBIDDEN_ANALYTIC_FIELD_FRAGMENTS = (
 )
 
 
-def _build_client_and_runtime():
+def _build_client_and_runtime(jwt_secret: str = "test-secret"):
     from app.main import SessionRuntime, create_app
 
+    tenant_id = uuid4()
+    student_user_id = uuid4()
     runtime = SessionRuntime.for_testing(
-        tenant_id=uuid4(),
-        student_user_id=uuid4(),
+        tenant_id=tenant_id,
+        student_user_id=student_user_id,
+        jwt_secret=jwt_secret,
     )
-    return TestClient(create_app(runtime=runtime)), runtime
+    runtime.memberships.add_membership(
+        user_id=student_user_id,
+        tenant_id=tenant_id,
+        role="student",
+    )
+    client = TestClient(create_app(runtime=runtime))
+    token = jwt.encode({"sub": str(student_user_id)}, jwt_secret, algorithm="HS256")
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client, runtime
 
 
-def _start_session(client: TestClient) -> str:
+def _seed_curriculum(runtime):
+    from app.projections.curriculum import CurriculumIngestInput, build_curriculum_rows
+
+    chapter_id = uuid4()
+    chapter_analysis_id = uuid4()
+    concept_id = uuid4()
+    runtime.curriculum.ingest(
+        build_curriculum_rows(
+            CurriculumIngestInput(
+                tenant_id=runtime.tenant_id,
+                exam_id=uuid4(),
+                subject_id=uuid4(),
+                chapter_id=chapter_id,
+                title="Electricity",
+                chapter_analysis_id=chapter_analysis_id,
+                segment_index_version="p0-v1",
+                pipeline_version="p0-p4-v1",
+                prompt_version="fixtures-v1",
+                model_id="fixture-model",
+                pages=["Electric current flows through a closed circuit."],
+                named_concepts=[
+                    {
+                        "concept_id": str(concept_id),
+                        "label": "Electric current",
+                        "definition": "Flow of charge in a circuit.",
+                        "category_tag": "definition",
+                        "passage_refs": {
+                            "definitional": [f"{chapter_id}_para_001"],
+                            "explanatory": [],
+                            "application": [],
+                        },
+                    }
+                ],
+                embedded_concepts=[],
+                edges=[],
+            )
+        )
+    )
+    chapter_row = next(iter(runtime.curriculum.chapters.values()))
+    return {
+        "exam_id": str(chapter_row["exam_id"]),
+        "subject_id": str(chapter_row["subject_id"]),
+        "chapter_id": str(chapter_id),
+        "concept_entry_id": str(concept_id),
+    }
+
+
+def _start_session(client: TestClient, runtime) -> str:
     response = client.post(
         "/v1/student/sessions",
-        json={
-            "exam_id": str(uuid4()),
-            "subject_id": str(uuid4()),
-            "chapter_id": str(uuid4()),
-            "concept_entry_id": str(uuid4()),
-            "chapter_analysis_id": str(uuid4()),
-        },
+        json=_seed_curriculum(runtime),
     )
     assert response.status_code == 201
     return response.json()["session_id"]
@@ -60,7 +113,7 @@ def test_classify_worker_claims_job_with_skip_locked() -> None:
     from app.workers.classify import ClassifyWorker
 
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
 
     response = client.post(
@@ -85,7 +138,7 @@ def test_classify_worker_appends_question_classified() -> None:
     from app.workers.classify import ClassifyWorker
 
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
     runtime.grant_behavioral_analytics_consent()
 
@@ -118,7 +171,7 @@ def test_question_classified_not_visible_to_student_api() -> None:
     from app.workers.classify import ClassifyWorker
 
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
     runtime.grant_behavioral_analytics_consent()
 
@@ -145,7 +198,7 @@ def test_question_classified_row_carries_version_stamps() -> None:
     from app.workers.classify import ClassifyWorker
 
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
     runtime.grant_behavioral_analytics_consent()
 
@@ -176,7 +229,7 @@ def test_classify_worker_skips_analytic_projection_without_consent() -> None:
     from app.workers.classify import ClassifyWorker
 
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
 
     response = client.post(

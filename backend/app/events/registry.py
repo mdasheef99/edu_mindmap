@@ -72,6 +72,14 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
             }
         ),
     ),
+    ("session_resumed", 1): EventTypeSpec(
+        event_type="session_resumed",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id"}),
+        required_payload_fields=frozenset({"session_id", "student_user_id"}),
+    ),
     ("node_created", 1): EventTypeSpec(
         event_type="node_created",
         event_version=1,

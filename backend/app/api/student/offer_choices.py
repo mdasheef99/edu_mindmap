@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Depends, Request, status
 
+from app.domain.auth import AuthContext
 from app.domain.student.offer_choices import OfferChoiceRequest, OfferChoiceResponse
+from app.tenancy.auth import get_auth_context
 
 router = APIRouter(prefix="/v1/student", tags=["student"])
 
@@ -20,6 +22,7 @@ def record_offer_choice(
     offer_set_id: UUID,
     payload: OfferChoiceRequest,
     request: Request,
+    auth: AuthContext = Depends(get_auth_context),
 ) -> OfferChoiceResponse:
     runtime = request.app.state.session_runtime
-    return runtime.record_offer_choice(offer_set_id=offer_set_id, payload=payload)
+    return runtime.record_offer_choice(offer_set_id=offer_set_id, payload=payload, auth=auth)

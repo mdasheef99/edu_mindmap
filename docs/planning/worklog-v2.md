@@ -7,8 +7,8 @@
 
 # Development Worklog — 02
 
-**Document Version**: 1.0  
-**Status**: Active continuation  
+**Document Version**: 1.0
+**Status**: Active continuation
 **Previous File**: `docs/planning/worklog.md`
 
 ---
@@ -137,3 +137,205 @@ written before implementation.
 **Next step**:
 - Record ADR-0015 acceptance and start either Render deployment verification or Supabase Auth
   red-test-first implementation (SDD §3.1 priority order).
+
+---
+
+### 2026-06-18 — Phase 2 sprint 1: Supabase Auth + tenant resolution implemented (priority 2)
+
+**Phase / milestone**: Phase 2 — Curriculum Ingestion (active milestone per `00-canon.md`)
+
+**Spec sections used**:
+- `docs/planning/development-approach.md` §7.1 (Auth = Supabase Auth)
+- `docs/architecture/backend-architecture.md` §5.4 (identity + tenant resolution), §11 (per-router auth), §12.1 (consent gate)
+- `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3.1 (priority order), §9 (auth red tests), §7.3 (tenant resolution)
+- `docs/architecture/adr-log-02.md` ADR-0015 (accepted — HS256 mechanism)
+
+**Work completed**:
+- **Deferred Render deployment verification** to later in Phase 2: it is a Phase 1 closure item with no
+  frontend dependency and is not a technical blocker for Supabase Auth, `chapter_analysis`, or curriculum
+  schema work (all can be tested locally via `supabase start` or testcontainers). SDD §10 DoD still
+  requires it before Phase 2 formal closure.
+- **Accepted ADR-0015**: selected HS256 shared secret (`SUPABASE_JWT_SECRET`) as the JWT validation
+  mechanism; JWKS placeholder retained in `configuration-reference.md` for future rotation without
+  schema change. Updated `adr-log-02.md` status to **Accepted** and recorded consequences.
+- Added `pyjwt` to `requirements.txt`.
+- Added `AuthContext` dataclass in `backend/app/domain/auth.py` (pure, no imports below, domain-only).
+- Added `InMemoryMembershipStore` test fixture to `backend/app/main.py`.
+- Extended `SessionRuntime` with `jwt_secret`, `memberships`, `_seen_users`, and `resolve_auth()`.
+- Implemented `get_auth_context` FastAPI dependency in `backend/app/tenancy/auth.py`:
+  - Extracts `Authorization: Bearer <token>` header.
+  - Verifies JWT via HS256 using `pyjwt`.
+  - Resolves `user_id → tenant_id`/`role` from `memberships` server-side (mobile-supplied `tenant_id` ignored).
+- Updated `app.api.student.sessions` and `app.api.student.offer_choices` routers to require
+  `auth=Depends(get_auth_context)`.
+- Updated `SessionRuntime.start_session()` to accept optional `auth` and:
+  - Use resolved `auth.tenant_id`/`auth.user_id` instead of hardcoded runtime defaults.
+  - Append `consent_recorded` event on first sign-in (per ADR-0014 / backend-architecture.md §12.1).
+- Updated `SessionRuntime.record_offer_choice()` to accept optional `auth` and use resolved identity.
+- Updated all 4 existing integration test files to send authenticated JWT headers via updated
+  `_build_client_and_runtime` helpers.
+- Added 4 new auth tests in `tests/integration/test_auth.py` (all passing):
+  - `test_missing_auth_returns_401`
+  - `test_jwt_resolves_backend_tenant_and_role`
+  - `test_authenticated_request_ignores_mobile_supplied_tenant_id`
+  - `test_first_signin_appends_consent_recorded`
+
+**Validation run**:
+- `python -m ruff format --check backend tests` → passed.
+- `python -m ruff check backend tests` → passed.
+- `python -m mypy backend/app` → passed.
+- `python -m pytest tests -q` → 39 passed, 2 skipped (same baseline as before).
+- Manual import-linter contract verification via `grimp` → no forbidden cross-boundary imports.
+
+**Gate status**: Phase 2 priority 2 (Supabase Auth) **COMPLETE**. Priority 3 (`chapter_analysis` P0–P4 +
+migration 0004) is next unblocked item.
+
+**Next step**:
+- Write SDD §9 red tests for `chapter_analysis` P0–P4 and implement migration 0004 curriculum schema.
+
+---
+
+### 2026-06-18 — Phase 2 sprint 1: priority 3 first slice green (`chapter_analysis` + migration 0004)
+
+**Phase / milestone**: Phase 2 — Curriculum Ingestion (priority 3 in progress)
+
+**Spec sections used**:
+- `docs/planning/development-approach.md` §3.1 (Phase 0 P0–P4), §7.7 (content pipeline), §8 (red/green discipline)
+- `docs/architecture/backend-architecture.md` §4 (module boundaries), §5.3 (tenant isolation), §7.5 (curriculum schema)
+- `docs/chapter-analysis-pipeline-specification.md` P0, P3, P4, §5 (verification gate)
+- `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3.1, §5, §6, §9, §10
+
+**Work completed**:
+- Added the new `backend/app/chapter_analysis/` package with a first deterministic slice:
+  - `segments.py` → P0 text segmentation helper with stable segment IDs and required index fields.
+  - `merge.py` → P3 merge helper that keeps the named/P1 label and unions passage refs.
+  - `edges.py` → P4 deterministic edge-ID assignment with directional vs non-directional ordering.
+  - `verification.py` → verification-gate helper rejecting citations not present in the P0 segment index.
+- Added migration `backend/migrations/versions/0004_curriculum_schema.py`:
+  - creates `curriculum` schema,
+  - creates `curriculum.chapters`, `curriculum.segments`, `curriculum.concepts`, `curriculum.concept_edges`,
+  - enables RLS and tenant-isolation policies via `current_app_tenant_id()`.
+- Added new Phase 2 tests:
+  - `tests/chapter_analysis/test_pipeline.py` (P0/P3/P4/verification red→green slice),
+  - `tests/database/test_curriculum_schema_migration.py` (static `0004` schema contract),
+  - `tests/architecture/test_chapter_analysis_import_linter_contracts.py` (new `chapter_analysis` boundaries).
+- Updated `pyproject.toml` with the new merge-blocking import-linter contracts:
+  - `chapter_analysis ⇏ generation|classification`
+  - `chapter_analysis ⇏ api`
+- Updated the pre-existing import-linter architecture tests so the temporary package tree includes
+  `app.chapter_analysis` now that it is a configured source module.
+
+**Validation run**:
+- `python -m pytest tests/chapter_analysis/test_pipeline.py tests/database/test_curriculum_schema_migration.py tests/architecture/test_chapter_analysis_import_linter_contracts.py -q` → 9 passed.
+- `python -m ruff format --check backend tests` → passed.
+- `python -m ruff check backend tests` → passed.
+- `python -m mypy backend/app` → passed.
+- `python -m pytest tests -q` → 48 passed, 2 skipped.
+
+**Gate status**:
+- Phase 2 priority 3 is **IN PROGRESS**.
+- The first infrastructure slice is green: deterministic helpers, `0004` schema contract, and import boundaries.
+- Remaining priority 3 proof items still open: P1/P2 LLM-backed extraction, curriculum ingest idempotency + byte-identical rebuild tests, real PDF extraction via the P0 seed, and persistence wiring from pipeline output into the new schema.
+
+**Next step**:
+- Add the next red tests for curriculum ingest determinism/idempotency + row stamping, then implement the in-memory/persistence ingestion builder. If we switch from text-only test inputs to real PDF parsing in code, install `pypdf` via package manager with explicit approval first.
+
+---
+
+### 2026-06-18 — Phase 2 sprint 1: priority 3 ingest determinism/idempotency slice green
+
+**Phase / milestone**: Phase 2 — Curriculum Ingestion (priority 3 in progress)
+
+**Spec sections used**:
+- `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §8–§10 (L2 ingest determinism,
+  idempotency, row stamps; first red tests T6–T8)
+- `docs/architecture/backend-architecture.md` §7.5 (content-only `curriculum` schema) and §10
+  (version stamping)
+- `docs/planning/development-approach.md` §8 (small red→green discipline)
+- ADR-0015 (`docs/architecture/adr-log-02.md`) for auth/membership tenant-resolution behavior
+
+**Work completed**:
+- Added red tests in `tests/projections/test_curriculum_ingest.py` for:
+  - `test_curriculum_ingest_is_idempotent_on_reingest`,
+  - `test_curriculum_ingest_rebuild_is_byte_identical`,
+  - `test_curriculum_rows_carry_tenant_and_chapter_analysis_id`.
+- Implemented `backend/app/projections/curriculum.py` as the first curriculum ingest builder:
+  - builds `curriculum.chapters`, `segments`, `concepts`, and `concept_edges` row dictionaries,
+  - composes existing P0/P3/P4 helpers,
+  - verifies concept/edge segment citations through the verification gate,
+  - upserts into an in-memory curriculum store for idempotency tests,
+  - serializes deterministic snapshots for byte-identical rebuild tests.
+- Addressed review issues:
+  - renamed misleading `InMemoryMembershipStore.get_active()` to `get_memberships_for_user()`,
+  - split no-membership from invalid-token auth errors (`403 No active membership for authenticated user`),
+  - filtered `session_started` assertions by `event_type` in auth/offer-choice tests,
+  - annotated student router `auth` dependencies with `AuthContext`.
+- Cleaned generated `.pyc` files after validation; final `.pyc` count is 0.
+
+**Validation run**:
+- Red baseline observed first: new ingest tests failed on missing `app.projections.curriculum`; no-membership
+  auth test failed on old `401 Invalid token` behavior.
+- `python -m pytest tests/projections/test_curriculum_ingest.py -q` → 3 passed.
+- `python -m pytest tests/integration/test_auth.py tests/integration/test_offer_choice.py -q` → 12 passed.
+- `python -m ruff format --check backend tests` → passed.
+- `python -m ruff check backend tests` → passed.
+- `python -m mypy backend/app` → passed.
+- `python -m pytest tests -q` → 52 passed, 2 skipped.
+
+**Gate status**:
+- Priority 3 is still **IN PROGRESS**.
+- The L2 ingest determinism/idempotency/row-stamping slice is green for text-fixture P0–P4 outputs.
+- Remaining priority 3 items: real PDF-backed P0 extraction (`pypdf` approval required before dependency
+  install), P1/P2 LLM-backed fixture contracts through `llm_gateway`, persistence adapter against real
+  Postgres/Supabase, real-chapter session wiring, and Teacher V1 render endpoint.
+
+---
+
+### 2026-06-18 — Phase 2 sprint 1: real-chapter session start slice green
+
+**Phase / milestone**: Phase 2 — Curriculum Ingestion (priority 4 slice landed while priority 3 remains open)
+
+**Spec sections used**:
+- `docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3.1 (priority order), §4 (start real-chapter session),
+  §9 T14, §10 (real chapter_id / chapter_analysis_id session start)
+- `docs/architecture/backend-architecture.md` §5.4 (backend-resolved tenant context), §7.5 (`curriculum` as the
+  content spine), §11 (student router responsibility)
+- `docs/planning/development-approach.md` §5 (M4 curriculum entry + auth sequencing), §8 (small red→green slices)
+- `docs/api/student-api-spec.md` §2 and §5 (student sessions are chapter-scoped and pinned to one
+  `chapter_analysis_id`)
+
+**Work completed**:
+- Added the next red integration proof in `tests/integration/test_session_start.py`:
+  - `test_session_start_resolves_real_chapter_from_curriculum`.
+- Updated the student session contract so the backend, not the client, pins `chapter_analysis_id`:
+  - `SessionStartRequest.chapter_analysis_id` is now optional for request validation,
+  - `SessionRuntime.start_session()` resolves the requested chapter from the in-memory `curriculum` store,
+  - the resolved chapter row supplies the authoritative `chapter_analysis_id` stamped onto `session_started`
+    and `student_rm.sessions`.
+- Added `InMemoryCurriculumStore.find_chapter()` and runtime wiring for curriculum-backed launch lookup.
+- Added a student-safe `ChapterLaunchNotFoundError` → `404 Chapter not found in curriculum` API mapping.
+- Updated the affected integration helpers (`test_session_start`, `test_auth`, `test_offer_choice`,
+  `test_classify_worker`, `test_tenant_isolation`) to seed launchable `curriculum` chapters instead of posting
+  random fixture `chapter_id` / `chapter_analysis_id` pairs.
+- Cleaned generated `.pyc` files after validation; final `.pyc` count is 0.
+
+**Validation run**:
+- Red baseline observed first: `test_session_start_resolves_real_chapter_from_curriculum` failed with `422`
+  because `chapter_analysis_id` was still required in the request body.
+- `python -m pytest tests/integration/test_session_start.py tests/integration/test_auth.py tests/integration/test_offer_choice.py tests/integration/test_classify_worker.py tests/integration/test_tenant_isolation.py -q` → 25 passed.
+- `python -m ruff format --check backend tests` → passed.
+- `python -m ruff check backend tests` → passed.
+- `python -m mypy backend/app` → passed.
+- `python -m pytest tests -q` → 53 passed, 2 skipped.
+
+**Gate status**:
+- The first real-chapter session start slice is green against the in-memory `curriculum` backing.
+- Priority 3 remains **IN PROGRESS** because the curriculum persistence adapter, real PDF-backed P0 extraction,
+  and P1/P2 LLM-backed fixture contracts are still open.
+- Teacher Dashboard V1 render endpoint remains the next higher-priority user-facing slice after the curriculum
+  backing is no longer in-memory.
+
+---
+
+Rotation note: `worklog-v2.md` is at the Phase 2 line cap threshold. Continue Phase 2 entries in
+`docs/planning/worklog-v3.md`.

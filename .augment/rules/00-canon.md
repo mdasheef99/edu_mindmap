@@ -3,12 +3,13 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 2 — Curriculum Ingestion (first milestone after Walking Skeleton).
-Phase 1 is CLOSED (2026-06-18). Do not reopen Phase 1 items. Do not design Phase 3+
-work (Teacher V3, advanced analytics, podcast, checkpoints) unless explicitly opened.
-ACTIVE SDD: docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md (created 2026-06-18, draft v1.0).
-LIVE TRACKER: docs/planning/worklog-v2.md (append Phase 2 entries until 350-line rotation to worklog-v3.md).
-DEFERRED FROM PHASE 1: physical-device Expo verification; Render deployment — pick up in Phase 2 sprint 1.
+ACTIVE MILESTONE: Phase 3 — Core Loop Deepening (M1: offer-set logging completion,
+session persistence/resume, edge-`+` branching, deletion cascade with confirmation).
+Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
+explicitly requested; Render backend+worker live verification and physical-device Expo
+smoke remain deferred operational gates to verify in Phase 3 sprint 1.
+ACTIVE SDD: docs/planning/sdd/phase-3-session-resume-sdd.md (created 2026-06-18, draft v1.0).
+LIVE TRACKER: docs/planning/worklog-v4.md (worklog-v3.md rotated after exceeding 350 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 

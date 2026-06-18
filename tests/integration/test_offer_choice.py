@@ -1,16 +1,75 @@
 from uuid import uuid4
 
+import jwt
 from fastapi.testclient import TestClient
 
 
-def _build_client_and_runtime():
+def _build_client_and_runtime(jwt_secret: str = "test-secret"):
     from app.main import SessionRuntime, create_app
 
+    tenant_id = uuid4()
+    student_user_id = uuid4()
     runtime = SessionRuntime.for_testing(
-        tenant_id=uuid4(),
-        student_user_id=uuid4(),
+        tenant_id=tenant_id,
+        student_user_id=student_user_id,
+        jwt_secret=jwt_secret,
     )
-    return TestClient(create_app(runtime=runtime)), runtime
+    runtime.memberships.add_membership(
+        user_id=student_user_id,
+        tenant_id=tenant_id,
+        role="student",
+    )
+    client = TestClient(create_app(runtime=runtime))
+    token = jwt.encode({"sub": str(student_user_id)}, jwt_secret, algorithm="HS256")
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client, runtime
+
+
+def _seed_curriculum(runtime):
+    from app.projections.curriculum import CurriculumIngestInput, build_curriculum_rows
+
+    chapter_id = uuid4()
+    chapter_analysis_id = uuid4()
+    concept_id = uuid4()
+    runtime.curriculum.ingest(
+        build_curriculum_rows(
+            CurriculumIngestInput(
+                tenant_id=runtime.tenant_id,
+                exam_id=uuid4(),
+                subject_id=uuid4(),
+                chapter_id=chapter_id,
+                title="Electricity",
+                chapter_analysis_id=chapter_analysis_id,
+                segment_index_version="p0-v1",
+                pipeline_version="p0-p4-v1",
+                prompt_version="fixtures-v1",
+                model_id="fixture-model",
+                pages=["Electric current flows through a closed circuit."],
+                named_concepts=[
+                    {
+                        "concept_id": str(concept_id),
+                        "label": "Electric current",
+                        "definition": "Flow of charge in a circuit.",
+                        "category_tag": "definition",
+                        "passage_refs": {
+                            "definitional": [f"{chapter_id}_para_001"],
+                            "explanatory": [],
+                            "application": [],
+                        },
+                    }
+                ],
+                embedded_concepts=[],
+                edges=[],
+            )
+        )
+    )
+    chapter_row = next(iter(runtime.curriculum.chapters.values()))
+    return {
+        "exam_id": str(chapter_row["exam_id"]),
+        "subject_id": str(chapter_row["subject_id"]),
+        "chapter_id": str(chapter_id),
+        "concept_entry_id": str(concept_id),
+    }
 
 
 class FailingJobQueue:
@@ -40,19 +99,19 @@ def _dismissed_choice_body() -> dict[str, str]:
     }
 
 
-def _start_session(client: TestClient) -> str:
+def _start_session(client: TestClient, runtime) -> str:
     response = client.post(
         "/v1/student/sessions",
-        json={
-            "exam_id": str(uuid4()),
-            "subject_id": str(uuid4()),
-            "chapter_id": str(uuid4()),
-            "concept_entry_id": str(uuid4()),
-            "chapter_analysis_id": str(uuid4()),
-        },
+        json=_seed_curriculum(runtime),
     )
     assert response.status_code == 201
     return response.json()["session_id"]
+
+
+def _single_event_of_type(runtime, event_type: str):
+    events = [event for event in runtime.event_store.events if event["event_type"] == event_type]
+    assert len(events) == 1
+    return events[0]
 
 
 def test_offer_choice_selected_appends_offer_set_choice() -> None:
@@ -67,8 +126,9 @@ def test_offer_choice_selected_appends_offer_set_choice() -> None:
     )
 
     assert response.status_code == 202
-    assert len(runtime.event_store.events) == 1
-    event = runtime.event_store.events[0]
+    choice_events = [e for e in runtime.event_store.events if e["event_type"] == "offer_set_choice"]
+    assert len(choice_events) == 1
+    event = choice_events[0]
 
     assert event["event_type"] == "offer_set_choice"
     assert event["producer"] == "server"
@@ -100,7 +160,9 @@ def test_offer_choice_selected_enqueues_classify_job() -> None:
     assert response.status_code == 202
     assert len(runtime.job_queue.jobs) == 1
     job = runtime.job_queue.jobs[0]
-    event = runtime.event_store.events[0]
+    choice_events = [e for e in runtime.event_store.events if e["event_type"] == "offer_set_choice"]
+    assert len(choice_events) == 1
+    event = choice_events[0]
 
     assert job["job_type"] == "classify"
     assert job["status"] == "queued"
@@ -127,16 +189,16 @@ def test_offer_choice_dismissed_does_not_enqueue_classify() -> None:
     )
 
     assert response.status_code == 202
-    assert len(runtime.event_store.events) == 1
-    assert runtime.event_store.events[0]["event_type"] == "offer_set_choice"
-    assert runtime.event_store.events[0]["payload"]["outcome"] == "dismissed"
+    choice_events = [e for e in runtime.event_store.events if e["event_type"] == "offer_set_choice"]
+    assert len(choice_events) == 1
+    assert choice_events[0]["payload"]["outcome"] == "dismissed"
     assert runtime.job_queue.jobs == []
 
 
 def test_offer_choice_response_returns_with_classify_still_queued() -> None:
     """T17: student response must not wait for classify to run."""
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
     request_body = _selected_choice_body() | {"session_id": session_id}
 
@@ -183,7 +245,7 @@ def test_offer_choice_append_and_classify_enqueue_are_atomic() -> None:
 def test_duplicate_offer_choice_does_not_double_enqueue_classify() -> None:
     """T23: duplicate selected-choice retry must not double-enqueue classify."""
     client, runtime = _build_client_and_runtime()
-    session_id = _start_session(client)
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
     request_body = _selected_choice_body() | {"session_id": session_id}
 
@@ -203,17 +265,10 @@ def test_mobile_supplied_tenant_id_is_ignored() -> None:
 
     response = client.post(
         "/v1/student/sessions",
-        json={
-            "tenant_id": str(attacker_tenant_id),
-            "exam_id": str(uuid4()),
-            "subject_id": str(uuid4()),
-            "chapter_id": str(uuid4()),
-            "concept_entry_id": str(uuid4()),
-            "chapter_analysis_id": str(uuid4()),
-        },
+        json=_seed_curriculum(runtime) | {"tenant_id": str(attacker_tenant_id)},
     )
 
     assert response.status_code == 201
-    event = runtime.event_store.events[-1]
+    event = _single_event_of_type(runtime, "session_started")
     assert event["tenant_id"] == runtime.tenant_id
     assert event["tenant_id"] != attacker_tenant_id

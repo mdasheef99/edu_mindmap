@@ -113,9 +113,16 @@ either choice is ready.
 | `SUPABASE_JWT_SECRET` | backend only | verify Supabase Auth JWTs (HS256 path) |
 | `SUPABASE_JWT_JWKS_URL` | backend only | JWKS endpoint for asymmetric JWT verification (ADR-0015 alternative) |
 | `SUPABASE_AUTH_URL` | backend/mobile/web | Supabase Auth issuer/base URL |
+| `TEST_DATABASE_URL` | tests/CI/local | non-bypass app-role Postgres URL for opt-in live RLS and curriculum ingest tests; local pytest loads this key from `.env` if it is not exported |
 | `CURRICULUM_SOURCE_DIR` | ingestion operator | path to source chapter PDF/text inputs for P0 |
 | `CHAPTER_ANALYSIS_FIXTURE_DIR` | tests/CI | recorded P1–P4 LLM fixtures keyed by `prompt_version` (CI never calls live LLM) |
 | `CHAPTER_ANALYSIS_OUTPUT_DIR` | ingestion operator | versioned P0–P4 JSON artifacts before/with DB persistence |
+
+Live Phase 2 curriculum ingest tests also require the target `TEST_DATABASE_URL` database to have the
+Phase 2 curriculum migrations applied (`backend/migrations/versions/0004_curriculum_schema.py` and
+`backend/migrations/versions/0005_curriculum_privileges_and_indexes.py`). Tests must skip rather than
+fall back to `DATABASE_URL` when `TEST_DATABASE_URL` is absent, points at a bypass-RLS role, or lacks the
+required schema/access grants.
 
 ## 11. Change Control
 

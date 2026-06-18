@@ -36,6 +36,7 @@ This document extends `docs/api/feature-endpoint-traceability.md` into the datab
 | Add PYQ to board | `POST /v1/student/sessions/{session_id}/pyq/{question_id}/nodes` | `node_created` | `student_rm` | optional `project` | `events`, `student_rm.nodes`, `pyq_questions` |
 | Teacher classes | `GET /v1/teacher/classes` | none | operational | none | `classes`, `teaching_assignments`, `memberships` |
 | Teacher roster overview | `GET /v1/teacher/classes/{class_id}/students` | none | `analytic_rm` + operational | none | `class_memberships`, `consent_records`, `analytic_rm.student_engagement_profiles` |
+| Teacher chapter graph render | `GET /v1/teacher/chapters/{chapter_id}` | none | `curriculum` | none | `curriculum.chapters`, `curriculum.segments`, `curriculum.concepts`, `curriculum.concept_edges` |
 | Chapter landscape | `GET /v1/teacher/chapters/{chapter_id}/landscape` | `teacher_view_accessed` | `analytic_rm` | none | `events`, chapter-analysis tables, `analytic_rm.teacher_support_views` |
 | Student chapter review | teacher review endpoint | `teacher_view_accessed` | `analytic_rm` | none | `events`, `analytic_rm.teacher_support_views`, `analytic_rm.coverage_by_concept` |
 | Class aggregate | teacher aggregate endpoint | `teacher_view_accessed` | `analytic_rm` | `project` | `events`, `analytic_rm.class_aggregates` |

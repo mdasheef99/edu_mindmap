@@ -1,9 +1,14 @@
 # Phase 2 Curriculum Ingestion — Software Design Document (SDD)
 
-**Document Version**: 1.0 (draft — kickoff)
-**Status**: Active — Phase 2 in flight (the only increment open)
+**Document Version**: 1.1 (active checkpoint)
+**Status**: Active — Phase 2 in flight (the only increment open; integration-risk half remains)
 **Phase / milestone**: Phase 2 — Curriculum Ingestion (`development-approach.md` §3 + §5 M4/M6 note)
-**Related Documents**: `docs/planning/sdd/phase-1-walking-skeleton-sdd.md` (closed predecessor), `docs/planning/worklog-v2.md` (active live tracker), `docs/planning/sdd-template.md`, `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/architecture/adr-log-02.md`, `docs/chapter-analysis-pipeline-specification.md`, `docs/planning/testing-strategy.md`, `docs/configuration-reference.md`, `docs/database/read-models-schema.md`
+**Related Documents**: `docs/planning/sdd/phase-1-walking-skeleton-sdd.md` (closed predecessor),
+`docs/planning/worklog-v3.md` (active live tracker; `worklog-v2.md` is rotated),
+`docs/planning/sdd-template.md`, `docs/planning/development-approach.md`,
+`docs/architecture/backend-architecture.md`, `docs/architecture/adr-log-02.md`,
+`docs/chapter-analysis-pipeline-specification.md`, `docs/planning/testing-strategy.md`,
+`docs/configuration-reference.md`, `docs/database/read-models-schema.md`
 
 ---
 
@@ -14,7 +19,7 @@
 | Increment name | Phase 2 — Curriculum Ingestion (real chapter spine + auth + teacher render) |
 | Phase / milestone | Phase 2 (first milestone after the Walking Skeleton) |
 | Owner | (developer) |
-| Status | Active — kickoff; no production code until §9 red tests are written first |
+| Status | Active — checkpoint 2026-06-18; continue remaining work red-test-first |
 
 Goal: take the Phase 0 P0–P4 pipeline (`development-approach.md` §3.1) from review-by-eye scripts
 into the `chapter_analysis` module (`backend-architecture.md` §4), land one real NCERT chapter's
@@ -31,6 +36,32 @@ student data — it renders chapter analysis, so it can be built any time after 
 requirement is originated; each scope item below cites its owning section. Canvas maturation (M3),
 phrase selection (M2), checkpoints (M5), and teacher V3 panels (M7) remain out of scope.
 
+### 1.2 Current checkpoint and handoff status (2026-06-18)
+
+Completed and green, per `docs/planning/worklog-v2.md`, `docs/planning/worklog-v3.md`, and
+active continuation `docs/planning/worklog-v4.md`:
+
+- ADR-0015 accepted for Supabase Auth JWT strategy; `/v1/student` auth/tenant resolution and first
+  sign-in consent event tests are green.
+- `chapter_analysis` P0 real PDF extraction, P1/P2/P4 fixture-backed gateway contracts, P3/P4
+  deterministic helper tests, and import-linter contracts are green.
+- In-memory curriculum ingest builder is green for L2 idempotency, byte-identical rebuild, and row
+  stamping over text/recorded-fixture inputs.
+- Real-chapter student session start is green against `curriculum`: the backend resolves the pinned
+  `chapter_analysis_id` server-side instead of trusting a client-supplied value.
+- `PostgresCurriculumStore` adapter contract is green for tenant-scoped transaction-local upserts
+  into `curriculum.*` and `find_chapter()` launch lookup.
+- Curriculum migrations `0004_curriculum_schema` and `0005_curriculum_privileges_and_indexes` are
+  applied on the active Supabase project; the non-bypass live Electricity ingest proof is green and
+  Supabase security advisor is clear.
+- Teacher Dashboard V1 `GET /v1/teacher/chapters/{chapter_id}` renders the ingested curriculum graph
+  with no per-student fields; teacher-role authorization and forbidden-field tests are green.
+
+Explicitly re-deferred by current Phase 2 decision (recorded in `worklog-v4.md`):
+
+- Render backend+worker live verification,
+- physical-device Expo smoke.
+
 ## 2. Source-of-Truth References (mandatory)
 
 - `development-approach.md` §3 (Phase 0 P0–P4 work items + gate), §5 (M4 curriculum entry + auth;
@@ -40,7 +71,7 @@ phrase selection (M2), checkpoints (M5), and teacher V3 panels (M7) remain out o
   §5.1/§5.3/§5.4 (tenancy entity model, RLS, identity + tenant resolution), §6 (event store +
   registry), §7 (read models), §9 (LLM Gateway), §11 (API surface — `/v1/student`, `/v1/teacher`)
 - `adr-log.md` ADR-0001/0002/0003/0004 (carried invariants); `adr-log-02.md` ADR-0015 (Supabase
-  Auth JWT strategy — to be accepted in this phase)
+  Auth JWT strategy — accepted during this phase)
 - `chapter-analysis-pipeline-specification.md` P0 (segmentation/ingestion), P1 (named concepts),
   P2 (embedded concepts), P3 (merge/dedup), P4 (typed relationship graph), §5 (verification gate)
 - `read-models-schema.md` §4 (`student_rm.sessions` curriculum context columns:
@@ -85,13 +116,16 @@ phrase selection (M2), checkpoints (M5), and teacher V3 panels (M7) remain out o
 
 ### 3.1 Implementation priority order
 
-1. **Render deployment verification** (deferred Phase 1; no frontend dependency).
-2. **Supabase Auth + tenant resolution** on existing `/v1/student` (unblocks real sessions).
-3. **`chapter_analysis` P0–P4 + migration 0004 `curriculum` schema** (the spine).
-4. **Real-chapter student session** wiring (replaces fixtures).
-5. **Teacher Dashboard V1 render endpoint**.
+1. **Render deployment verification** (deferred Phase 1; no frontend dependency) — explicitly
+   re-deferred to the next deployment-verification slice by current Phase 2 decision.
+2. **Supabase Auth + tenant resolution** on existing `/v1/student` (unblocks real sessions) — green.
+3. **`chapter_analysis` P0–P4 + `curriculum` schema spine** — green for the current fixture-backed
+   ingest path, including real PDF-backed P0, fixture-backed P1/P2/P4 via `llm_gateway`, and live
+   Postgres/Supabase ingest under the non-bypass role.
+4. **Real-chapter student session** wiring (replaces fixtures) — green against current curriculum backing.
+5. **Teacher Dashboard V1 render endpoint** — green for render-only curriculum graph payload.
 6. **Physical-device Expo smoke** (deferred Phase 1; gated on a mobile curriculum surface — see
-   §7.4 and the deferral note in the worklog).
+   §7.4) — explicitly re-deferred by current Phase 2 decision.
 
 ## 4. Traceability Row(s)
 
@@ -171,10 +205,12 @@ Tests: L3 JWT→tenant resolution contract; L3 RLS denies cross-tenant `curricul
 pool; L3 `test_mobile_supplied_tenant_id_is_ignored` extended to authenticated requests.
 
 ### 7.4 Deferred-item gating
-Render deployment has no frontend dependency (priority 1). Physical-device Expo smoke
-(`development-approach.md` §4.2) requires a mobile surface that renders a real chapter; it is gated
-on priority 4 (real-chapter session) existing and may be deferred until that mobile surface is
-built — recorded explicitly in `worklog-v2.md`.
+Render deployment has no frontend dependency in the original Phase 1/2 gate, but the current Phase 2
+decision explicitly re-defers live Render API+worker verification to a dedicated deployment slice so
+local curriculum/API stabilization can close without mixing environment operations into this code
+baseline. Physical-device Expo smoke (`development-approach.md` §4.2) requires a mobile surface that
+renders a real chapter and remains re-deferred until that surface exists. Final decisions are recorded
+in `worklog-v4.md`.
 
 ## 8. Test Plan by Layer
 
@@ -212,11 +248,14 @@ Write these before implementation (`development-approach.md` §6; `00-canon.md` 
 
 This increment is done only when:
 
-- Render backend + worker deployment is verified live (deferred Phase 1 item closed).
+- Render backend + worker deployment is verified live or explicitly re-deferred with reason recorded
+  in the active worklog.
 - `chapter_analysis` P0–P4 run end-to-end on one real NCERT chapter with all model calls through
   `llm_gateway`; CI uses recorded fixtures (no live LLM).
-- migration 0004 creates the `curriculum` schema with `tenant_id` + version stamps and RLS;
-  Supabase security advisor returns no new lints.
+- migration `0004_curriculum_schema` creates the `curriculum` schema with `tenant_id` + version
+  stamps and RLS; any follow-up remediation needed to preserve advisor cleanliness and non-bypass
+  app-role access is applied (currently `0005_curriculum_privileges_and_indexes`); Supabase security
+  advisor returns no new lints.
 - ingestion passes **determinism** (rebuild → byte-identical) and **idempotency** (re-ingest = no-op)
   L2 tests; every `curriculum` row carries `chapter_analysis_id` + version stamps.
 - Supabase Auth JWT validation is enforced on `/v1/student` and `/v1/teacher`; tenant/role are
@@ -230,12 +269,12 @@ This increment is done only when:
 - CI is green including L1/L2/L3/L4, import-linter, formatter, and mypy (`testing-strategy.md`
   §3/§6); ADR-0015 (Supabase Auth) is Accepted.
 - physical-device Expo smoke is either recorded or explicitly re-deferred with a reason
-  (`worklog-v2.md`), per §7.4.
+  (`worklog-v4.md` or active continuation), per §7.4.
 - worklog is updated.
 
 ## 11. Worklog Entry Required
 
-After each verified proof item, append an entry to `docs/planning/worklog-v2.md` (rotate to
-`worklog-v3.md` at the 350-line cap) with: source sections used, pipeline passes / endpoints /
-tables implemented, migrations applied, tests run, invariant-test status, deferred-item status, and
-next-step recommendation.
+After each verified proof item, append an entry to `docs/planning/worklog-v3.md` (the active tracker;
+`worklog-v2.md` is rotated) with: source sections used, pipeline passes / endpoints / tables
+implemented, migrations applied, tests run, invariant-test status, deferred-item status, and next-step
+recommendation. Rotate to `worklog-v4.md` at the 350-line cap.
