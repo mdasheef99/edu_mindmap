@@ -124,17 +124,33 @@ Database rollback is not assumed for append-only event history. Instead:
 - [ ] backup settings confirmed
 - [ ] worklog updated with release candidate status
 
-### Current verification status (2026-06-17)
+### Current verification status (2026-06-18)
 
 - [x] migrations `0001_phase_1_walking_skeleton`, `0002_security_and_performance_remediation`, and `0003_rls_policy_helper_optimization` applied to the connected Supabase project
 - [x] Supabase security advisor returns no lints for the Phase 1 schema baseline
 - [x] backend local validation green: `python -m pytest tests -v` → `35 passed, 2 skipped`
 - [x] backend Sentry smoke verified in the `mindmap-backend` project
 - [x] worker entrypoint uses Postgres-backed queue/store adapters
-- [ ] GitHub Actions CI run confirmed on remote
-- [ ] Render staging backend deployed
-- [ ] Render staging worker deployed
-- [ ] physical-device Expo verification recorded
+- [x] GitHub Actions CI run confirmed on remote for the Phase 1/2 baseline
+- [x] Phase 3 M1 deterministic local gate complete: session resume, offer-set logging, edge branching,
+  deletion cascade, and event-only session-path reconstruction are green locally
+- [ ] Render staging backend deployed — **deferred / operationally pending**
+- [ ] Render staging worker deployed — **deferred / operationally pending**
+- [ ] physical-device Expo verification recorded — **deferred / operationally pending**
+
+### Phase 3 M1 operational deferral note (2026-06-18)
+
+Phase 3 M1 is considered **Locally Complete / Operationally Pending**.
+
+The following gates are explicitly deferred and must not be marked complete until live evidence is
+recorded in the worklog:
+
+1. Render backend live verification against the deployed staging API.
+2. Render worker live verification proving it can claim/process a Postgres `SKIP LOCKED` job.
+3. Physical-device Expo smoke against the deployed backend, including the `/v1/student/sessions`
+   response and mobile Sentry smoke evidence if enabled.
+
+This deferral allows Phase 3 M2 local development to begin, but it does not close the operational gate.
 
 ## 11. Phase 1 Verification Commands
 

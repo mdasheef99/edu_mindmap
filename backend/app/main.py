@@ -8,17 +8,16 @@ from uuid import UUID, uuid4
 
 from fastapi import FastAPI
 
+from app.api.student.nodes import router as node_router
 from app.api.student.offer_choices import router as offer_choice_router
+from app.api.student.offer_sets import router as offer_set_router
 from app.api.student.sessions import router as student_router
 from app.api.teacher.chapters import router as teacher_chapter_router
 from app.domain.auth import AuthContext, NoActiveMembershipError
 from app.domain.curriculum import ChapterGraphNotFoundError, TeacherChapterGraph
-from app.domain.student.offer_choices import (
-    OfferChoiceContext,
-    OfferChoiceRequest,
-    OfferChoiceResponse,
-    build_offer_set_choice,
-)
+from app.domain.student.deletions import NodeDeletionResponse
+from app.domain.student.offer_choices import OfferChoiceRequest, OfferChoiceResponse
+from app.domain.student.offer_sets import EdgeOfferSetRequest, EdgeOfferSetResponse
 from app.domain.student.sessions import (
     ChapterLaunchNotFoundError,
     SessionContext,
@@ -39,6 +38,8 @@ from app.projections.student_sessions import (
     project_session_resumed,
     project_session_started,
 )
+from app.runtime.canvas_deletion import delete_node_cascade_workflow
+from app.runtime.offer_workflow import create_edge_offer_set_workflow, record_offer_choice_workflow
 from app.tenancy.consent import InMemoryConsentRecordStore
 from app.tenancy.pool import InMemoryTenantConnectionPool
 from app.workers.queue import InMemoryJobQueue
@@ -241,30 +242,52 @@ class SessionRuntime:
         offer_set_id: UUID,
         payload: OfferChoiceRequest,
         auth: AuthContext | None = None,
-    ) -> OfferChoiceResponse:
-        resolved = auth or AuthContext(
-            user_id=self.student_user_id, tenant_id=self.tenant_id, role="student"
-        )
-        event, response_model = build_offer_set_choice(
-            context=OfferChoiceContext(
-                tenant_id=resolved.tenant_id,
-                student_user_id=resolved.user_id,
-            ),
+    ) -> OfferChoiceResponse | None:
+        assert self.tenant_pool is not None
+        return record_offer_choice_workflow(
             offer_set_id=offer_set_id,
-            request=payload,
+            payload=payload,
+            auth=auth,
+            fallback_user_id=self.student_user_id,
+            fallback_tenant_id=self.tenant_id,
+            tenant_pool=self.tenant_pool,
+            event_store=self.event_store,
+            job_queue=self.job_queue,
         )
-        event_count = len(self.event_store.events)
-        try:
-            stored_event = self.event_store.append(event, producer="server")
-            if payload.outcome == "selected":
-                self.job_queue.enqueue_classify_from_offer_choice(
-                    stored_event,
-                    student_user_id=resolved.user_id,
-                )
-        except Exception:
-            self.event_store.rollback_to(event_count)
-            raise
-        return response_model
+
+    def create_edge_offer_set(
+        self,
+        *,
+        payload: EdgeOfferSetRequest,
+        auth: AuthContext | None = None,
+    ) -> EdgeOfferSetResponse | None:
+        assert self.tenant_pool is not None
+        return create_edge_offer_set_workflow(
+            payload=payload,
+            auth=auth,
+            fallback_user_id=self.student_user_id,
+            fallback_tenant_id=self.tenant_id,
+            tenant_pool=self.tenant_pool,
+            event_store=self.event_store,
+        )
+
+    def delete_student_node(
+        self,
+        *,
+        session_id: UUID,
+        node_id: UUID,
+        confirmed: bool,
+        auth: AuthContext,
+    ) -> NodeDeletionResponse | None:
+        assert self.tenant_pool is not None
+        return delete_node_cascade_workflow(
+            session_id=session_id,
+            node_id=node_id,
+            confirmed=confirmed,
+            auth=auth,
+            tenant_pool=self.tenant_pool,
+            event_store=self.event_store,
+        )
 
     def grant_behavioral_analytics_consent(self, *, auth: AuthContext | None = None) -> None:
         resolved = auth or AuthContext(
@@ -283,7 +306,9 @@ def create_app(runtime: SessionRuntime | None = None) -> FastAPI:
         tenant_id=uuid4(),
         student_user_id=uuid4(),
     )
+    app.include_router(node_router)
     app.include_router(offer_choice_router)
+    app.include_router(offer_set_router)
     app.include_router(student_router)
     app.include_router(teacher_chapter_router)
     return app

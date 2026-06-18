@@ -4,11 +4,12 @@ type: always_apply
 # Mindmap Canon (v1.3+) — merge-blocking
 
 ACTIVE MILESTONE: Phase 3 — Core Loop Deepening (M1: offer-set logging completion,
-session persistence/resume, edge-`+` branching, deletion cascade with confirmation).
+session persistence/resume, edge-`+` branching, deletion cascade with confirmation,
+full-session path reconstruction from events alone).
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested; Render backend+worker live verification and physical-device Expo
 smoke remain deferred operational gates to verify in Phase 3 sprint 1.
-ACTIVE SDD: docs/planning/sdd/phase-3-session-resume-sdd.md (created 2026-06-18, draft v1.0).
+ACTIVE SDD: docs/planning/sdd/phase-3-session-path-reconstruction-sdd.md (created 2026-06-18, draft v1.0).
 LIVE TRACKER: docs/planning/worklog-v4.md (worklog-v3.md rotated after exceeding 350 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.

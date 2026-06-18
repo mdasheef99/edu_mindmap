@@ -117,8 +117,9 @@ def _single_event_of_type(runtime, event_type: str):
 def test_offer_choice_selected_appends_offer_set_choice() -> None:
     """T6: selected offer choice must append offer_set_choice."""
     client, runtime = _build_client_and_runtime()
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
-    request_body = _selected_choice_body()
+    request_body = _selected_choice_body() | {"session_id": session_id}
 
     response = client.post(
         f"/v1/student/offer-sets/{offer_set_id}/choices",
@@ -149,8 +150,9 @@ def test_offer_choice_selected_appends_offer_set_choice() -> None:
 def test_offer_choice_selected_enqueues_classify_job() -> None:
     """T7: selected offer choice must enqueue classify after append."""
     client, runtime = _build_client_and_runtime()
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
-    request_body = _selected_choice_body()
+    request_body = _selected_choice_body() | {"session_id": session_id}
 
     response = client.post(
         f"/v1/student/offer-sets/{offer_set_id}/choices",
@@ -181,11 +183,12 @@ def test_offer_choice_selected_enqueues_classify_job() -> None:
 def test_offer_choice_dismissed_does_not_enqueue_classify() -> None:
     """T8: dismissed/no-selection outcome must not enqueue classify."""
     client, runtime = _build_client_and_runtime()
+    session_id = _start_session(client, runtime)
     offer_set_id = uuid4()
 
     response = client.post(
         f"/v1/student/offer-sets/{offer_set_id}/choices",
-        json=_dismissed_choice_body(),
+        json=_dismissed_choice_body() | {"session_id": session_id},
     )
 
     assert response.status_code == 202
@@ -208,11 +211,14 @@ def test_offer_choice_response_returns_with_classify_still_queued() -> None:
     )
 
     assert response.status_code == 202
-    assert response.json() == {
-        "offer_set_id": str(offer_set_id),
-        "outcome": "selected",
-        "recorded": True,
-    }
+    body = response.json()
+    assert body["offer_set_id"] == str(offer_set_id)
+    assert body["outcome"] == "selected"
+    assert body["recorded"] is True
+    assert body["child_node_type"] == "ai"
+    assert body["child_node_id"]
+    assert body["edge_id"]
+    assert body["child_content"] == f"Explore: {request_body['selected_option_text']}"
     assert runtime.job_queue.jobs[0]["status"] == "queued"
     assert not any(
         event["event_type"] == "question_classified" for event in runtime.event_store.events
@@ -222,15 +228,39 @@ def test_offer_choice_response_returns_with_classify_still_queued() -> None:
 
 def test_offer_choice_append_and_classify_enqueue_are_atomic() -> None:
     """T22: selected choice append and classify enqueue must commit or rollback together."""
+    from datetime import datetime, timezone
+
     from app.domain.student.offer_choices import OfferChoiceRequest
     from app.main import SessionRuntime
 
+    tenant_id = uuid4()
+    student_user_id = uuid4()
+    session_id = uuid4()
     runtime = SessionRuntime.for_testing(
-        tenant_id=uuid4(),
-        student_user_id=uuid4(),
+        tenant_id=tenant_id,
+        student_user_id=student_user_id,
         job_queue=FailingJobQueue(),
     )
-    payload = OfferChoiceRequest.model_validate(_selected_choice_body())
+    runtime.student_sessions.upsert(
+        {
+            "session_id": session_id,
+            "tenant_id": tenant_id,
+            "student_user_id": student_user_id,
+            "exam_id": uuid4(),
+            "subject_id": uuid4(),
+            "chapter_id": uuid4(),
+            "concept_entry_id": uuid4(),
+            "chapter_analysis_id": uuid4(),
+            "status": "active",
+            "last_active_node_id": None,
+            "started_at": datetime.now(timezone.utc),
+            "last_active_at": datetime.now(timezone.utc),
+            "closed_at": None,
+        }
+    )
+    payload = OfferChoiceRequest.model_validate(
+        _selected_choice_body() | {"session_id": str(session_id)}
+    )
 
     try:
         runtime.record_offer_choice(offer_set_id=uuid4(), payload=payload)

@@ -84,7 +84,106 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
         event_type="node_created",
         event_version=1,
         allowed_producers=frozenset({"client", "server"}),
-        required_fields=COMMON_REQUIRED_FIELDS,
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "node_id",
+                "session_id",
+                "node_type",
+                "content",
+                "source_offer_set_id",
+                "source_option_id",
+                "thread_context_id",
+            }
+        ),
+    ),
+    ("edge_created", 1): EventTypeSpec(
+        event_type="edge_created",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id", "edge_id"}),
+        required_payload_fields=frozenset(
+            {
+                "edge_id",
+                "session_id",
+                "source_node_id",
+                "target_node_id",
+                "edge_kind",
+                "created_by",
+            }
+        ),
+    ),
+    ("edge_deleted", 1): EventTypeSpec(
+        event_type="edge_deleted",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id", "edge_id"}),
+        required_payload_fields=frozenset(
+            {
+                "edge_id",
+                "session_id",
+                "edge_kind",
+                "deletion_cause",
+            }
+        ),
+    ),
+    ("node_deleted", 1): EventTypeSpec(
+        event_type="node_deleted",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "root_node_id",
+                "session_id",
+                "deleted_node_ids",
+                "deleted_edge_ids",
+                "confirmed",
+                "deletion_cause",
+            }
+        ),
+    ),
+    ("offer_set_created", 1): EventTypeSpec(
+        event_type="offer_set_created",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id", "offer_set_id"}),
+        required_payload_fields=frozenset(
+            {
+                "offer_set_id",
+                "session_id",
+                "source_node_id",
+                "launch_method",
+                "options",
+                "policy_name",
+                "policy_version",
+                "mode",
+                "gen_ms",
+                "rank_ms",
+                "total_ms",
+            }
+        ),
+    ),
+    ("offer_set_impression", 1): EventTypeSpec(
+        event_type="offer_set_impression",
+        event_version=1,
+        allowed_producers=frozenset({"client", "server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id", "offer_set_id"}),
+        required_payload_fields=frozenset(
+            {
+                "offer_set_id",
+                "session_id",
+                "source_node_id",
+                "visible_option_ids",
+                "ui_positioning",
+            }
+        ),
     ),
     ("offer_set_choice", 1): EventTypeSpec(
         event_type="offer_set_choice",

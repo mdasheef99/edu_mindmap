@@ -208,7 +208,9 @@ def test_question_classified_row_carries_version_stamps() -> None:
     )
 
     assert response.status_code == 202
-    source_event = runtime.event_store.events[-1]
+    source_event = next(
+        event for event in runtime.event_store.events if event["event_type"] == "offer_set_choice"
+    )
     classified_event = ClassifyWorker(runtime).run_next(worker_id="worker-a")
     row = runtime.analytic_question_classifications.rows[0]
 
