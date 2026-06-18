@@ -1,7 +1,7 @@
 # Phase 1 Walking Skeleton — Software Design Document (SDD)
 
-**Document Version**: 1.1  
-**Status**: Active — implementation near Phase 1 exit gate  
+**Document Version**: 1.2
+**Status**: CLOSED — Phase 1 formally complete; physical mobile verification deferred
 **Phase / milestone**: Phase 1 — Walking Skeleton (`development-approach.md` §4)  
 **Related Documents**: `docs/planning/session-bootstrap.md` (context key), `docs/planning/worklog-v2.md` (active live tracker), `docs/planning/worklog.md` (rotated archive), `docs/planning/sdd-template.md`, `docs/planning/development-approach.md`, `docs/architecture/backend-architecture.md`, `docs/planning/testing-strategy.md`, `docs/configuration-reference.md`
 
@@ -14,7 +14,7 @@
 | Increment name | Phase 1 Walking Skeleton — thin end-to-end loop |
 | Phase / milestone | Phase 1 (precedes M1) |
 | Owner | (developer) |
-| Status | Active — local and GitHub Actions CI gates green; live non-bypass Supabase RLS verified; backend Sentry smoke received; deploy/mobile proof still open |
+| Status | CLOSED — all backend/infra proof items verified; physical mobile verification deferred; Phase 1 exit gate passed |
 
 Goal (`development-approach.md` §4.1): the smallest deployed end-to-end loop touching every architectural layer (mobile → API → event store → worker → LLM → projection), proving every integration point at once.
 
@@ -229,6 +229,12 @@ This increment is done only when:
 - LLM cost/usage counter records from the first `llm_gateway` call, using the configured Stage 1/Stage 2 model id rather than a hardcoded provider model name (`development-approach.md` §6.9)
 - CI is green including L1/L2/L3/L4 relevant tests, import-linter, **formatter, and mypy** (`testing-strategy.md` §3/§6)
 - worklog is updated
+
+**Phase 1 closure note (2026-06-18)**: all backend, database, CI, and Supabase proof items are
+verified. Physical-device Expo/mobile verification is **deferred** to an early Phase 2 session;
+it does not block Phase 1 closure because it exercises the mobile surface layer only, which is
+additive to the walking skeleton. Render deployment is similarly deferred. Phase 1 is formally
+closed.
 
 ---
 

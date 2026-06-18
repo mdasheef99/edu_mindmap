@@ -3,15 +3,14 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 1 — Walking Skeleton (precedes M1). Do not design Phase 2/3
+ACTIVE MILESTONE: Phase 2 — Curriculum Ingestion (first milestone after Walking Skeleton).
+Phase 1 is CLOSED (2026-06-18). Do not reopen Phase 1 items. Do not design Phase 3+
 work (Teacher V3, advanced analytics, podcast, checkpoints) unless explicitly opened.
-ACTIVE SDD (the ONLY increment in flight): docs/planning/sdd/phase-1-walking-skeleton-sdd.md
-LIVE TRACKER: docs/planning/worklog-v2.md (Phase 1 Live Tracker + Open Decisions).
-OPEN DECISION: consent gate on `classify` → `analytic_rm` projection — RESOLVED 2026-06-17.
-Decision: implement the gate in Phase 1 (Option A). The `consent_records` table and
-`consent_recorded` event ship in migration 0001; the `classify` worker skips `analytic_rm`
-writes without valid `behavioral_analytics` consent. See ADR-0014, SDD red test #26, and
-`docs/planning/worklog.md` Open Decisions.
+ACTIVE SDD: docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md (to be created at Phase 2 kickoff).
+LIVE TRACKER: docs/planning/worklog-v2.md (append Phase 2 entries until 350-line rotation to worklog-v3.md).
+DEFERRED FROM PHASE 1: physical-device Expo verification; Render deployment — pick up in Phase 2 sprint 1.
+CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
+See ADR-0014, worklog.md Open Decisions.
 
 ## Source-of-Truth Hierarchy (authoritative, in order — on conflict, higher wins)
 
@@ -73,4 +72,4 @@ TimescaleDB, `exploration_events` / `learning_sessions` / `path_patterns` tables
 - Deterministic logic → TDD; LLM output → fixtures + schema/contract checks, never
   assert exact model text.
 - FIRST ACTION: read the active SDD + worklog + hierarchy before proposing or editing
-  anything. State current Phase 1 status back to the user before acting.
+  anything. State current milestone status back to the user before acting.

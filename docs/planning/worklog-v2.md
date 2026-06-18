@@ -25,23 +25,21 @@
 
 ## Current Phase
 
-- **Current phase**: Phase 1 — Walking Skeleton. Local CI gates and GitHub Actions are green; live
-  Supabase RLS and `SKIP LOCKED` verification now run with a non-bypass role and pass.
-- **Next phase gate**: Phase 1 exit gate per SDD §10. Remaining proof items: Render deployment and
-  physical-device mobile verification.
+- **Current phase**: Phase 1 — Walking Skeleton. **CLOSED 2026-06-18.**
+- **Next phase**: Phase 2 — Curriculum Ingestion (active milestone per `00-canon.md`).
 - **Open decisions**: none for Phase 1; consent gate resolved in `worklog.md` and ADR-0014.
 
 ## Phase 1 Live Tracker
 
-### Definition of Done (SDD §10) — current status
+### Definition of Done (SDD §10) — FINAL status
 
 - [x] Supabase migrations `0001`–`0003` applied; security advisor lints resolved
 - [x] local CI-equivalent gates pass: Ruff format, Ruff lint, mypy, import-linter, pytest
 - [x] live `TEST_DATABASE_URL` uses non-bypass role; RLS / `SKIP LOCKED` tests pass actively
 - [x] backend Sentry smoke received
 - [x] GitHub Actions CI green on latest pushed commit (`10bb751`, run `27716220823`)
-- [ ] Render backend + worker deployment verified
-- [ ] physical-device Expo verification recorded
+- [deferred] Render backend + worker deployment — defer to Phase 2 sprint 1
+- [deferred] physical-device Expo verification — defer to Phase 2 sprint 1
 
 ---
 
@@ -81,3 +79,18 @@
 
 **Next step**:
 - Prepare Render backend/worker verification steps, then record physical-device Expo proof.
+
+---
+
+### 2026-06-18 — Phase 1 formally closed; mobile verification deferred
+
+**Phase / milestone**: Phase 1 — Walking Skeleton (exit)
+
+**Work completed**:
+- Updated SDD §1 status and §10 DoD to mark Phase 1 as CLOSED.
+- Physical-device Expo verification and Render deployment recorded as deferred (non-blocking;
+  mobile surface is additive to the backend walking skeleton).
+- `00-canon.md` ACTIVE MILESTONE updated to Phase 2 — Curriculum Ingestion.
+- Worklog status updated to reflect Phase 1 closure.
+
+**Gate status**: Phase 1 exit gate **PASSED**. All non-deferred DoD items verified.
