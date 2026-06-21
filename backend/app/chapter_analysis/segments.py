@@ -44,7 +44,7 @@ def segment_chapter_text(chapter_id: str, pages: Sequence[str]) -> list[dict[str
                 cursor += len(raw_block) + 2
                 continue
 
-            block_start = page_text.index(raw_block, cursor)
+            block_start = page_text.index(stripped, cursor)
             block_end = block_start + len(stripped)
             cursor = block_end
 

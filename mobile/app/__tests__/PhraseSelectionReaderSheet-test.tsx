@@ -207,4 +207,54 @@ describe('PhraseSelectionReaderSheet', () => {
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     expect(global.fetch).not.toHaveBeenCalled();
   });
+
+  it('handles a network failure while requesting phrase options', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+    const props = makeProps();
+    await render(<PhraseSelectionReaderSheet {...props} />);
+
+    await selectPhrase(0, 16);
+    fireEvent.press(screen.getByText('Use selected phrase'));
+
+    await waitFor(() => screen.getByText(/phrase options failed/));
+    expect(props.onBranchCreated).not.toHaveBeenCalled();
+  });
+
+  it('handles a network failure while creating a branch', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => OFFER_SET })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    const props = makeProps();
+    await render(<PhraseSelectionReaderSheet {...props} />);
+
+    await selectPhrase(0, 16);
+    fireEvent.press(screen.getByText('Use selected phrase'));
+    await waitFor(() => screen.getByText('Elaborate'));
+
+    fireEvent.press(screen.getByText('Elaborate'));
+
+    await waitFor(() => screen.getByText(/branch failed/));
+    expect(props.onBranchCreated).not.toHaveBeenCalled();
+  });
+
+  it('closes the modal even if the dismiss request fails', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => OFFER_SET })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    const props = makeProps();
+    await render(<PhraseSelectionReaderSheet {...props} />);
+
+    await selectPhrase(0, 16);
+    fireEvent.press(screen.getByText('Use selected phrase'));
+    await waitFor(() => screen.getByText('Elaborate'));
+
+    fireEvent.press(screen.getByText('Close'));
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled());
+    expect(props.onBranchCreated).not.toHaveBeenCalled();
+  });
 });

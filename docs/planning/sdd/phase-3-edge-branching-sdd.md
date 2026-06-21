@@ -74,8 +74,8 @@ minimal and place deterministic event construction in the student domain module.
 ## 6. Event / Schema Deltas
 
 - Tighten `node_created` v1 required payload fields for this slice:
-  - `node_id`, `session_id`, `node_type`, `content`, `source_offer_set_id`, `source_option_id`,
-    `thread_context_id`.
+  - `node_id`, `session_id`, `node_type`, `content`, `source_node_id`, `source_offer_set_id`,
+    `source_option_id`, `source_option_text`, `thread_context_id`.
 - Register `edge_created` v1 with required payload fields:
   - `edge_id`, `session_id`, `source_node_id`, `target_node_id`, `edge_kind`, `created_by`.
 - `edge_kind` for this slice is `ai_path` only.

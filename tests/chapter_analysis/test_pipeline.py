@@ -50,6 +50,23 @@ def test_p0_segment_index_records_required_fields() -> None:
     assert question_segment["location"] == "in_text"
 
 
+def test_p0_segment_char_span_excludes_leading_whitespace() -> None:
+    """Regression: char_span must point to the stripped text, not the raw block."""
+    from app.chapter_analysis.segments import segment_chapter_text
+
+    page_text = "First paragraph.\n\n  Indented second paragraph."
+    segments = segment_chapter_text("ch_whitespace", [page_text])
+
+    assert len(segments) == 2
+    first, second = segments
+
+    assert page_text[first["char_span"][0] : first["char_span"][1]] == "First paragraph."
+    assert (
+        page_text[second["char_span"][0] : second["char_span"][1]] == "Indented second paragraph."
+    )
+    assert second["char_span"][0] == len("First paragraph.\n\n  ")
+
+
 def test_p0_pdf_page_extraction_is_deterministic_for_curriculum_inputs() -> None:
     """SDD §8 L1/L2: same PDF bytes must yield the same page-text inputs."""
     from app.chapter_analysis.segments import extract_pdf_pages

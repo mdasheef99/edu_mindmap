@@ -64,23 +64,27 @@ export function PhraseSelectionReaderSheet({
   async function requestPhraseOptions() {
     if (!selectedPhrase) return;
     setStatus("loading phrase options");
-    const response = await fetch(`${apiBaseUrl}/v1/student/offer-sets/phrase`, {
-      method: "POST",
-      headers: headers(authorizationToken),
-      body: JSON.stringify({
-        session_id: node.sessionId,
-        source_node_id: node.nodeId,
-        thread_context_id: node.threadContextId,
-        selected_phrase: selectedPhrase,
-        source_excerpt: node.content,
-        selection_start: selection.start,
-        selection_end: selection.end,
-      }),
-    });
-    if (response.ok) {
-      setOfferSet(await response.json());
-      setStatus("choose an action");
-    } else {
+    try {
+      const response = await fetch(`${apiBaseUrl}/v1/student/offer-sets/phrase`, {
+        method: "POST",
+        headers: headers(authorizationToken),
+        body: JSON.stringify({
+          session_id: node.sessionId,
+          source_node_id: node.nodeId,
+          thread_context_id: node.threadContextId,
+          selected_phrase: selectedPhrase,
+          source_excerpt: node.content,
+          selection_start: selection.start,
+          selection_end: selection.end,
+        }),
+      });
+      if (response.ok) {
+        setOfferSet(await response.json());
+        setStatus("choose an action");
+      } else {
+        setStatus("phrase options failed");
+      }
+    } catch {
       setStatus("phrase options failed");
     }
   }
@@ -88,42 +92,50 @@ export function PhraseSelectionReaderSheet({
   async function chooseOption(option: PhraseOption) {
     if (!offerSet) return;
     setStatus("creating branch");
-    const response = await fetch(
-      `${apiBaseUrl}/v1/student/offer-sets/${offerSet.offer_set_id}/choices`,
-      {
-        method: "POST",
-        headers: headers(authorizationToken),
-        body: JSON.stringify({
-          session_id: offerSet.session_id,
-          source_node_id: offerSet.source_node_id,
-          outcome: "selected",
-          selected_option_id: option.option_id,
-          selected_option_text: option.text,
-          thread_context_id: offerSet.thread_context_id,
-        }),
-      },
-    );
-    if (response.ok) {
-      const body = await response.json();
-      setStatus("branch created");
-      if (body.child_node_id) onBranchCreated?.(body.child_node_id);
-    } else {
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/v1/student/offer-sets/${offerSet.offer_set_id}/choices`,
+        {
+          method: "POST",
+          headers: headers(authorizationToken),
+          body: JSON.stringify({
+            session_id: offerSet.session_id,
+            source_node_id: offerSet.source_node_id,
+            outcome: "selected",
+            selected_option_id: option.option_id,
+            selected_option_text: option.text,
+            thread_context_id: offerSet.thread_context_id,
+          }),
+        },
+      );
+      if (response.ok) {
+        const body = await response.json();
+        setStatus("branch created");
+        if (body.child_node_id) onBranchCreated?.(body.child_node_id);
+      } else {
+        setStatus("branch failed");
+      }
+    } catch {
       setStatus("branch failed");
     }
   }
 
   async function dismissOfferSet() {
     if (offerSet) {
-      await fetch(`${apiBaseUrl}/v1/student/offer-sets/${offerSet.offer_set_id}/choices`, {
-        method: "POST",
-        headers: headers(authorizationToken),
-        body: JSON.stringify({
-          session_id: offerSet.session_id,
-          source_node_id: offerSet.source_node_id,
-          outcome: "dismissed",
-          thread_context_id: offerSet.thread_context_id,
-        }),
-      });
+      try {
+        await fetch(`${apiBaseUrl}/v1/student/offer-sets/${offerSet.offer_set_id}/choices`, {
+          method: "POST",
+          headers: headers(authorizationToken),
+          body: JSON.stringify({
+            session_id: offerSet.session_id,
+            source_node_id: offerSet.source_node_id,
+            outcome: "dismissed",
+            thread_context_id: offerSet.thread_context_id,
+          }),
+        });
+      } catch {
+        // Network failure must not prevent the modal from closing.
+      }
     }
     setOfferSet(null);
     onClose();
