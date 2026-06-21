@@ -1,4 +1,5 @@
-from uuid import uuid4
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 import jwt
 from fastapi.testclient import TestClient
@@ -171,6 +172,87 @@ def test_dismissed_edge_offer_choice_does_not_create_child_path() -> None:
     appended_events = runtime.event_store.events[event_count:]
     assert [event["event_type"] for event in appended_events] == ["offer_set_choice"]
     assert runtime.job_queue.jobs == []
+
+
+def _seed_node_created_events(runtime, session_id: str, count: int) -> None:
+    """Append `count` in-scope node_created events directly to the event store.
+
+    Used to drive the session to the CANVAS_NODE_HARD_LIMIT without exercising the full
+    offer-choice path for each node. Scope (tenant_id/student_id/session_id) matches the
+    auth-resolved identity so the workflow's active-node count includes them.
+    """
+    session_uuid = UUID(session_id)
+    for _ in range(count):
+        node_id = uuid4()
+        runtime.event_store.append(
+            {
+                "event_id": uuid4(),
+                "event_type": "node_created",
+                "event_version": 1,
+                "tenant_id": runtime.tenant_id,
+                "actor_user_id": runtime.student_user_id,
+                "student_id": runtime.student_user_id,
+                "session_id": session_uuid,
+                "node_id": node_id,
+                "occurred_at": datetime.now(timezone.utc),
+                "payload": {
+                    "node_id": str(node_id),
+                    "session_id": session_id,
+                    "node_type": "ai",
+                    "content": "Explore: seeded",
+                    "source_node_id": str(uuid4()),
+                    "source_offer_set_id": str(uuid4()),
+                    "source_option_id": str(uuid4()),
+                    "source_option_text": "seeded",
+                    "thread_context_id": str(uuid4()),
+                },
+            },
+            producer="server",
+        )
+
+
+def test_hard_limit_blocks_node_creation_at_65() -> None:
+    """T6 (§11): at CANVAS_NODE_HARD_LIMIT active nodes the choice endpoint returns 409
+    and appends no node_created event."""
+    from app.canvas.limits import canvas_node_hard_limit
+
+    client, runtime = _build_client_and_runtime()
+    session_id = _start_session(client, runtime)
+    offer_request, offer_response = _create_edge_offer_set(client, session_id)
+    selected_option = offer_response["options"][0]
+
+    _seed_node_created_events(runtime, session_id, canvas_node_hard_limit())
+    event_count = len(runtime.event_store.events)
+    node_created_before = sum(
+        1 for event in runtime.event_store.events if event["event_type"] == "node_created"
+    )
+
+    response = client.post(
+        f"/v1/student/offer-sets/{offer_response['offer_set_id']}/choices",
+        json={
+            "session_id": session_id,
+            "source_node_id": offer_request["source_node_id"],
+            "outcome": "selected",
+            "selected_option_id": selected_option["option_id"],
+            "selected_option_text": selected_option["text"],
+            "thread_context_id": offer_request["thread_context_id"],
+        },
+    )
+
+    assert response.status_code == 409
+    # No node_created appended; the rejected choice leaves the event log unchanged.
+    assert len(runtime.event_store.events) == event_count
+    node_created_after = sum(
+        1 for event in runtime.event_store.events if event["event_type"] == "node_created"
+    )
+    assert node_created_after == node_created_before
+    assert runtime.job_queue.jobs == []
+    body = response.json()
+    assert not any(
+        forbidden in str(value)
+        for value in body.values()
+        for forbidden in FORBIDDEN_STUDENT_RESPONSE_FRAGMENTS
+    )
 
 
 def test_edge_branching_response_stays_student_safe() -> None:

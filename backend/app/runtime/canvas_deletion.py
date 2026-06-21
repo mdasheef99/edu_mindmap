@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Mapping
 from uuid import UUID
 
 from app.domain.auth import AuthContext
@@ -14,6 +13,7 @@ from app.domain.student.deletions import (
     build_node_deleted,
 )
 from app.events.store import InMemoryEventStore
+from app.runtime.canvas_state import active_canvas_from_events
 from app.tenancy.pool import InMemoryTenantConnectionPool
 
 
@@ -34,7 +34,7 @@ def delete_node_cascade_workflow(
     if session_row is None:
         return None
 
-    active_nodes, active_edges = _active_canvas_from_events(
+    active_nodes, active_edges = active_canvas_from_events(
         event_store.events,
         session_id=session_id,
         tenant_id=auth.tenant_id,
@@ -77,53 +77,6 @@ def delete_node_cascade_workflow(
         event_store.rollback_to(event_count)
         raise
     return response
-
-
-def _active_canvas_from_events(
-    events: list[dict[str, Any]],
-    *,
-    session_id: UUID,
-    tenant_id: UUID,
-    student_user_id: UUID,
-) -> tuple[set[str], dict[str, dict[str, str]]]:
-    active_nodes: set[str] = set()
-    active_edges: dict[str, dict[str, str]] = {}
-    for event in events:
-        if not _same_scope(event, session_id, tenant_id, student_user_id):
-            continue
-        payload = event["payload"]
-        if event["event_type"] == "node_created":
-            active_nodes.add(str(payload["node_id"]))
-        elif event["event_type"] == "edge_created":
-            active_edges[str(payload["edge_id"])] = _edge_payload(payload)
-        elif event["event_type"] == "edge_deleted":
-            active_edges.pop(str(payload["edge_id"]), None)
-        elif event["event_type"] == "node_deleted":
-            for deleted_node_id in payload["deleted_node_ids"]:
-                active_nodes.discard(str(deleted_node_id))
-            for deleted_edge_id in payload["deleted_edge_ids"]:
-                active_edges.pop(str(deleted_edge_id), None)
-    return active_nodes, active_edges
-
-
-def _same_scope(
-    event: Mapping[str, Any], session_id: UUID, tenant_id: UUID, student_user_id: UUID
-) -> bool:
-    return (
-        event.get("session_id") == session_id
-        and event.get("tenant_id") == tenant_id
-        and event.get("student_id") == student_user_id
-    )
-
-
-def _edge_payload(payload: Mapping[str, Any]) -> dict[str, str]:
-    return {
-        "edge_id": str(payload["edge_id"]),
-        "session_id": str(payload["session_id"]),
-        "source_node_id": str(payload["source_node_id"]),
-        "target_node_id": str(payload["target_node_id"]),
-        "edge_kind": str(payload["edge_kind"]),
-    }
 
 
 def _cascade_from_root(

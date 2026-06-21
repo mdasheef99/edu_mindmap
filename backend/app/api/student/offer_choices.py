@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.canvas.limits import NodeLimitExceeded
 from app.domain.auth import AuthContext
 from app.domain.student.offer_choices import OfferChoiceRequest, OfferChoiceResponse
 from app.tenancy.auth import get_auth_context
@@ -26,7 +27,10 @@ def record_offer_choice(
     auth: AuthContext = Depends(get_auth_context),
 ) -> OfferChoiceResponse:
     runtime = request.app.state.session_runtime
-    choice = runtime.record_offer_choice(offer_set_id=offer_set_id, payload=payload, auth=auth)
+    try:
+        choice = runtime.record_offer_choice(offer_set_id=offer_set_id, payload=payload, auth=auth)
+    except NodeLimitExceeded:
+        raise HTTPException(status_code=409, detail="Canvas node limit reached")
     if choice is None:
         raise HTTPException(status_code=404, detail="Session not found")
     return choice
