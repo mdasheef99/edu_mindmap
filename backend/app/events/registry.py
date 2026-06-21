@@ -169,6 +169,48 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
             }
         ),
     ),
+    ("phrase_selected", 1): EventTypeSpec(
+        event_type="phrase_selected",
+        event_version=1,
+        allowed_producers=frozenset({"server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "session_id",
+                "source_node_id",
+                "thread_context_id",
+                "selected_phrase",
+                "source_excerpt",
+                "selection_surface",
+            }
+        ),
+    ),
+    ("phrase_offer_set_created", 1): EventTypeSpec(
+        event_type="phrase_offer_set_created",
+        event_version=1,
+        allowed_producers=frozenset({"server"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id", "offer_set_id"}),
+        required_payload_fields=frozenset(
+            {
+                "offer_set_id",
+                "session_id",
+                "source_node_id",
+                "thread_context_id",
+                "launch_method",
+                "selected_phrase",
+                "source_phrase_event_id",
+                "options",
+                "policy_name",
+                "policy_version",
+                "mode",
+                "gen_ms",
+                "rank_ms",
+                "total_ms",
+            }
+        ),
+    ),
     ("offer_set_impression", 1): EventTypeSpec(
         event_type="offer_set_impression",
         event_version=1,

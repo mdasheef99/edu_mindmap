@@ -17,7 +17,12 @@ from app.domain.auth import AuthContext, NoActiveMembershipError
 from app.domain.curriculum import ChapterGraphNotFoundError, TeacherChapterGraph
 from app.domain.student.deletions import NodeDeletionResponse
 from app.domain.student.offer_choices import OfferChoiceRequest, OfferChoiceResponse
-from app.domain.student.offer_sets import EdgeOfferSetRequest, EdgeOfferSetResponse
+from app.domain.student.offer_sets import (
+    EdgeOfferSetRequest,
+    EdgeOfferSetResponse,
+    PhraseOfferSetRequest,
+    PhraseOfferSetResponse,
+)
 from app.domain.student.sessions import (
     ChapterLaunchNotFoundError,
     SessionContext,
@@ -39,7 +44,11 @@ from app.projections.student_sessions import (
     project_session_started,
 )
 from app.runtime.canvas_deletion import delete_node_cascade_workflow
-from app.runtime.offer_workflow import create_edge_offer_set_workflow, record_offer_choice_workflow
+from app.runtime.offer_workflow import (
+    create_edge_offer_set_workflow,
+    create_phrase_offer_set_workflow,
+    record_offer_choice_workflow,
+)
 from app.tenancy.consent import InMemoryConsentRecordStore
 from app.tenancy.pool import InMemoryTenantConnectionPool
 from app.workers.queue import InMemoryJobQueue
@@ -263,6 +272,22 @@ class SessionRuntime:
     ) -> EdgeOfferSetResponse | None:
         assert self.tenant_pool is not None
         return create_edge_offer_set_workflow(
+            payload=payload,
+            auth=auth,
+            fallback_user_id=self.student_user_id,
+            fallback_tenant_id=self.tenant_id,
+            tenant_pool=self.tenant_pool,
+            event_store=self.event_store,
+        )
+
+    def create_phrase_offer_set(
+        self,
+        *,
+        payload: PhraseOfferSetRequest,
+        auth: AuthContext | None = None,
+    ) -> PhraseOfferSetResponse | None:
+        assert self.tenant_pool is not None
+        return create_phrase_offer_set_workflow(
             payload=payload,
             auth=auth,
             fallback_user_id=self.student_user_id,
