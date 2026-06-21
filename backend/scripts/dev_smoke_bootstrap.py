@@ -120,8 +120,12 @@ def _build_runtime():  # type: ignore[return]
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dev-smoke", action="store_true", required=True,
-                        help="Required safety flag. Do not use in production.")
+    parser.add_argument(
+        "--dev-smoke",
+        action="store_true",
+        required=True,
+        help="Required safety flag. Do not use in production.",
+    )
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
 
@@ -136,7 +140,7 @@ def main() -> None:
     print("  M2 DEV SMOKE BOOTSTRAP — TRUSTED LAN ONLY")
     print("=" * 60)
     print(f"  apiBaseUrl : {api_base_url}")
-    print(f"  authToken  : [printed below — do not share]")
+    print("  authToken  : [printed below — do not share]")
     print(f"  Exam ID    : {EXAM_ID}")
     print(f"  Subject ID : {SUBJECT_ID}")
     print(f"  Chapter ID : {CHAPTER_ID}")
@@ -145,8 +149,8 @@ def main() -> None:
     print(token)
     print("=" * 60 + "\n")
 
-    from app.main import create_app
     import uvicorn
+    from app.main import create_app
 
     app = create_app(runtime=runtime)
     uvicorn.run(app, host="0.0.0.0", port=args.port)
