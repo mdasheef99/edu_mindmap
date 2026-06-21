@@ -3,14 +3,22 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — Core Loop Deepening (M1: offer-set logging completion,
-session persistence/resume, edge-`+` branching, deletion cascade with confirmation,
-full-session path reconstruction from events alone).
+ACTIVE MILESTONE: Phase 3 — M3 Canvas maturation (pan/zoom/gestures via skia + reanimated,
+node visualization, manual reference links, 65-node limits; 60fps at 40+ nodes on the
+reference mid-range Android device — development-approach.md §5 M3). Phase 3 M2 Phrase
+Selection is CLOSED (2026-06-20): the §5 M2 user/device gate was met on a physical Android
+device (a test user branched from a self-chosen phrase); the "questions aren't tappable"
+fatal risk (§9) is retired. Phase 3 M1 is Locally Complete / Operationally Pending: session
+persistence/resume, offer-set logging, edge-`+` branching, deletion cascade, and event-only
+session-path reconstruction are green locally; Render backend+worker live verification and
+physical-device Expo smoke remain deferred operational gates. Do not attempt operational
+verification unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
-explicitly requested; Render backend+worker live verification and physical-device Expo
-smoke remain deferred operational gates to verify in Phase 3 sprint 1.
-ACTIVE SDD: docs/planning/sdd/phase-3-session-path-reconstruction-sdd.md (created 2026-06-18, draft v1.0).
-LIVE TRACKER: docs/planning/worklog-v4.md (worklog-v3.md rotated after exceeding 350 lines).
+explicitly requested.
+ACTIVE SDD: M3 Canvas SDD not yet created — author it before M3 code (per active-SDD §9
+red-tests-first rule). Prior closed SDD: docs/planning/sdd/phase-3-phrase-selection-sdd.md
+(M2, completed; user/device gate CLOSED 2026-06-20).
+LIVE TRACKER: docs/planning/worklog-v5.md (worklog-v4.md rotated near the 350-line limit).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 
@@ -73,5 +81,7 @@ TimescaleDB, `exploration_events` / `learning_sessions` / `path_patterns` tables
 - Red tests before production code (active SDD §9).
 - Deterministic logic → TDD; LLM output → fixtures + schema/contract checks, never
   assert exact model text.
+- After running Python tests, delete generated `*.pyc` files before ending the work session
+  and verify the remaining `.pyc` count is 0.
 - FIRST ACTION: read the active SDD + worklog + hierarchy before proposing or editing
   anything. State current milestone status back to the user before acting.
