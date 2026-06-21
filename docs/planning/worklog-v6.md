@@ -217,3 +217,88 @@ Do not write production code for a section before its tests exist and are red.
 
 **MCP usage:** use **Supabase MCP** for all DB/schema/migration verification and **Sentry MCP**
 for error triage; verify against live systems rather than assuming.
+
+---
+
+### 2026-06-21 — M3 §14 DoD tasks 1–5 complete (Sentry, gesture, edges, manual-ref, Stage-1 CI gate)
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation
+
+**Spec sections used**:
+- `phase-3-m3-canvas-sdd.md` §3 (Sentry init, manual-reference edge payload), §8 (gesture
+  zoom-clamp + focal-preserving pinch), §9 (Skia edge Bézier + viewport-culled edge count),
+  §13 (3-Stage performance gate; Stage 1 deterministic CI harness), §14 (Definition of Done).
+- `configuration-reference.md` §3 (`CANVAS_MIN_ZOOM=0.25`, `CANVAS_MAX_ZOOM=4.0`,
+  `CANVAS_PERFORMANCE_GATE_NODES=40`).
+- `backend/app/events/registry.py` — `edge_created` v1 `required_payload_fields` contract.
+- `student-api-spec.md` §7 — manual reference links are not path progression.
+
+**Work completed**:
+
+- **Task 1 — Mobile Sentry init (§3, §14)**: red test (`sentry-test.tsx`, 3 cases) → green.
+  - `mobile/app/observability/sentry.ts`: reads `EXPO_PUBLIC_SENTRY_DSN_MOBILE` from env,
+    calls `Sentry.init({ dsn, enableAutoSessionTracking: true })`; no-op when DSN absent.
+  - `mobile/app/App.tsx`: imports and invokes `initSentry()` at load.
+  - `@sentry/react-native` installed via `npx expo install`; plugin registered in `app.json`.
+  - Commit: `e04f829`
+
+- **Task 2 — Gesture zoom-clamp + focal-preserving pinch (§8, §14)**: red test
+  (`gestureTransform-test.tsx`, 6 cases) → green.
+  - `mobile/canvas/gestureTransform.ts`: pure-function reducers `clampScale`, `applyPan`,
+    `applyPinch`; scale clamped to `[CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]`; pinch preserves
+    focal point via `boardToCanvas`-based offset formula.
+  - Commit: `5c20466`
+
+- **Task 3 — Skia edge Bézier rendering + edge-kind styling (§9, §14)**: red test
+  (`edgeRendering-test.tsx`, 5 cases) → green.
+  - `mobile/canvas/edgeRendering.ts`: deterministic `cubicBezierPath(p0, p1) → string`
+    (30 % control-point offset; byte-identical for same inputs); `edgeStyleForKind` maps
+    `ai_path` → solid (strokeWidth 2, no dash) and `manual_reference` → dashed (strokeWidth
+    1.5, dash [6,4]).
+  - Commit: `5deca9b`
+
+- **Task 4 — Manual-reference link event payload builder (§3, §9, §14)**: red test
+  (`edgeEvents-test.tsx`, 4 cases) → green.
+  - `mobile/canvas/edgeEvents.ts`: `MANUAL_REFERENCE_CREATED_BY = "manual_link"`;
+    `buildManualReferenceEdgePayload` emits all 6 `edge_created` v1 required_payload_fields
+    with `edge_kind` pinned to `manual_reference` (student-api-spec.md §7: learner links are
+    not path progression).
+  - Commit: `b682931`
+
+- **Task 5 — Stage 1 CI render-count gate (§13, §14)**: red test (`renderBudget-test.tsx`,
+  2 cases) → green.
+  - `mobile/canvas/renderBudget.ts`: `CANVAS_PERFORMANCE_GATE_NODES = 40`;
+    `countRenderPrimitives(positions, edges, transform, screen)` composes the §9 culling
+    helpers (`computeBoardViewport`, `visibleNodeIds`, `cullEdges`) to count visible nodes +
+    culled-visible edges — the real per-frame draw path.
+  - Invariants verified: (1) 40-node board render path bounded by node budget; (2) viewport
+    culling collapses render path to visible content when zoomed.
+  - Merge-blocking Stage 1 gate is now **GREEN** in CI. Stage 2 (physical-device 60 fps) and
+    Stage 3 (65-node smoke) remain deferred operational gates.
+  - Commit: `500ee44`
+
+**Full regression run**:
+- Mobile Jest: **11 suites, 47 tests, 0 failures** ✅
+- Python pytest: **100/100 passed** ✅
+- `.pyc` cleanup: **0 remaining** ✅
+
+**Files created**:
+- `mobile/app/observability/sentry.ts`
+- `mobile/canvas/gestureTransform.ts`
+- `mobile/canvas/edgeRendering.ts`
+- `mobile/canvas/edgeEvents.ts`
+- `mobile/canvas/renderBudget.ts`
+- `mobile/app/__tests__/sentry-test.tsx`, `gestureTransform-test.tsx`,
+  `edgeRendering-test.tsx`, `edgeEvents-test.tsx`, `renderBudget-test.tsx`
+
+**Files modified**:
+- `mobile/app/App.tsx` (calls `initSentry()`)
+- `mobile/app/app.json` (`@sentry/react-native` plugin entry)
+- `mobile/app/package.json` (`@sentry/react-native` dependency)
+
+**Gate status**:
+- M3 §14 DoD tasks 1–5: **COMPLETE** ✅
+- Stage 1 CI render-count gate: **GREEN** (merge-blocking) ✅
+- Stage 2 physical-device 60fps gate: **DEFERRED** (requires reference mid-range Android)
+- Stage 3 65-node smoke: **DEFERRED** (requires physical device)
+- M3 → M4 unlock gate: awaiting Stage 2 physical-device verification.
