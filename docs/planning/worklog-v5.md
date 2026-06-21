@@ -249,3 +249,34 @@ and the active SDD before making changes.
 - Render backend/worker live verification and the M1 physical-device operational gates remain deferred and
   untouched.
 - M3 (Canvas maturation) is now unblocked per §5 milestone gating.
+
+
+---
+
+### 2026-06-21 — M2 review follow-up: network resilience, segment span accuracy, event contract
+
+**Phase / milestone**: Phase 3 — M2 Phrase Selection (post-gate review fixes)
+
+**Spec sections used**:
+- `docs/planning/development-approach.md` §7.6 (mobile test coverage), §8.2 (error handling).
+- `docs/chapter-analysis-pipeline-specification.md` P0 (`char_span` contract).
+- `docs/planning/session-path-data-contract.md` §8–§9 (`node_created` projection contract).
+- `docs/architecture/backend-architecture.md` §5.3 (event registry).
+- `00-canon.md` (Category Invisibility, Organic-First, Tenant Isolation).
+
+**Work completed**:
+- **Mobile network resilience** (`mobile/PhraseSelectionReaderSheet.tsx`): wrapped `fetch()` calls in `requestPhraseOptions`, `chooseOption`, and `dismissOfferSet` with try-catch so a thrown network error becomes a graceful failure state instead of an unhandled rejection or a stuck modal. In `dismissOfferSet` the `setOfferSet(null)` / `onClose()` cleanup is guaranteed to run even if the dismiss POST fails.
+- **Segment span accuracy** (`backend/app/chapter_analysis/segments.py`): `char_span` is now computed from the stripped text position (`page_text.index(stripped, cursor)`) rather than the raw block position, fixing the span when raw blocks have leading whitespace.
+- **Event contract tightening** (`backend/app/events/registry.py`): added `source_node_id` and `source_option_text` to `node_created` v1 `required_payload_fields` to match the fields the session-path projection reads via `payload["source_node_id"]` / `payload["source_option_text"]`.
+- Added regression tests in `mobile/app/__tests__/PhraseSelectionReaderSheet-test.tsx`, `tests/chapter_analysis/test_pipeline.py`, and `tests/architecture/test_event_registry.py`.
+
+**Validation run**:
+- `cd mobile/app; npx jest --no-coverage --runInBand` → 2 suites passed, 19 tests passed.
+- `python -m ruff format backend tests docs` → 1 file reformatted, 108 unchanged.
+- `python -m ruff check backend tests` → passed.
+- `python -m pytest tests -q` → 93 passed.
+- `.pyc` count verified at 0.
+
+**Gate status**:
+- §5 M2 user/device gate remains **CLOSED**.
+- M3 (Canvas maturation) is still unblocked per §5 gating; these fixes are cleanup, not new M3 work.
