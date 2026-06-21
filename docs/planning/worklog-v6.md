@@ -358,3 +358,85 @@ for error triage; verify against live systems rather than assuming.
 - `SkiaCanvas` + native deps: **COMPLETE** ✅
 - Stage 2 physical-device 60fps gate: **READY TO EXECUTE** (server start + device connect next).
 - Stage 3 65-node smoke: **DEFERRED** until Stage 2 passes.
+
+---
+
+### 2026-06-21 — Stage 2 device-verification blocked; four runtime defects diagnosed in SkiaCanvas
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation
+
+**Spec sections used**:
+- `phase-3-m3-canvas-sdd.md` §5 (dual-state SharedValue/Zustand split), §7 (dual-state sync
+  controllers; write-once-on-end), §8 (Gesture.Simultaneous; UI-thread worklets; no JS work per
+  frame), §9 (Skia reactive render; ADR-0013 native overlay).
+- `adr-log.md` ADR-0013 (Skia↔Native hybrid boundary).
+
+**Context**:
+Physical-device verification was attempted using Expo Go on the reference mid-range Android
+device after restarting Metro with `EXPO_PUBLIC_SHOW_CANVAS=true -c`. The bundle compiled cleanly
+(no module-not-found or babel errors) and the app routed to `<SkiaCanvas>` correctly. However the
+canvas was blank, all gesture interactions were dead (no zoom, no pan), and the app crashed on the
+first pinch gesture.
+
+**Root-cause analysis** (static code review; `adb` not installed on host):
+
+- **Defect A — Non-reactive render** (SDD §5/§8 violated):
+  `SkiaCanvas` reads `scale.value`, `translateX.value`, `translateY.value` synchronously during the
+  JS render phase to build `currentTransform`, then passes static pixel coordinates to the Skia
+  `<Path>` elements and native node `<View>` chips. Reading `.value` in a render body does **not**
+  subscribe to SharedValue changes, and mutating a SharedValue does **not** trigger a React
+  re-render. The canvas therefore computes positions once at mount and never updates, making pinch
+  and pan appear completely dead.
+
+- **Defect B — Worklet calling non-worklet functions** (most probable crash source):
+  `babel-preset-expo` (SDK 56) auto-applies the worklets plugin, which auto-workletizes the
+  gesture-handler `onUpdate` callbacks. Those workletized callbacks directly call `applyPinch`,
+  `applyPan`, and `clampScale` from `gestureTransform.ts` — plain JS functions with no `'worklet'`
+  directive. Reanimated 4 throws a runtime error the first time the UI thread invokes a non-worklet
+  function, producing a hard crash on first pinch/pan gesture.
+
+- **Defect C — Node chips are invisible** (UX regression):
+  Native node overlay uses `backgroundColor: '#f0f0f8'` (near-white) on a white canvas background,
+  with no border and no label text. Both dev-fixture nodes are present in the DOM but
+  indistinguishable from the background.
+
+- **Defect D — §7 controller bypassed** (architecture violation):
+  `gestureSync.ts::createViewportGestureController` exists as the SDD-specified owner of the
+  "write-once-on-end" invariant (§7). `SkiaCanvas` reimplements this lifecycle inline instead of
+  composing the controller, violating the dual-state architecture and making the invariant
+  untestable in isolation.
+
+**Work completed this session**:
+- Expo dev server restarted with `EXPO_PUBLIC_SHOW_CANVAS=true` and `-c`; bundle rebuilt cleanly.
+- Confirmed `EXPO_PUBLIC_SHOW_CANVAS` is now correctly inlined (routing no longer the issue).
+- Confirmed `adb` is not installed on the host; logcat unavailable; static analysis used instead.
+- Diagnosed all four defects from code review against the SDD; no new code written.
+- Worklog and SDD updated with findings; session handed over.
+
+**Files examined**:
+- `mobile/canvas/SkiaCanvas.tsx` (defects A–D located)
+- `mobile/canvas/gestureSync.ts` (§7 controller exists but unused by SkiaCanvas)
+- `mobile/canvas/gestureTransform.ts` (no `'worklet'` annotation → Defect B)
+- `docs/planning/sdd/phase-3-m3-canvas-sdd.md` §5, §7, §8, §9 (confirmed spec requirements)
+
+**Validation**:
+- Mobile Jest: **12 suites, 52 tests, 0 failures** ✅ (unchanged; defects are runtime-only)
+- Device: **Stage 2 BLOCKED** — crash on first gesture; blank canvas
+
+**Gate status**:
+- `SkiaCanvas` Jest gate: **GREEN** ✅
+- Stage 2 physical-device 60fps gate: **BLOCKED** pending reactive rewrite (Defects A–D)
+- Stage 3 65-node smoke: **DEFERRED** until Stage 2 passes
+- M3 → M4 unlock: **BLOCKED**
+
+**Next required action** (canon §9 red-tests-first):
+1. Extend `mobile/app/__tests__/skiaCanvas-test.tsx` with failing tests covering:
+   - worklet-safe annotation on `applyPinch`/`applyPan`/`clampScale` (Defect B)
+   - `createViewportGestureController` wired on gesture end (Defect D)
+2. Rewrite `mobile/canvas/SkiaCanvas.tsx` to use a reactive Skia `<Group transform>` or
+   `useDerivedValue`-driven layout so the canvas updates on the UI thread without JS re-renders
+   (Defect A); add `'worklet'` to the three pure-function reducers (Defect B); wire the §7
+   controller for write-once-on-end (Defect D); give node chips a visible style (Defect C).
+3. Consult https://docs.expo.dev/versions/v56.0.0/ (AGENTS.md requirement) before writing any
+   new Reanimated/Skia code.
+4. All 52 existing tests must remain green; new red tests must pass after the fix.
