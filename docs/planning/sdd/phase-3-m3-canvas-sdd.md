@@ -237,3 +237,34 @@ The §5 M3 exit gate is verified in three escalating stages (`development-approa
 - Mobile Sentry initialized in `App.tsx` via `SENTRY_DSN_MOBILE`.
 - Stage 1 CI gate green and Stage 2 device gate passed on the reference Android device.
 - `.pyc` artifacts cleaned (0 remaining); worklog-v6 updated; every requirement traces to a §.
+
+## 15. Runtime Implementation Findings (2026-06-21)
+
+Recorded after first physical-device run. All four defects are in `mobile/canvas/SkiaCanvas.tsx`;
+no spec section is changed by these findings. Required fix is a targeted rewrite of that file only
+(red-tests-first per §12 / canon §9). Worklog entry 2026-06-21 contains the full analysis.
+
+### Defect A — Non-reactive render (violates §5, §8)
+Reading `SharedValue.value` during the JS render phase does not subscribe to UI-thread mutations.
+`currentTransform` is computed once at mount; canvas and node positions never update during
+gestures. **Fix:** drive the Skia layer from `useDerivedValue` / a reactive Skia `<Group
+transform>` so the transform path executes entirely on the UI thread without JS re-renders; drive
+the native node overlay with `useAnimatedStyle`.
+
+### Defect B — Worklet calling non-worklet functions (hard crash on first gesture, violates §8)
+`babel-preset-expo` SDK 56 auto-workletizes gesture-handler callbacks. Those callbacks invoke
+`applyPinch`, `applyPan`, and `clampScale` from `gestureTransform.ts`, which carry no `'worklet'`
+directive. Reanimated 4 throws a runtime exception when a UI-thread worklet calls a plain-JS
+function. **Fix:** annotate the three pure-function reducers with `'worklet';` as their first
+statement.
+
+### Defect C — Node chips invisible (UX regression)
+`backgroundColor: '#f0f0f8'` on a white canvas; no border, no label. **Fix:** apply a visible
+background (e.g. `#e8e4f8`), a 1-px border, and a node label so chips are identifiable during
+visual audit.
+
+### Defect D — §7 controller bypassed (architecture violation)
+`createViewportGestureController` in `gestureSync.ts` owns the write-once-on-end invariant (§7),
+but `SkiaCanvas` reimplements the lifecycle inline, making the invariant untestable in isolation.
+**Fix:** compose `createViewportGestureController` on gesture end instead of the inline `runOnJS`
+callback.
