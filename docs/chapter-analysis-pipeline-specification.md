@@ -128,7 +128,8 @@ pass, LLM-cited passage references are unverifiable.
 3. Assign deterministic IDs: `[<chapter_id>_<segment_type>_<NNN>]`,
    e.g. `[ch_phys10_electricity_para_014]`. Same input bytes → same IDs.
 4. Store the segment index: `segment_id`, `segment_type`, `text`, `page`, `char_span`
-   (+ `location` for `question` segments).
+   (+ `location` for `question` segments). `char_span` must cover the stripped `text` only,
+   not any surrounding whitespace from the raw block.
 5. Render the **segmented chapter text**: full chapter text with segment ID markers inline.
    This rendered form — never the raw text — is what all LLM passes receive.
 
