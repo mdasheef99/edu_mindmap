@@ -440,3 +440,54 @@ first pinch gesture.
 3. Consult https://docs.expo.dev/versions/v56.0.0/ (AGENTS.md requirement) before writing any
    new Reanimated/Skia code.
 4. All 52 existing tests must remain green; new red tests must pass after the fix.
+
+---
+
+### 2026-06-21 — SkiaCanvas reactive rewrite: Defects A–D resolved, 55/55 tests green
+
+**Author:** agent  **Branch:** phase-3-m3  **Traceability:** SDD §5, §7, §8, §9, §15
+
+**Summary:** Completed the red-tests-first drill for all four runtime defects identified in the
+previous session (SDD §15). All 55 Jest tests pass; Stage 2 physical-device gate is now
+unblocked pending a Metro restart with `EXPO_PUBLIC_SHOW_CANVAS=true`.
+
+**Files changed:**
+
+| File | Change |
+|---|---|
+| `mobile/canvas/coordinateSystem.ts` | Added `'worklet'` to `boardToCanvas` + `canvasToBoard` |
+| `mobile/canvas/gestureTransform.ts` | Added `'worklet'` to `clampScale`, `applyPinch`, `applyPan` |
+| `mobile/canvas/SkiaCanvas.tsx` | Full reactive rewrite (197 → 254 lines, < 300-line canon limit) |
+| `mobile/app/__tests__/skiaCanvas-test.tsx` | + 3 new async tests (A, C, D); mocks for gestureSync + Reanimated expanded; `render` → `await render` per testing-library v14 async API |
+
+**Defect A — Non-reactive render (SDD §5, §8):**
+`NodeChip` sub-component uses `useAnimatedStyle` to drive `left`/`top` from `scaleShared`,
+`translateXShared`, `translateYShared` SharedValues on the UI thread. The Skia edge layer is
+wrapped in a `<Group transform={useDerivedValue(...)}>` so the canvas pan/zoom never triggers
+a React re-render — fully UI-thread driven.
+
+**Defect B — Worklet calling non-worklet functions (SDD §8):**
+Added `'worklet'` directive to `clampScale`, `applyPinch`, `applyPan` (gestureTransform.ts) and
+`boardToCanvas`, `canvasToBoard` (coordinateSystem.ts). These functions are called from
+Reanimated gesture worklets and `useAnimatedStyle` callbacks respectively.
+
+**Defect C — Invisible node chips:**
+Node chip style updated: `backgroundColor: '#e8e4f8'`, `borderWidth: 1`, `borderColor: '#9090b8'`,
+`borderRadius: 6`. Each chip renders a `<Text style={styles.nodeLabel}>{node.node_id}</Text>`
+label so nodes are identifiable during the Stage 2 visual audit.
+
+**Defect D — §7 controller bypassed (SDD §7):**
+`createViewportGestureController` from `gestureSync.ts` is called in `useMemo` on mount.
+`commitTransform` (called via `runOnJS` on gesture end) updates the mutable `ctrlTransformRef`
+and then calls `gestureController.onEnd()` which fires `store.setViewport` — write-once-on-end
+invariant is now enforced through the spec-specified controller.
+
+**Test discovery:** `@testing-library/react-native` v14 `render` is async — all component render
+assertions must `await render(...)`. Prior tests that passed only checked synchronous non-throw
+behaviour; the three new tests correctly use async test functions.
+
+**Gate status:**
+- Stage 1 CI gate: **GREEN** (55/55)
+- Stage 2 physical-device: **UNBLOCKED** — restart Metro with `EXPO_PUBLIC_SHOW_CANVAS=true -c`
+  and execute the 4-part protocol (Sentry init, focal-preserving pinch + clamp, Bézier visual
+  audit, 40-node 60 fps profiling)

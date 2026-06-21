@@ -17,6 +17,7 @@ export const CANVAS_MAX_ZOOM = 4.0;
 
 /** Clamp a scale to the configured zoom bounds. */
 export function clampScale(scale: number): number {
+  'worklet';
   if (scale < CANVAS_MIN_ZOOM) {
     return CANVAS_MIN_ZOOM;
   }
@@ -37,6 +38,7 @@ export function applyPinch(
   gestureScale: number,
   focal: { x: number; y: number },
 ): CanvasTransform {
+  'worklet';
   const newScale = clampScale(base.scale * gestureScale);
   const board = canvasToBoard(focal.x, focal.y, base);
   return {
@@ -48,6 +50,7 @@ export function applyPinch(
 
 /** Apply a pan by a screen-space delta; scale is unchanged. */
 export function applyPan(base: CanvasTransform, dx: number, dy: number): CanvasTransform {
+  'worklet';
   return {
     scale: base.scale,
     translateX: base.translateX + dx,

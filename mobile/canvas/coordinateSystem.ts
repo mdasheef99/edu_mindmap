@@ -26,14 +26,16 @@ export interface Point {
 
 /** Board space -> screen space. Used by the Skia edge renderer and Native node mapper. */
 export function boardToCanvas(boardX: number, boardY: number, transform: CanvasTransform): Point {
+  'worklet';
   return {
     x: boardX * transform.scale + transform.translateX,
     y: boardY * transform.scale + transform.translateY,
   };
 }
 
-/** Screen space -> board space. Used by tap-to-node hit testing. */
+/** Screen space -> board space. Used by tap-to-node hit testing and pinch focal math. */
 export function canvasToBoard(screenX: number, screenY: number, transform: CanvasTransform): Point {
+  'worklet';
   return {
     x: (screenX - transform.translateX) / transform.scale,
     y: (screenY - transform.translateY) / transform.scale,

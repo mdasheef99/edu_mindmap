@@ -19,15 +19,33 @@ import React from 'react';
 
 jest.mock('@shopify/react-native-skia', () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Group: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Path: () => null,
+  DashPathEffect: () => null,
   Skia: {},
 }));
 
-jest.mock('react-native-reanimated', () => ({
-  useSharedValue: (init: any) => ({ value: init }),
-  useAnimatedStyle: (fn: () => any) => fn(),
-  runOnJS: (fn: any) => fn,
-}));
+jest.mock('react-native-reanimated', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: { View, createAnimatedComponent: (c: any) => c },
+    useSharedValue: (init: any) => ({ value: init }),
+    useDerivedValue: (fn: () => any) => ({ value: fn() }),
+    useAnimatedStyle: jest.fn((fn: () => any) => fn()),
+    runOnJS: (fn: any) => fn,
+  };
+});
+
+jest.mock('../../canvas/gestureSync', () => {
+  const actual = jest.requireActual('../../canvas/gestureSync');
+  return {
+    ...actual,
+    createViewportGestureController: jest.fn((...args: any[]) =>
+      actual.createViewportGestureController(...args),
+    ),
+  };
+});
 
 jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
@@ -50,11 +68,12 @@ jest.mock('react-native-gesture-handler', () => {
 
 // ── imports after mocks ────────────────────────────────────────────────────────
 
-import { render } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import { SkiaCanvas } from '../../canvas/SkiaCanvas';
 import { clampScale, CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM } from '../../canvas/gestureTransform';
 import { cullEdges, computeBoardViewport } from '../../canvas/viewportCulling';
 import { cubicBezierPath, edgeStyleForKind } from '../../canvas/edgeRendering';
+import { createViewportGestureController } from '../../canvas/gestureSync';
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
 
@@ -71,13 +90,12 @@ const EDGES = [
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 describe('SkiaCanvas — §8 / §9 component seam', () => {
-  it('test_skia_canvas_renders_without_error', () => {
+  it('test_skia_canvas_renders_without_error', async () => {
     // Smoke: component must exist and accept required props (§8 / §9).
-    expect(() =>
-      render(
-        <SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} />,
-      ),
-    ).not.toThrow();
+    // render() is async in @testing-library/react-native v14.
+    await expect(
+      render(<SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} />),
+    ).resolves.toBeDefined();
   });
 
   it('test_scale_clamp_respects_zoom_limits', () => {
@@ -114,5 +132,35 @@ describe('SkiaCanvas — §8 / §9 component seam', () => {
     expect(edgeStyleForKind('ai_path').dashed).toBe(false);
     expect(edgeStyleForKind('manual_reference').dashed).toBe(true);
     expect(edgeStyleForKind('manual_reference').dashIntervals.length).toBeGreaterThan(0);
+  });
+
+  // ── Defect A: node chips must use useAnimatedStyle (UI-thread reactive, §8) ─
+  it('test_node_chips_use_animated_style', async () => {
+    // RED: current SkiaCanvas uses static View positioning; useAnimatedStyle is never called.
+    // GREEN: NodeChip calls useAnimatedStyle once per node so chips move on the UI thread.
+    // Note: render is async in @testing-library/react-native v14 — must await.
+    const Reanimated = require('react-native-reanimated');
+    const spy = Reanimated.useAnimatedStyle as jest.Mock;
+    spy.mockClear();
+    await render(<SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} />);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  // ── Defect C: node chips must render a visible label (§9 visual audit) ──────
+  it('test_node_chips_have_visible_label', async () => {
+    // RED: current SkiaCanvas renders empty <View> chips; no text is present.
+    // GREEN: each NodeChip renders a <Text> with the node_id so it is identifiable.
+    await render(<SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} />);
+    expect(screen.getByText('n1')).toBeTruthy();
+    expect(screen.getByText('n2')).toBeTruthy();
+  });
+
+  // ── Defect D: createViewportGestureController must be composed (§7 write-once-on-end) ─
+  it('test_viewport_gesture_controller_is_used', async () => {
+    // RED: current SkiaCanvas ignores gestureSync; createViewportGestureController is never called.
+    // GREEN: SkiaCanvas calls createViewportGestureController in useMemo on mount.
+    (createViewportGestureController as jest.Mock).mockClear();
+    await render(<SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} />);
+    expect(createViewportGestureController).toHaveBeenCalled();
   });
 });
