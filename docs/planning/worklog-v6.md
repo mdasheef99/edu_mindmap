@@ -302,3 +302,59 @@ for error triage; verify against live systems rather than assuming.
 - Stage 2 physical-device 60fps gate: **DEFERRED** (requires reference mid-range Android)
 - Stage 3 65-node smoke: **DEFERRED** (requires physical device)
 - M3 → M4 unlock gate: awaiting Stage 2 physical-device verification.
+
+---
+
+### 2026-06-21 — SkiaCanvas component integrated; native deps installed; Expo dev server ready
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation
+
+**Spec sections used**:
+- `phase-3-m3-canvas-sdd.md` §4 (coordinate seam sole authority), §5 (dual-state SharedValue /
+  Zustand split), §7 (write-on-end rule; no Zustand write inside gesture worklet), §8
+  (Gesture.Simultaneous pinch+pan; clampScale [0.25, 4.0]), §9 (Skia Bézier edges + viewport
+  culling + ADR-0013 Native node overlay), §13 (Stage 2 device gate), §14 (DoD: Skia rendering
+  integrated with Native node overlay).
+- `adr-log.md` ADR-0013 (Skia↔Native hybrid boundary; Native Views over Skia canvas).
+- `configuration-reference.md` §3 (`CANVAS_MIN_ZOOM=0.25`, `CANVAS_MAX_ZOOM=4.0`).
+
+**Work completed**:
+
+- **Native deps installed** (user-approved; `npx expo install`):
+  - `@shopify/react-native-skia` `2.6.2` (SDK-56-pinned; `inExpoGo: true`; no dev build required)
+  - `react-native-reanimated` `4.3.1` (New Architecture; worklets plugin auto-wired by
+    `babel-preset-expo`)
+  - `react-native-worklets` `0.8.3`
+  - `react-native-gesture-handler` `~2.31.1`
+  - Commit: implicit (npm/package-lock changes staged with red test)
+
+- **Red test committed** (`mobile/app/__tests__/skiaCanvas-test.tsx`, commit `3f0e212`):
+  - 5 cases: smoke render, scale-clamp limits, viewport-culling removes offscreen edges,
+    cubicBezierPath determinism, edgeStyleForKind contract.
+  - `transformIgnorePatterns` extended to include the three new native libraries.
+  - Failed red on `Cannot find module '../../canvas/SkiaCanvas'`. Canon §9 satisfied.
+
+- **`SkiaCanvas` implemented** (`mobile/canvas/SkiaCanvas.tsx`, commit `60c61dd`):
+  - `Gesture.Simultaneous(pinch, pan)` via `GestureDetector`/`GestureHandlerRootView` (§8).
+  - Reanimated `useSharedValue` for ephemeral transform; `runOnJS(commitTransform)` on
+    gesture end (§7 dual-state rule; no Zustand write inside gesture handlers).
+  - `applyPinch` + `applyPan` from `gestureTransform.ts`; scale via `clampScale` (§8).
+  - `cullEdges` + `computeBoardViewport` run before each render path (§9).
+  - `cubicBezierPath` + `edgeStyleForKind` produce Skia path data (§9).
+  - `boardToCanvas` exclusively for coordinate mapping; no inline seam math (§4).
+  - Native `View` chips overlay Skia canvas at `boardToCanvas`-mapped positions (ADR-0013).
+  - Skia path creation guarded (`Skia.Path?.MakeFromSVGString?.()`) for CI/test env.
+  - Component is 180 lines, under the 300-line canon limit.
+
+- **`App.tsx` wired** (commit `60c61dd`):
+  - `EXPO_PUBLIC_SHOW_CANVAS=true` activates `SkiaCanvas` with dev fixtures; default keeps
+    M2 smoke screen intact (no regression to existing behaviour).
+
+**Validation**:
+- Mobile Jest: **12 suites, 52 tests, 0 failures** ✅
+- `skiaCanvas-test.tsx`: **5/5 green** ✅
+
+**Gate status**:
+- `SkiaCanvas` + native deps: **COMPLETE** ✅
+- Stage 2 physical-device 60fps gate: **READY TO EXECUTE** (server start + device connect next).
+- Stage 3 65-node smoke: **DEFERRED** until Stage 2 passes.
