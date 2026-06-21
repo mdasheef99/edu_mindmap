@@ -1,6 +1,6 @@
 # Event Store and Job Queue Schema
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (draft)
 **Status**: Current MVP schema baseline  
 **Scope**: Append-only events and Postgres `SKIP LOCKED` jobs
 
@@ -24,7 +24,6 @@ Table: `events`
 | `tenant_id` | UUID | yes | tenant isolation key |
 | `actor_user_id` | UUID | conditional | authenticated actor when applicable |
 | `student_id` | UUID | conditional | learner subject of event |
-| `teacher_id` | UUID | conditional | teacher subject/actor for teacher events |
 | `session_id` | UUID | conditional | required for session/path events |
 | `exam_id` | UUID | conditional | session/curriculum context |
 | `subject_id` | UUID | conditional | session/curriculum context |
@@ -32,19 +31,25 @@ Table: `events`
 | `chapter_analysis_id` | UUID | conditional | pinned chapter-analysis version when relevant |
 | `concept_entry_id` | UUID | conditional | starting concept entry for session events |
 | `node_id` | UUID | conditional | source/primary node where relevant |
-| `edge_id` | UUID | conditional | edge events |
 | `offer_set_id` | UUID | conditional | offer-set events and choices |
 | `occurred_at` | timestamptz | yes | client/server occurrence time |
 | `recorded_at` | timestamptz | yes | server append time |
 | `idempotency_key` | text | conditional | mutation retry safety; unique per producer scope |
 | `producer` | text | yes | `client`, `server`, `worker`, `admin`, `internal` |
 | `payload` | JSONB | yes | registry-validated payload |
-| `policy_name` | text | conditional | offer/checkpoint policy name |
 | `policy_version` | text | conditional | offer/checkpoint policy version |
 | `prompt_version` | text | conditional | generation/classification prompt version |
 | `model_id` | text | conditional | LLM model identifier for model-derived artifacts |
 | `projection_version` | text | conditional | projection/replay version for derived outputs |
 | `replay_id` | UUID | conditional | replay batch identifier where applicable |
+
+> **Payload-stored identifiers (not envelope columns).** `edge_id` and `policy_name` are **not**
+> promoted to dedicated columns in the live `events` table (migration 0001) and are **not** inserted
+> by `app.events.postgres_store.PostgresEventStore`. They live inside `payload` JSONB and are
+> registry-validated there (e.g. `edge_*` events require `edge_id` in `required_payload_fields`).
+> `teacher_id` has no column and no current registered event — it is a forward declaration for a
+> later teacher-events phase, to be added via migration only when such an event type is registered.
+> This note reconciles prior schema drift against the verified live schema.
 
 ## 3. Append Rules
 

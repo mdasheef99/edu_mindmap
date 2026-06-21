@@ -53,6 +53,7 @@ Continue numbering from ADR-0015. Do not renumber or move earlier decisions from
 | ADR | Title | Status |
 |-----|-------|--------|
 | ADR-0015 | Supabase Auth JWT validation strategy | Accepted |
+| ADR-0016 | M3 canvas layout engine: deterministic `d3-hierarchy` | Accepted |
 
 ---
 
@@ -102,4 +103,62 @@ change. The binding rules are fixed:
 
 ---
 
-*Document Version 1.0 | Architecture Decision Record Log — 02*
+## ADR-0016 — M3 canvas layout engine: deterministic `d3-hierarchy`
+
+**Status**: Accepted
+**Date**: 2026-06-21
+**Phase**: Phase 3 — M3 Canvas maturation
+**Source-of-truth refs**: `development-approach.md` §5 M3 (node visualization, 65-node limits, 60fps at
+40+ nodes on the reference mid-range Android device), §7.3 (mobile stack: Skia + Reanimated +
+Gesture Handler + Zustand); `adr-log.md` ADR-0013 (Hybrid Architecture: Skia for edges/board, native
+Views for node content; positions held as shared state); `00-canon.md` (Organic-First invariant).
+
+### Context
+
+M3 must place up to 65 nodes on a pan/zoom canvas and hold 60fps at 40+ nodes on the reference
+mid-range Android device. The session board is a **tree**: every node is created via edge-`+`
+branching from a single parent (`session_path` projection stores `parent_node_id` from
+`payload["source_node_id"]`), so the structure is strictly hierarchical with optional manual
+reference links drawn as overlays. The §7.3 stack is locked, but the layout *engine* was the one
+open slot. Two candidates were considered:
+
+1. **`d3-force`** — continuous physics simulation; organic but non-deterministic, runs the
+   simulation loop on the JS thread every tick until cool-down, and produces different coordinates
+   across runs for the same input.
+2. **`d3-hierarchy`** — deterministic tidy-tree / radial placement; computes coordinates once per
+   structural change, pure function of the tree.
+
+### Decision
+
+**Adopt `d3-hierarchy` (deterministic tidy-tree / radial layout) for the M3 canvas.** `d3-force` is
+explicitly **not** adopted for MVP.
+
+Binding rules:
+
+- Layout is computed **once when the tree structure changes** (node added/deleted), not per frame.
+  Output coordinates are written to the canonical Zustand store and mirrored to Reanimated
+  SharedValues for gesture-driven pan/zoom, per ADR-0013's "positions as shared state".
+- Manual reference links are drawn as Skia overlay curves **outside** the layout engine; they do not
+  feed back into node placement.
+- A user drag overrides the computed position for that node and persists locally; re-running layout is
+  a deliberate, user- or structure-triggered action, never a background loop.
+- `d3-hierarchy` is a pure-JS dependency with no native module footprint, so it adds no Skia↔native
+  coordinate-seam risk beyond the existing hybrid boundary.
+
+### Consequences
+
+- **Serves Organic-First**: the tree is grown organically by selection-driven branching; deterministic
+  *placement* of that organic structure does not reintroduce any pre-classification or central
+  planning of content — classification remains post-hoc and async, untouched by layout.
+- **Protects the 60fps gate**: eliminating the continuous physics loop removes per-frame JS-thread work,
+  leaving the frame budget to Skia rendering and Reanimated gesture handling. This is the primary
+  reason for choosing determinism over physics at this node scale.
+- **Replay-friendly**: deterministic coordinates make board screenshots and tests reproducible.
+- **Escalation path**: if future measurement shows `d3-hierarchy` placement is visually inadequate for
+  dense reference-link graphs, `d3-force` may be revisited via a superseding ADR — deferred until
+  measured, consistent with the project's defer-until-evidence posture.
+- Red tests for layout determinism precede M3 layout code (`00-canon.md` behavioral rules; active SDD §9).
+
+---
+
+*Document Version 1.1 | Architecture Decision Record Log — 02*
