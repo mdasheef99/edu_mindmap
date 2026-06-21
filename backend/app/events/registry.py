@@ -92,8 +92,10 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
                 "session_id",
                 "node_type",
                 "content",
+                "source_node_id",
                 "source_offer_set_id",
                 "source_option_id",
+                "source_option_text",
                 "thread_context_id",
             }
         ),
