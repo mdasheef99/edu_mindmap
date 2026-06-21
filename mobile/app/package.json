@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@sentry/react-native": "~7.11.0",
     "d3-hierarchy": "^3.1.2",
     "expo": "~56.0.12",
     "expo-status-bar": "~56.0.4",
