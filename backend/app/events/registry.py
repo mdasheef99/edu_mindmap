@@ -276,6 +276,36 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
             }
         ),
     ),
+    ("node_visited", 1): EventTypeSpec(
+        event_type="node_visited",
+        event_version=1,
+        allowed_producers=frozenset({"client"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "node_id",
+                "session_id",
+                "visit_source",
+            }
+        ),
+    ),
+    ("viewport_changed", 1): EventTypeSpec(
+        event_type="viewport_changed",
+        event_version=1,
+        allowed_producers=frozenset({"client"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id"}),
+        required_payload_fields=frozenset(
+            {
+                "session_id",
+                "scale",
+                "translate_x",
+                "translate_y",
+                "visible_node_ids",
+            }
+        ),
+    ),
     ("consent_recorded", 1): EventTypeSpec(
         event_type="consent_recorded",
         event_version=1,
