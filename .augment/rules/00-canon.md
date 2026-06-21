@@ -15,10 +15,11 @@ physical-device Expo smoke remain deferred operational gates. Do not attempt ope
 verification unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: M3 Canvas SDD not yet created — author it before M3 code (per active-SDD §9
-red-tests-first rule). Prior closed SDD: docs/planning/sdd/phase-3-phrase-selection-sdd.md
-(M2, completed; user/device gate CLOSED 2026-06-20).
-LIVE TRACKER: docs/planning/worklog-v5.md (worklog-v4.md rotated near the 350-line limit).
+ACTIVE SDD: docs/planning/sdd/phase-3-m3-canvas-sdd.md (M3 Canvas maturation, authored
+2026-06-21; §12 red tests required before any M3 production code). Prior closed SDD:
+docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, completed; user/device gate CLOSED
+2026-06-20).
+LIVE TRACKER: docs/planning/worklog-v6.md (worklog-v5.md rotated at 346 lines, 2026-06-21).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 

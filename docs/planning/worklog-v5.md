@@ -280,3 +280,66 @@ and the active SDD before making changes.
 **Gate status**:
 - §5 M2 user/device gate remains **CLOSED**.
 - M3 (Canvas maturation) is still unblocked per §5 gating; these fixes are cleanup, not new M3 work.
+
+---
+
+### 2026-06-21 — M3 prep: layout-engine ADR, schema-doc reconciliation, node_id index migration
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation (pre-SDD groundwork)
+
+**Spec sections used**:
+- `docs/planning/development-approach.md` §5 M3 (node visualization, 65-node limits, 60fps gate),
+  §7.3 (locked mobile stack).
+- `docs/architecture/adr-log.md` ADR-0013 (Hybrid Architecture; positions as shared state).
+- `docs/database/event-store-and-job-queue-schema.md` §2 (events envelope).
+- `00-canon.md` (Organic-First invariant; ADR/red-test rules).
+
+**Work completed**:
+- **ADR-0016 authored** (`docs/architecture/adr-log-02.md`): adopts deterministic `d3-hierarchy`
+  (tidy-tree / radial) for the M3 canvas and explicitly rejects `d3-force` for MVP. Layout computed
+  once per structural change and mirrored into Zustand + Reanimated SharedValues; rationale ties to
+  the 60fps gate (no per-frame physics loop) and Organic-First (deterministic placement of an
+  organically branched tree does not affect post-hoc classification). Added to the ADR index.
+- **Schema-doc drift reconciled** (`docs/database/event-store-and-job-queue-schema.md`, v1.1):
+  removed phantom envelope columns `edge_id`, `teacher_id`, `policy_name`. Verified against the live
+  schema (MCP), migration 0001, and `app.events.postgres_store` — `edge_id`/`policy_name` are
+  payload-stored and registry-validated there; `teacher_id` has no column and no registered event
+  (forward declaration). Added a clarifying note documenting this.
+- **Migration prepared** (`backend/migrations/versions/0006_m3_schema_alignment.py`,
+  down_revision `0005`): adds partial index
+  `events_node_id_idx ON events (tenant_id, node_id, recorded_at) WHERE node_id IS NOT NULL` to
+  support M3 `node_visited` node-scoped replay. No envelope columns added. The session/type indexes
+  already exist from migration 0001 and are not recreated.
+
+**Validation run** (initial — migration prepared):
+- Live-DB index audit (MCP): `events_tenant_session_recorded_idx` and
+  `events_tenant_type_recorded_idx` confirmed present; `events_node_id_idx` confirmed absent.
+
+**Gate status** (initial):
+- §5 M2 user/device gate remains **CLOSED**.
+- M3 SDD not yet authored; this is pre-SDD groundwork. No M3 production code written.
+
+---
+
+### 2026-06-21 — Schema audit closed: events_node_id_idx applied to live DB; postgres_store verification
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation (pre-SDD groundwork, continued)
+
+**Spec sections used**:
+- `docs/database/event-store-and-job-queue-schema.md` §2 (events envelope; payload-stored-identifiers note).
+- `docs/planning/development-approach.md` §5 M3 (node_visited replay; node_id index requirement).
+- `backend/app/events/postgres_store.py` `INSERT_EVENT_SQL` and `_EVENT_COLUMNS`.
+
+**Work completed**:
+- **`postgres_store.py` final verification**: regex search for `teacher_id` and `policy_name` in
+  `INSERT_EVENT_SQL` and `_EVENT_COLUMNS` returned zero matches. Combined with the earlier
+  `edge_id` check, all three phantom fields are confirmed strictly payload-only. The schema-doc
+  reconciliation (v1.1, prior entry) is fully justified. Schema audit is **CLOSED**.
+- **Migration 0006 applied to live DB**: executed via Supabase MCP `apply_migration`. Confirmed
+  live via `pg_indexes` query:
+  `CREATE INDEX events_node_id_idx ON public.events USING btree (tenant_id, node_id, recorded_at) WHERE (node_id IS NOT NULL)`.
+  All three events indexes now present in the live database.
+
+**Gate status**:
+- §5 M2 user/device gate remains **CLOSED**.
+- M3 SDD authoring is the mandatory next step before any M3 production code (canon §9 red-tests-first rule).
