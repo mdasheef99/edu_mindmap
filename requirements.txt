@@ -3,3 +3,5 @@ uvicorn
 pydantic
 psycopg[binary]
 sentry-sdk
+pyjwt
+pypdf

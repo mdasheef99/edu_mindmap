@@ -52,13 +52,13 @@ Continue numbering from ADR-0015. Do not renumber or move earlier decisions from
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| ADR-0015 | Supabase Auth JWT validation strategy | Proposed |
+| ADR-0015 | Supabase Auth JWT validation strategy | Accepted |
 
 ---
 
 ## ADR-0015 — Supabase Auth JWT validation strategy
 
-**Status**: Proposed (to be Accepted at Phase 2 kickoff)
+**Status**: Accepted
 **Date**: 2026-06-18
 **Phase**: Phase 2 — Curriculum Ingestion
 **Source-of-truth refs**: `development-approach.md` §7.1 (Auth = Supabase Auth, JWT `user_id`;
@@ -70,15 +70,18 @@ role/tenant resolved server-side); `backend-architecture.md` §5.4 (identity + t
 Phase 2 enforces authentication on `/v1/student` and `/v1/teacher`. Supabase Auth issues JWTs that
 identify the **user only** — never the tenant. The backend must verify the JWT and then resolve
 `user_id → memberships → tenant/role` server-side, because **mobile-supplied tenant is never
-authoritative** (Tenant Isolation invariant, `00-canon.md`). Two verification mechanisms are
-available and the choice must be recorded, not left implicit:
+authoritative** (Tenant Isolation invariant, `00-canon.md`). Two verification mechanisms were
+available:
 
 1. **Shared HS256 secret** (`SUPABASE_JWT_SECRET`) — simplest; secret lives only in backend env.
 2. **Asymmetric / JWKS** (`SUPABASE_JWT_JWKS_URL`) — rotatable keys, no shared secret distribution.
 
-### Decision (to confirm)
+### Decision
 
-Record the selected mechanism here when accepted. Either way, the binding rules are fixed:
+**Selected mechanism: HS256 shared secret (`SUPABASE_JWT_SECRET`).**
+
+JWKS placeholder remains in `configuration-reference.md` §10.1 for future rotation without a schema
+change. The binding rules are fixed:
 
 - The JWT is verified in `tenancy`/`api` middleware before any handler runs; an invalid/expired
   token is rejected with a uniform error that leaks no analytic vocabulary
@@ -93,8 +96,9 @@ Record the selected mechanism here when accepted. Either way, the binding rules 
 - No mobile-side provider credentials; key custody stays backend-only (`backend-architecture.md` §9.6).
 - A red test (`test_jwt_resolves_backend_tenant_and_role`) must exist before implementation
   (`00-canon.md` behavioral rules; SDD §9).
-- The unchosen env-var placeholder remains documented (`configuration-reference.md` §10.1) so the
-  mechanism can be revised without a schema change.
+- The unchosen env-var placeholder (`SUPABASE_JWT_JWKS_URL`) remains documented
+  (`configuration-reference.md` §10.1) so the mechanism can be revised without a schema change.
+- HS256 is sufficient for MVP; key rotation is a later operational concern tracked in the worklog.
 
 ---
 

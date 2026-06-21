@@ -27,6 +27,22 @@ class InMemoryTenantScopedConnection:
             return None
         return self._session_store.get_for_tenant(session_id, self._tenant_id)
 
+    def fetch_session_for_student(self, session_id: str, student_user_id: UUID) -> dict | None:
+        if self._tenant_id is None:
+            return None
+        return self._session_store.get_for_tenant_and_student(
+            session_id, self._tenant_id, student_user_id
+        )
+
+    def list_recent_sessions(self, *, student_user_id: UUID, limit: int = 5) -> list[dict]:
+        if self._tenant_id is None:
+            return []
+        return self._session_store.list_recent_for_tenant_and_student(
+            tenant_id=self._tenant_id,
+            student_user_id=student_user_id,
+            limit=limit,
+        )
+
     def fetch_session_bypassing_app_guard(self, session_id: str) -> dict | None:
         """Direct table-style read protected only by the tenant context backstop."""
         return self.fetch_session(session_id)

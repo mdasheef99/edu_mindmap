@@ -35,6 +35,10 @@ class OfferChoiceResponse(BaseModel):
     offer_set_id: UUID
     outcome: Literal["selected", "dismissed"]
     recorded: bool
+    child_node_id: UUID | None = None
+    edge_id: UUID | None = None
+    child_node_type: Literal["ai"] | None = None
+    child_content: str | None = None
 
 
 def build_offer_set_choice(
@@ -77,3 +81,75 @@ def build_offer_set_choice(
         recorded=True,
     )
     return event, response
+
+
+def build_selected_child_path(
+    *,
+    context: OfferChoiceContext,
+    offer_set_id: UUID,
+    request: OfferChoiceRequest,
+    choice_event: dict[str, Any],
+    now: datetime | None = None,
+    child_node_id: UUID | None = None,
+    edge_id: UUID | None = None,
+    node_event_id: UUID | None = None,
+    edge_event_id: UUID | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    occurred_at = now or datetime.now(timezone.utc)
+    resolved_child_node_id = child_node_id or uuid4()
+    resolved_edge_id = edge_id or uuid4()
+    child_content = f"Explore: {request.selected_option_text}"
+
+    node_payload = {
+        "node_id": str(resolved_child_node_id),
+        "session_id": str(request.session_id),
+        "node_type": "ai",
+        "content": child_content,
+        "source_node_id": str(request.source_node_id),
+        "source_offer_set_id": str(offer_set_id),
+        "source_option_id": str(request.selected_option_id),
+        "source_option_text": request.selected_option_text,
+        "thread_context_id": str(request.thread_context_id),
+    }
+    edge_payload = {
+        "edge_id": str(resolved_edge_id),
+        "session_id": str(request.session_id),
+        "source_node_id": str(request.source_node_id),
+        "target_node_id": str(resolved_child_node_id),
+        "edge_kind": "ai_path",
+        "created_by": "offer_set_choice",
+        "source_offer_set_id": str(offer_set_id),
+        "source_choice_event_id": str(choice_event["event_id"]),
+    }
+    node_event = {
+        "event_id": node_event_id or uuid4(),
+        "event_type": "node_created",
+        "event_version": 1,
+        "tenant_id": context.tenant_id,
+        "actor_user_id": context.student_user_id,
+        "student_id": context.student_user_id,
+        "session_id": request.session_id,
+        "node_id": resolved_child_node_id,
+        "occurred_at": occurred_at,
+        "payload": node_payload,
+    }
+    edge_event = {
+        "event_id": edge_event_id or uuid4(),
+        "event_type": "edge_created",
+        "event_version": 1,
+        "tenant_id": context.tenant_id,
+        "actor_user_id": context.student_user_id,
+        "student_id": context.student_user_id,
+        "session_id": request.session_id,
+        "node_id": request.source_node_id,
+        "edge_id": resolved_edge_id,
+        "occurred_at": occurred_at,
+        "payload": edge_payload,
+    }
+    child_response = {
+        "child_node_id": resolved_child_node_id,
+        "edge_id": resolved_edge_id,
+        "child_node_type": "ai",
+        "child_content": child_content,
+    }
+    return node_event, edge_event, child_response

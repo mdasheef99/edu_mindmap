@@ -9,12 +9,16 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel
 
 
+class ChapterLaunchNotFoundError(Exception):
+    """Raised when a requested chapter is not launchable from curriculum for this tenant."""
+
+
 class SessionStartRequest(BaseModel):
     exam_id: UUID
     subject_id: UUID
     chapter_id: UUID
     concept_entry_id: UUID
-    chapter_analysis_id: UUID
+    chapter_analysis_id: UUID | None = None
 
 
 class SessionContext(BaseModel):
@@ -88,3 +92,28 @@ def build_session_started(
         "closed_at": None,
     }
     return event, session_row, StudentSession.model_validate(session_row)
+
+
+def build_session_resumed(
+    *,
+    context: SessionContext,
+    session_id: UUID,
+    now: datetime | None = None,
+    event_id: UUID | None = None,
+) -> dict[str, Any]:
+    occurred_at = now or datetime.now(timezone.utc)
+    resolved_event_id = event_id or uuid4()
+    return {
+        "event_id": resolved_event_id,
+        "event_type": "session_resumed",
+        "event_version": 1,
+        "tenant_id": context.tenant_id,
+        "actor_user_id": context.student_user_id,
+        "student_id": context.student_user_id,
+        "session_id": session_id,
+        "occurred_at": occurred_at,
+        "payload": {
+            "session_id": str(session_id),
+            "student_user_id": str(context.student_user_id),
+        },
+    }

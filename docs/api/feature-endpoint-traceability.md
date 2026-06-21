@@ -50,6 +50,7 @@ This document proves that the API surface preserves Category Invisibility and Or
 | Add PYQ to board | `POST /v1/student/sessions/{session_id}/pyq/{question_id}/nodes` | `node_created` | `student_rm.nodes` | optional `project` |
 | Teacher classes | `GET /v1/teacher/classes` | none | tenancy/class tables | none |
 | Teacher roster overview | `GET /v1/teacher/classes/{class_id}/students` | none | tenancy + `analytic_rm` participation projections | none |
+| Teacher chapter graph render | `GET /v1/teacher/chapters/{chapter_id}` | none | `curriculum` | none |
 | Chapter landscape | `GET /v1/teacher/chapters/{chapter_id}/landscape` | `teacher_view_accessed` | `analytic_rm` + chapter analysis | none |
 | Student chapter review | `GET /v1/teacher/students/{student_id}/chapters/{chapter_id}/review` | `teacher_view_accessed` | `analytic_rm` | none |
 | Checkpoint interpretation | review panel | `checkpoint_offered`, `checkpoint_response` | `analytic_rm` checkpoint projection | `project` |

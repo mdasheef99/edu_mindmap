@@ -43,3 +43,20 @@ forbidden_modules = [
   "app.classification",
   "app.projections",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Chapter analysis must not import generation or classification"
+type = "forbidden"
+source_modules = ["app.chapter_analysis"]
+forbidden_modules = [
+  "app.generation",
+  "app.classification",
+]
+
+[[tool.importlinter.contracts]]
+name = "Chapter analysis must not import API modules"
+type = "forbidden"
+source_modules = ["app.chapter_analysis"]
+forbidden_modules = [
+  "app.api",
+]

@@ -81,7 +81,7 @@ This is testable for almost nothing, and if it fails, nothing downstream matters
 ### 3.1 Work items
 
 1. **P0 (segmentation) as pure code** against the Electricity chapter
-   (`docs/research/electiricity.pdf`), per the pipeline spec. No LLM involved — an ideal first
+   (`docs/research/electricity.pdf`), per the pipeline spec. No LLM involved — an ideal first
    programming project that also produces the system's first real artifact.
 2. **P1–P4** (concept inventory, passage mapping, weighting inputs, edge extraction) as scripts,
    with outputs written to versioned JSON files and reviewed by eye.
