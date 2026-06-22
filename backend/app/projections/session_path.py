@@ -58,9 +58,9 @@ def apply_session_path_projection_events(
         elif event_type == "offer_set_created":
             _apply_offer_set_created(store, event, event_order)
         elif event_type == "offer_set_impression":
-            _apply_offer_set_impression(store, event)
+            _apply_offer_set_impression(store, event, event_order)
         elif event_type == "offer_set_choice":
-            _apply_offer_set_choice(store, event)
+            _apply_offer_set_choice(store, event, event_order)
         elif event_type == "node_created":
             _apply_node_created(store, event, event_order)
         elif event_type == "edge_created":
@@ -112,17 +112,17 @@ def _apply_offer_set_created(
 
 
 def _apply_offer_set_impression(
-    store: InMemorySessionPathProjectionStore, event: Mapping[str, Any]
+    store: InMemorySessionPathProjectionStore, event: Mapping[str, Any], event_order: int
 ) -> None:
-    offer = _offer_state(store, event, len(store.sessions))
+    offer = _offer_state(store, event, event_order)
     offer["impressed_at"] = event["occurred_at"]
 
 
 def _apply_offer_set_choice(
-    store: InMemorySessionPathProjectionStore, event: Mapping[str, Any]
+    store: InMemorySessionPathProjectionStore, event: Mapping[str, Any], event_order: int
 ) -> None:
     payload = event["payload"]
-    offer = _offer_state(store, event, len(store.sessions))
+    offer = _offer_state(store, event, event_order)
     offer.update(
         {
             "outcome": payload["outcome"],
@@ -254,6 +254,8 @@ def _sorted_public_items(
     items = []
     for value in values.values():
         identifier = value.get("node_id") or value.get("edge_id") or value.get("offer_set_id")
+        if identifier is None:
+            continue
         if deleted_ids is not None and identifier in deleted_ids:
             continue
         items.append({key: deepcopy(val) for key, val in value.items() if not key.startswith("_")})
