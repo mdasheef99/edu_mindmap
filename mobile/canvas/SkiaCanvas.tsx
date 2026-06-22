@@ -66,15 +66,18 @@ interface NodeChipProps {
 }
 
 function NodeChip({ node, scaleShared, translateXShared, translateYShared }: NodeChipProps) {
-  // useAnimatedStyle drives chip position on the UI thread without JS re-renders (§5).
-  // boardToCanvas is worklet-annotated (coordinateSystem.ts) so it runs in this worklet (Defect B).
+  // useAnimatedStyle drives chip position AND scale on the UI thread (§5, Defect A fix).
+  // boardToCanvas is worklet-annotated so it runs in this worklet (Defect B).
+  // transform:[{scale}] makes chips visually scale with zoom; center stays at pos.x/pos.y
+  // because RN applies transforms from the element's geometric center by default.
   const animStyle = useAnimatedStyle(() => {
+    const scale = scaleShared.value;
     const pos = boardToCanvas(node.position.x, node.position.y, {
-      scale: scaleShared.value,
+      scale,
       translateX: translateXShared.value,
       translateY: translateYShared.value,
     });
-    return { left: pos.x - CHIP_W / 2, top: pos.y - CHIP_H / 2 };
+    return { left: pos.x - CHIP_W / 2, top: pos.y - CHIP_H / 2, transform: [{ scale }] };
   });
   return (
     <Animated.View style={[styles.nodeChip, animStyle]}>
