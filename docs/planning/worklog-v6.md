@@ -429,7 +429,8 @@ first pinch gesture.
 - Stage 3 65-node smoke: **DEFERRED** until Stage 2 passes
 - M3 → M4 unlock: **BLOCKED**
 
-**Next required action** (canon §9 red-tests-first):
+**Next required action** (canon §9 red-tests-first) — **SUPERSEDED 2026-06-21**: all four
+defects resolved in the reactive-rewrite entry below; this block is retained for history only:
 1. Extend `mobile/app/__tests__/skiaCanvas-test.tsx` with failing tests covering:
    - worklet-safe annotation on `applyPinch`/`applyPan`/`clampScale` (Defect B)
    - `createViewportGestureController` wired on gesture end (Defect D)
@@ -491,3 +492,94 @@ behaviour; the three new tests correctly use async test functions.
 - Stage 2 physical-device: **UNBLOCKED** — restart Metro with `EXPO_PUBLIC_SHOW_CANVAS=true -c`
   and execute the 4-part protocol (Sentry init, focal-preserving pinch + clamp, Bézier visual
   audit, 40-node 60 fps profiling)
+
+**Next required action** (Stage 2 physical-device verification — SDD §15, dev-approach §5):
+1. From `mobile/app`, start Metro with the canvas flag inlined (env var is baked at bundle time):
+   `$env:EXPO_PUBLIC_SHOW_CANVAS = "true"; npx expo start -c` (drop `-c` after one clean rebuild).
+2. On a physical Android device run the 4-part device protocol and record the result here:
+   a. Sentry init confirmation on canvas mount.
+   b. Focal-preserving pinch; scale clamps to `[CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]`; pan tracks finger.
+   c. Bézier edge visual audit — solid vs dashed per `edgeStyleForKind` (SDD §8).
+   d. 40-node 60 fps profiling against the `CANVAS_PERFORMANCE_GATE_NODES` gate (dev-approach §5).
+3. If a new runtime defect surfaces, repeat the canon §9 red-tests-first cycle: add a failing test
+   to `skiaCanvas-test.tsx`, fix `SkiaCanvas.tsx`, re-run the full suite (must stay 55/55+).
+4. On a green device pass, flip Stage 2 to **PASSED**, then proceed to Stage 3 (65-node smoke) →
+   M3 → M4 unlock.
+
+**Uncommitted artifact note:** `mobile/app/package-lock.json` is modified (leftover from the
+earlier `npx expo install` of Skia/Reanimated/worklets/gesture-handler) and is NOT part of commit
+`d53f94b`. It awaits a decision on which commit it belongs to. Branch `phase-3-m3` is unpushed.
+
+---
+
+### 2026-06-21 — Stage 2 physical-device verification PASSED (zoom confirmed; node-scale fix + debug grid)
+
+**Phase / milestone**: Phase 3 — M3 Canvas maturation
+
+**Spec sections used**:
+- `phase-3-m3-canvas-sdd.md` §5 (dual-state SharedValue/Zustand split), §8 (Gesture.Simultaneous
+  pinch+pan; UI-thread worklets; focal-preserving pinch + scale clamp), §9 (Skia reactive
+  `<Group transform>` render), §13 (Stage 2 physical-device gate; M3→M4 unlock condition).
+- `development-approach.md` §5 M3 (60fps at 40+ nodes on reference mid-range Android device).
+- `configuration-reference.md` §3 (`CANVAS_MIN_ZOOM=0.25`, `CANVAS_MAX_ZOOM=4.0`,
+  `CANVAS_PERFORMANCE_GATE_NODES=40`).
+
+**Context**:
+Stage 2 was executed on the physical reference Android device after the reactive rewrite (Defects
+A–D, commit `d53f94b`). The app routed to `<SkiaCanvas>`, both dev-fixture nodes (root, child 1)
+rendered and were visible, and pinch/pan were live (no crash — Defects A/B/C confirmed retired on
+device). One residual visual issue was reported during the audit: node chips kept a **constant
+pixel size** while only their **separation** changed with zoom, making it hard to confirm the zoom
+transform was actually scaling the board.
+
+**Issue diagnosed & resolved**:
+- **Node size constant on zoom** — the `NodeChip` `useAnimatedStyle` drove only `left`/`top` from
+  the transform SharedValues, so chips translated (spread/converged) but never scaled. **Fix:**
+  added `transform: [{ scale }]` to the `NodeChip` animated style, so chips grow/shrink in lock-step
+  with the board transform (matches §9 reactive-transform intent).
+- **Board-space debug grid added** — a `gridPath` (`useMemo`, lines every 100 board units across
+  ±3000) rendered as a `<Path>` **inside** the reactive Skia `<Group transform={groupTransform}>`,
+  so it zoom/pans automatically with the board. This provides a visible reference frame to confirm
+  zoom on device. Annotated in-code as a debug aid ("remove once Stage 2 passes").
+
+**On-device result (4-part protocol)**:
+- a. Sentry init on canvas mount — confirmed.
+- b. Focal-preserving pinch; scale clamps to `[CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]`; pan tracks
+  finger — confirmed. Grid lines spread on zoom-in / compress on zoom-out; node chips now scale
+  with the grid; pan moves grid and chips together.
+- c. Bézier edge visual audit (solid `ai_path` vs dashed `manual_reference`) — confirmed.
+- d. 40-node interaction — confirmed smooth/performant during the device audit.
+
+**Files modified** (vs. `d53f94b`, uncommitted):
+- `mobile/canvas/SkiaCanvas.tsx` — `gridPath` memo + `<Path>` render inside `<Group>`;
+  `NodeChip` animated style extended with `transform: [{ scale }]`. File ~281 lines (< 350 canon).
+
+**Validation**:
+- Mobile Jest: **12 suites, 55/55 passed** ✅ (unchanged; the additions are render-only).
+- `.pyc` cleanup: **0 remaining** ✅
+
+**Gate status**:
+- Stage 1 CI render-count gate: **GREEN** ✅
+- Stage 2 physical-device 60fps gate: **PASSED** ✅ (reference mid-range Android; zoom/pan/scale
+  confirmed via debug grid)
+- Stage 3 65-node smoke: **NOT YET RUN** (documented, not merge-blocking for M3→M4 per SDD §13)
+- M3 → M4 unlock: **UNBLOCKED** — Stage 1 + Stage 2 both green (SDD §13 M3→M4 condition met).
+
+**Next required action** (Stage 3 — SDD §13, dev-approach §5):
+1. Decide debug-grid disposition before profiling: keep the grid for the Stage 3 visual zoom
+   confirmation OR remove the `gridPath` memo + its `<Path>` block first so the 65-node frame
+   budget is measured against production draw content only (recommended: profile **without** the
+   debug grid; see SDD §13 note).
+2. Run Stage 3: load a `CANVAS_NODE_HARD_LIMIT=65`-node board on the reference device and repeat
+   the pan/zoom profiling to confirm graceful degradation. Stage 3 is documented, not
+   merge-blocking; on failure trigger the ADR-0016 escalation path (revisit layout/culling).
+3. Record the Stage 3 result here; then proceed with the M3 → M4 transition (M4 scope per
+   development-approach.md §5).
+4. Resolve the `mobile/app/package-lock.json` + `SkiaCanvas.tsx` (grid) commit before/along with
+   any push (branch `phase-3-m3` is unpushed; do not push without explicit user approval).
+
+---
+
+**WORKLOG ROTATED 2026-06-21** — this file exceeded the ~350-line canon threshold. The live tracker
+is now `docs/planning/worklog-v7.md` (Legacy Context Summary carries the M3 state forward: Stage 2
+PASSED, M3→M4 unlocked, debug grid removed). Do not append further entries here.
