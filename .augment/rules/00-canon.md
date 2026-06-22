@@ -19,7 +19,8 @@ ACTIVE SDD: docs/planning/sdd/phase-3-m3-canvas-sdd.md (M3 Canvas maturation, au
 2026-06-21; §12 red tests required before any M3 production code). Prior closed SDD:
 docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, completed; user/device gate CLOSED
 2026-06-20).
-LIVE TRACKER: docs/planning/worklog-v6.md (worklog-v5.md rotated at 346 lines, 2026-06-21).
+LIVE TRACKER: docs/planning/worklog-v7.md (worklog-v6.md rotated past the ~350-line threshold,
+2026-06-21; worklog-v5.md rotated at 346 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 

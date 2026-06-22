@@ -1,8 +1,9 @@
 # Phase 3 M3 Canvas Maturation — Software Design Document (SDD)
 
-**Document Version**: 1.2
-**Status**: Active — §12 red-tests-first drill COMPLETE (17/17 green, 2026-06-21); pan/zoom Skia
-rendering, full gesture integration, mobile Sentry init, and the 3-stage performance gate remain.
+**Document Version**: 1.3
+**Status**: Active — §12 red-tests-first drill COMPLETE (17/17 green); pan/zoom Skia rendering +
+gesture integration + mobile Sentry init complete; Stage 1 CI gate GREEN and Stage 2 physical-device
+gate PASSED (2026-06-21). M3→M4 unlock condition met; Stage 3 (65-node smoke, non-blocking) remains.
 **Phase / milestone**: Phase 3 — M3 Canvas maturation
 **Live tracker**: `docs/planning/worklog-v6.md`
 
@@ -15,7 +16,7 @@ rendering, full gesture integration, mobile Sentry init, and the 3-stage perform
 | Increment name | Gesture-driven canvas: pan/zoom, deterministic layout, Skia edges |
 | Phase / milestone | Phase 3 — M3 |
 | Owner | (developer) |
-| Status | Active — red tests green; rendering + gate pending |
+| Status | Active — red tests green; rendering complete; Stage 1 + Stage 2 PASSED (M3→M4 unlocked); Stage 3 pending |
 
 Goal: mature the mindmap canvas into a 60fps gesture-driven surface. Skia renders the board and
 edges; Native Views render node content (ADR-0013). Node positions come from a deterministic
@@ -219,12 +220,19 @@ The §5 M3 exit gate is verified in three escalating stages (`development-approa
 
 - **Stage 1 — CI render-count (merge-blocking):** a Jest render-count harness asserts the canvas
   render path stays under the 16 ms frame budget for 40 nodes. Deterministic, runs without a device.
+  **Status: PASSED** (GREEN in CI, 55/55).
 - **Stage 2 — Physical device profiling (M3→M4 gate):** on a physical reference mid-range Android
   device (never simulator, never flagship), GPU/JS profiling must show **≥95% of frames at ≥60fps**
-  while panning/zooming a 40-node board.
+  while panning/zooming a 40-node board. **Status: PASSED (2026-06-21)** on the reference mid-range
+  Android device; zoom/pan confirmed via a board-space debug grid, and the residual "node size
+  constant on zoom" issue was resolved by adding `transform: [{ scale }]` to the `NodeChip` animated
+  style (worklog-v6 2026-06-21 entry). With Stage 1 + Stage 2 both green, the **M3→M4 unlock
+  condition is met**.
 - **Stage 3 — 65-node smoke:** repeat Stage 2 at the `CANVAS_NODE_HARD_LIMIT=65` ceiling to confirm
   graceful degradation; if it fails, the ADR-0016 escalation path (revisit layout/culling strategy)
-  is triggered. Stage 3 is documented, not merge-blocking for M3→M4.
+  is triggered. Stage 3 is documented, not merge-blocking for M3→M4. **Status: NOT YET RUN.**
+  Profile against production draw content only — remove the temporary board-space debug grid from
+  `SkiaCanvas.tsx` before the 65-node frame-budget measurement.
 
 ## 14. Definition of Done
 
