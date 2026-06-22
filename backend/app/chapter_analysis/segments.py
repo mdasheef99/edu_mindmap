@@ -38,15 +38,18 @@ def segment_chapter_text(chapter_id: str, pages: Sequence[str]) -> list[dict[str
 
     for page_number, page_text in enumerate(pages, start=1):
         cursor = 0
-        for raw_block in page_text.split("\n\n"):
+        blocks = page_text.split("\n\n")
+        for i, raw_block in enumerate(blocks):
             stripped = raw_block.strip()
             if not stripped:
-                cursor += len(raw_block) + 2
+                # Account for the raw_block content plus the separator (except after last block)
+                cursor += len(raw_block) + (2 if i < len(blocks) - 1 else 0)
                 continue
 
             block_start = page_text.index(stripped, cursor)
             block_end = block_start + len(stripped)
-            cursor = block_end
+            # Move cursor past this block and its separator (except after last block)
+            cursor = cursor + len(raw_block) + (2 if i < len(blocks) - 1 else 0)
 
             segment_type = "question" if stripped.endswith("?") else "para"
             counters[segment_type] = counters.get(segment_type, 0) + 1

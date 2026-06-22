@@ -102,7 +102,7 @@ class SessionRuntime:
         memberships = self.memberships.get_memberships_for_user(user_id)
         if not memberships:
             raise NoActiveMembershipError("No active membership for authenticated user")
-        # Pick the first active membership for the test fixture
+        # Pick the first membership for the test fixture (no active check)
         membership = memberships[0]
         return AuthContext(
             user_id=user_id,

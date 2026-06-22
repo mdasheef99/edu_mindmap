@@ -29,17 +29,28 @@ def active_canvas_from_events(
     for event in events:
         if not _same_scope(event, session_id, tenant_id, student_user_id):
             continue
-        payload = event["payload"]
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError(f"Event payload must be a dict for event: {event}")
         if event["event_type"] == "node_created":
-            active_nodes.add(str(payload["node_id"]))
+            node_id = payload.get("node_id")
+            if node_id is None:
+                raise KeyError(f"node_created payload missing required key 'node_id': {payload}")
+            active_nodes.add(str(node_id))
         elif event["event_type"] == "edge_created":
-            active_edges[str(payload["edge_id"])] = _edge_payload(payload)
+            edge_id = payload.get("edge_id")
+            if edge_id is None:
+                raise KeyError(f"edge_created payload missing required key 'edge_id': {payload}")
+            active_edges[str(edge_id)] = _edge_payload(payload)
         elif event["event_type"] == "edge_deleted":
-            active_edges.pop(str(payload["edge_id"]), None)
+            edge_id = payload.get("edge_id")
+            if edge_id is None:
+                raise KeyError(f"edge_deleted payload missing required key 'edge_id': {payload}")
+            active_edges.pop(str(edge_id), None)
         elif event["event_type"] == "node_deleted":
-            for deleted_node_id in payload["deleted_node_ids"]:
+            for deleted_node_id in payload.get("deleted_node_ids", []):
                 active_nodes.discard(str(deleted_node_id))
-            for deleted_edge_id in payload["deleted_edge_ids"]:
+            for deleted_edge_id in payload.get("deleted_edge_ids", []):
                 active_edges.pop(str(deleted_edge_id), None)
     return active_nodes, active_edges
 
@@ -72,6 +83,12 @@ def _same_scope(
 
 
 def _edge_payload(payload: Mapping[str, Any]) -> dict[str, str]:
+    missing_keys = [
+        key for key in ("edge_id", "session_id", "source_node_id", "target_node_id", "edge_kind")
+        if payload.get(key) is None
+    ]
+    if missing_keys:
+        raise KeyError(f"edge_created payload missing required keys {missing_keys}: {payload}")
     return {
         "edge_id": str(payload["edge_id"]),
         "session_id": str(payload["session_id"]),
