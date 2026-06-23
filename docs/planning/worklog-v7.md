@@ -155,3 +155,98 @@ owner decision only.
 4. **Do NOT schedule** rich-media nodes, advanced connectivity, or in-node selection. They stay
    deferred/Never-in-MVP (§5, §7.8) until the owner explicitly amends `development-approach.md` §5.
    If the owner wants any of them, raise it as an ADR / §5 amendment first.
+
+---
+
+
+### 2026-06-23 — Phase 3 M3 Canvas fixes: Drag attachment, Culling expansion, UI refinement
+
+**Phase / milestone**: Phase 3 — M3 / M3-B fixes.
+
+**Work completed**:
+- **Culling viewport fix**: Expanded the canvas bounding box (`visIds`) by half the chip size (`CHIP_W/(2*scale)` and `CHIP_H/(2*scale)`) so nodes aren't culled the instant their center crosses the screen boundary. Wired `onTransformEnd` in `App.tsx` so the culling box tracks live viewport pans instead of sticking to the initial mount transform.
+- **Node-drag edges**: Updated the `nodePositions` culling and path-drawing array to merge the currently dragged node's live position override (`dragCurrBX` / `dragCurrBY`). This ensures Bézier edges stay anchored to the node *during* a drag, rather than snapping after the drag commits.
+- **`EdgePlusButtons` live tracking**: Upgraded the `+` buttons to read from the live UI-thread SharedValues (`scaleShared`, `translateXShared`, `translateYShared`) via `useAnimatedStyle`. They now stick perfectly to nodes during panning instead of drifting on a stale committed transform.
+- **`EdgePlusButtons` visual refinement**: Retained the 44pt touch-target accessibility invariant (`MVP L277`) but shrank the visual indigo circle to 24pt, so it reads as a proportional dot on the chip's vertical edge.
+- **Test sync**: Adjusted Reanimated mock to allow no-op `useAnimatedReaction`; rewrote `edgePlusButton-test.tsx` props for shared-value injection; 16 suites / 84 mobile Jest tests remain green.
+
+**Next required actions**:
+1. (Optional, non-blocking) Run Stage 2 device re-run and Stage 3 65-node smoke.
+2. Resolve the `phase-3-m3` commit; **do not push without explicit user approval**.
+3. **Begin M4 (Curriculum entry + Supabase Auth)**.
+
+### 2026-06-22 — Phase 3 M3-B Canvas Feature Parity: LOCALLY COMPLETE
+
+**Phase / milestone**: Phase 3 — M3-B Canvas Feature Parity (supplemental to M3 base).
+
+**Spec sections used**:
+- `phase-3-m3b-canvas-feature-parity-sdd.md` §1–§9 (all features F1–F3, F5–F6; TB-series tests).
+- `mvp-features-specification.md` §3.3 (node selection), §4.4 L269–285 (edge-`+` UI, edge labels),
+  §4.3 L260 (delete cascade).
+- `session-path-data-contract.md` §3 (no body editing), §10 (deletion cascade).
+- `adr-log-02.md` ADR-0013 (Skia/Native placement), ADR-0016 (layout invariance).
+- `phase-3-m3-canvas-sdd.md` §4 (coordinate seam), §5 (dual-state), §7 (write-once-on-end),
+  §9 (viewport culling, `visibleNodeIds`), §11 (node limits).
+- `configuration-reference.md` §3 (`CANVAS_NODE_WARNING_COUNT=50`, `CANVAS_NODE_HARD_LIMIT=65`).
+
+**Work completed**:
+
+*Red-test-first (all suites written RED, then turned GREEN):*
+- **TB1** `edgeLabel-test.tsx` — `edgeLabelLayout` Bézier-midpoint anchor + truncation → **GREEN**.
+- **TB2** `edgePlusButton-test.tsx` — EdgePlusButtons positioning, 44pt touch target, POST
+  `/v1/student/offer-sets/edge` → **GREEN**.
+- **TB3/TB4** `nodeSelection-test.tsx` — `hitTestNode` AABB, store write-once, toolbar actions,
+  `DELETE ?confirmed=true` → **GREEN**.
+- **TB6** `skiaCanvas-test.tsx` (extended) — off-screen chip culled, edge-`+` & toolbar culled with
+  off-screen node → **GREEN**.
+- **TB7** `nodeLimitUi-test.tsx` — warning banner at 50, creation disabled at 65 → **GREEN**.
+
+*New modules (all <300 lines; `mobile/canvas/`):*
+- `edgeRendering.ts` — added `edgeLabelLayout`, `cubicBezierPoint`, `EDGE_LABEL_MAX_CHARS=28` (F1).
+- `hitTest.ts` (new) — `hitTestNode` pure AABB helper (F3).
+- `store.ts` (new) — `useMindMapStore` Zustand store: `selectedNodeId`, `selectNode`,
+  `clearSelection`; single `set(...)` per call (§7 write-once rule) (F3).
+- `nodeLimits.ts` (new) — `nodeLimitState(count): {showWarning, creationBlocked}` (F6).
+- `NodeLimitBanner.tsx` (new) — warning banner Native View overlay (F6).
+- `nodeOverlay.ts` (new) — `edgePlusButtonPositions` + `toolbarPosition` screen-space helpers;
+  `NODE_SIZE=[200,160]` (F2/F3).
+- `EdgePlusButtons.tsx` (new) — 44pt left/right TouchableOpacity buttons, POSTs edge offer-set (F2).
+- `NodeToolbar.tsx` (new) — Explore + confirm-gated Delete toolbar; DELETEs cascade endpoint (F3).
+
+*SkiaCanvas.tsx wiring (F1 / F2 / F3 / F5 / F6):*
+- **Imports**: added `Platform`, `SkiaText`, `matchFont`, `canvasToBoard`, `visibleNodeIds`,
+  `edgeLabelLayout`, `hitTestNode`, `useMindMapStore`, `NODE_SIZE`, `EdgePlusButtons`,
+  `NodeToolbar`, `NodeLimitBanner`, `nodeLimitState`.
+- **Types**: `CanvasNode.thread_context_id?` (F2 passthrough); `CanvasEdge.label?` (F1);
+  `SkiaCanvasProps.apiBaseUrl?` / `authorizationToken?` / `sessionId?` (F2/F3 opt-in chrome).
+- **F1**: `edgeLabels` memo → `SkiaText` inside Skia `<Group>` (board space, auto-scaled).
+- **F3**: `useMindMapStore` selection; tap gesture (`Gesture.Race(tap, Simultaneous(pinch, pan))`)
+  → `handleTap` → `hitTestNode` → `selectNode`/`clearSelection`.
+- **F5**: `visIds = new Set(visibleNodeIds(...))` memo; `NodeChip`, `EdgePlusButtons`, `NodeToolbar`
+  all gated to `visIds.has(n.node_id)`.
+- **F2**: `EdgePlusButtons` rendered per visible node when `discoveryEnabled`; `disabled` when
+  `limitState.creationBlocked`.
+- **F6**: `NodeLimitBanner activeCount={nodes.length}` always rendered (self-nulls below threshold).
+
+**Test result**: **82/82 mobile Jest** ✅ (16 suites — up from 55 at M3 base, via 27 new M3-B tests).
+No pytest run (Python not modified in M3-B).
+
+**Gate status**:
+- CI (Stage 1) Jest gate: **GREEN** ✅ (82/82)
+- Device (Stage 2) 60fps re-run at 40+ nodes: **DEFERRED** — operational gate, non-blocking.
+- Stage 3 65-node smoke: **DEFERRED** — operational gate, non-blocking (carried from M3 base).
+
+**Known housekeeping item**:
+`SkiaCanvas.tsx` is **372 lines** (22 over the 300–350 canon target). No new behaviour may be
+added to this file without first extracting `NodeChip` and the overlay layer into separate modules.
+Refactor ticket deferred to M4 cleanup (no behaviour change required).
+
+**Next required actions**:
+1. Commit `phase-3-m3` branch (lockfile + all M3 + M3-B changes); **do not push without explicit
+   user approval**.
+2. (Optional, non-blocking) Run Stage 2 device re-run and Stage 3 65-node smoke on the reference
+   device; record results here.
+3. **Begin M4 (Curriculum entry + Supabase Auth)** per `development-approach.md` §5 M4 —
+   this is the next priority milestone.
+4. Early M4 refactor: extract `NodeChip` + canvas overlay layer from `SkiaCanvas.tsx` to bring
+   the file under the 350-line canon limit before adding any M4 behaviour.

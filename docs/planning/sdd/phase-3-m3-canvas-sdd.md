@@ -142,16 +142,18 @@ Skia draws the board and edges; Native Views overlay node content (ADR-0013). Ed
 cubic Bézier between `boardToCanvas`-mapped endpoints. Edge styling is keyed by `edge_kind`:
 `ai_path` (solid) vs `manual_reference` (dashed/distinct).
 
-Culling (`mobile/canvas/viewportCulling.ts`) runs before each render pass. Board-space viewport box:
+Culling (`mobile/canvas/viewportCulling.ts`) runs before each render pass. The board-space
+viewport box is the inverse of the §4 seam (`boardX = (screenX - translateX) / scale`),
+evaluated at the screen corners so culling stays consistent with rendering under pan/zoom:
 
 ```
-[translateX, translateY, translateX + screenW/scale, translateY + screenH/scale]
+minX = -translateX / scale            maxX = (screenW - translateX) / scale
+minY = -translateY / scale            maxY = (screenH - translateY) / scale
 ```
 
 - `computeBoardViewport(transform, screen)` returns the box.
 - `cullEdges(edges, nodePositions, viewport)` keeps an edge if **at least one** endpoint is inside.
-- `visibleNodeIds(nodePositions, viewport)` produces the `visible_node_ids` list for the
-  `viewport_changed` payload (§10).
+- `visibleNodeIds(nodePositions, viewport)` applies padding by half the chip dimension (`CHIP_W/(2*scale)`, `CHIP_H/(2*scale)`) so nodes are only culled when they fully exit the screen. This padded subset drives native node rendering and the `viewport_changed` payload (§10).
 
 ## 10. Event Registration
 
@@ -276,3 +278,9 @@ visual audit.
 but `SkiaCanvas` reimplements the lifecycle inline, making the invariant untestable in isolation.
 **Fix:** compose `createViewportGestureController` on gesture end instead of the inline `runOnJS`
 callback.
+
+### Defect E — Viewport culling drift & hard boundaries (violates §9)
+`App.tsx` passed a frozen static transform to `SkiaCanvas`, so the `visIds` set never updated after gestures. Further, culling checked the chip center without considering chip bounds, causing nodes to vanish abruptly. **Fix:** Wire `onTransformEnd` in `App.tsx` so the culling box tracks the gesture end, and pad the `visIds` box by half the chip dimensions in `SkiaCanvas.tsx`.
+
+### Defect F — Drag attachment drift
+Native `EdgePlusButtons` computed position off a JS-committed transform, causing them to float independently of nodes moving via SharedValues during pan. Bézier edges snapped to dragged nodes only at the end of the gesture. **Fix:** Drive `EdgePlusButtons` from `scaleShared`, `translateXShared`, `translateYShared` directly; merge the active drag override (`liveDragOverride`) into the `nodePositions` array so Skia redraws Bézier curves anchored to the moving chip.
