@@ -1,32 +1,32 @@
 /**
- * SkiaCanvas — M3 SDD §8/§9 hybrid canvas component (reactive rewrite 2026-06-21).
- *
- * Skia draws board edges inside a reactive <Group> whose transform is driven by
- * useDerivedValue — no React re-renders needed per gesture frame (§5, §8 Defect A fix).
- * Native NodeChip overlays use useAnimatedStyle for UI-thread position updates (ADR-0013).
- * Gesture worklets call worklet-annotated applyPinch/applyPan/boardToCanvas (Defect B fix).
- * Node chips are visually distinct: border + background + label (Defect C fix).
- * createViewportGestureController from gestureSync.ts owns the §7 write-once-on-end
- * invariant; commitTransform updates the mutable reference and fires onEnd (Defect D fix).
- *
- * Traceability: phase-3-m3-canvas-sdd.md §4, §5, §7, §8, §9, §15; adr-log-02.md ADR-0013.
+ * SkiaCanvas — thin hybrid-canvas orchestrator (M3/M3-B/M3-C).
+ * Domain logic lives in dedicated hooks; the dual-state rule (M3 SDD §5/§7) is preserved.
+ * Traceability: phase-3-m3-canvas-sdd.md §4, §5, §7, §8, §9, §15;
+ * phase-3-m3b-canvas-feature-parity-sdd.md §5.1–§5.6;
+ * phase-3-m3c-infrastructure-remediation-sdd.md §6, §7; adr-log-02.md ADR-0013.
  */
 
-import React, { useRef, useMemo } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { Canvas, Group, Path, Skia } from '@shopify/react-native-skia';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-} from 'react-native-reanimated';
-import { CanvasTransform, boardToCanvas, Point } from './coordinateSystem';
-import { applyPinch, applyPan } from './gestureTransform';
-import { createViewportGestureController } from './gestureSync';
-import { computeBoardViewport, cullEdges, ScreenSize } from './viewportCulling';
-import { cubicBezierPath, edgeStyleForKind } from './edgeRendering';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { CanvasTransform, Point } from './coordinateSystem';
+import { ScreenSize } from './viewportCulling';
+import { useMindMapStore } from './store';
+import { EdgePlusButtons } from './EdgePlusButtons';
+import { NodeToolbar } from './NodeToolbar';
+import { NodeLimitBanner } from './NodeLimitBanner';
+import { nodeLimitState } from './nodeLimits';
+import { NodeChip } from './NodeChip';
+import { CanvasEdges } from './CanvasEdges';
+import { useCanvasGestures } from './useCanvasGestures';
+import { CHIP_W, CHIP_H } from './chipConstants';
+import { postClientEvent, throttledPostViewport } from './apiClient';
+import { EdgeOfferSetSheet } from './EdgeOfferSetSheet';
+import type { EdgeOfferSet } from './EdgeOfferSetSheet';
+import { useDeletionReconciliation } from './useDeletionReconciliation';
+import { useDiscoveryManager } from './useDiscoveryManager';
+import { useLiveDragOverride } from './useLiveDragOverride';
+import { useCanvasRenderData } from './useCanvasRenderData';
 
 // ── public types ──────────────────────────────────────────────────────────────
 
@@ -34,6 +34,9 @@ export interface CanvasNode {
   node_id: string;
   parent_node_id: string | null;
   position: Point;
+  title?: string;
+  content?: string;
+  thread_context_id?: string;
 }
 
 export interface CanvasEdge {
@@ -41,6 +44,7 @@ export interface CanvasEdge {
   source_node_id: string;
   target_node_id: string;
   edge_kind: string;
+  label?: string;
 }
 
 export interface SkiaCanvasProps {
@@ -48,210 +52,190 @@ export interface SkiaCanvasProps {
   edges: CanvasEdge[];
   screen: ScreenSize;
   transform: CanvasTransform;
-  /** Called once on gesture end with the new canonical transform (§7 dual-state). */
   onTransformEnd?: (t: CanvasTransform) => void;
-}
-
-// ── node chip constants ────────────────────────────────────────────────────────
-const CHIP_W = 80;
-const CHIP_H = 40;
-
-// ── NodeChip — animated native overlay (ADR-0013, Defect A + C fix) ───────────
-
-interface NodeChipProps {
-  node: CanvasNode;
-  scaleShared: { value: number };
-  translateXShared: { value: number };
-  translateYShared: { value: number };
-}
-
-function NodeChip({ node, scaleShared, translateXShared, translateYShared }: NodeChipProps) {
-  // useAnimatedStyle drives chip position AND scale on the UI thread (§5, Defect A fix).
-  // boardToCanvas is worklet-annotated so it runs in this worklet (Defect B).
-  // transform:[{scale}] makes chips visually scale with zoom; center stays at pos.x/pos.y
-  // because RN applies transforms from the element's geometric center by default.
-  const animStyle = useAnimatedStyle(() => {
-    const scale = scaleShared.value;
-    const pos = boardToCanvas(node.position.x, node.position.y, {
-      scale,
-      translateX: translateXShared.value,
-      translateY: translateYShared.value,
-    });
-    return { left: pos.x - CHIP_W / 2, top: pos.y - CHIP_H / 2, transform: [{ scale }] };
-  });
-  return (
-    <Animated.View style={[styles.nodeChip, animStyle]}>
-      <Text style={styles.nodeLabel}>{node.node_id}</Text>
-    </Animated.View>
-  );
+  apiBaseUrl?: string;
+  authorizationToken?: string;
+  sessionId?: string;
+  onReloadCanvas?: () => void;
 }
 
 // ── SkiaCanvas ─────────────────────────────────────────────────────────────────
 
-export function SkiaCanvas({ nodes, edges, screen, transform, onTransformEnd }: SkiaCanvasProps) {
-  // Ephemeral UI-thread SharedValues — updated every gesture frame, never writes Zustand (§5, §7).
-  const scaleShared = useSharedValue(transform.scale);
-  const translateXShared = useSharedValue(transform.translateX);
-  const translateYShared = useSharedValue(transform.translateY);
+export default function SkiaCanvas({
+  nodes, edges, screen, transform, onTransformEnd,
+  apiBaseUrl, authorizationToken, sessionId, onReloadCanvas,
+}: SkiaCanvasProps) {
+  const { selectedNodeId, selectNode, clearSelection } = useMindMapStore();
+  const {
+    activeOfferSet, discoveryError, handleOfferSet, handleOfferError, handleBranchCreated, closeOfferSet,
+  } = useDiscoveryManager(onReloadCanvas);
 
-  // Gesture base snapshots captured on gesture start so deltas are relative to start position.
-  const baseScale = useSharedValue(transform.scale);
-  const baseTX = useSharedValue(transform.translateX);
-  const baseTY = useSharedValue(transform.translateY);
+  const [posOverrides, setPosOverrides] = useState<Record<string, Point>>({});
+  const committedNodes = useMemo(
+    () => nodes.map((n) => ({ ...n, position: posOverrides[n.node_id] ?? n.position })),
+    [nodes, posOverrides],
+  );
+  const { liveNodes, liveEdges, handleDeleted } = useDeletionReconciliation(committedNodes, edges, clearSelection);
 
-  // §7 write-once-on-end controller (Defect D fix). Mutable ref lets commitTransform
-  // update it before onEnd fires so store.setViewport receives the correct final values.
-  const ctrlTransformRef = useRef<CanvasTransform>({ ...transform });
-  const gestureController = useMemo(
-    () =>
-      createViewportGestureController({
-        store: { setViewport: (t) => onTransformEnd?.(t) },
-        transform: ctrlTransformRef.current,
-      }),
-    [], // eslint-disable-line react-hooks/exhaustive-deps
+  const liveNodesRef = useRef(liveNodes);
+  liveNodesRef.current = liveNodes;
+
+  const emitEnabled = Boolean(apiBaseUrl && sessionId);
+  const visIdsRef = useRef<Set<string>>(new Set());
+
+  const handleSelectNode = useCallback(
+    (nodeId: string) => {
+      selectNode(nodeId);
+      if (emitEnabled) {
+        postClientEvent(apiBaseUrl!, sessionId!, authorizationToken, {
+          event_type: 'node_visited', event_version: 1, session_id: sessionId!, node_id: nodeId,
+          payload: { node_id: nodeId, session_id: sessionId!, visit_source: 'tap' },
+        });
+      }
+    },
+    [selectNode, emitEnabled, apiBaseUrl, sessionId, authorizationToken],
   );
 
-  /** JS-thread commit: update mutable ref then let the controller write to the store (§7). */
-  function commitTransform(t: CanvasTransform) {
-    ctrlTransformRef.current.scale = t.scale;
-    ctrlTransformRef.current.translateX = t.translateX;
-    ctrlTransformRef.current.translateY = t.translateY;
-    gestureController.onEnd();
-  }
-
-  // Skia Group reactive transform — UI-thread path, no React re-render needed (§5, Defect A fix).
-  // Order: translate first (screen-space offset), then scale — matches §4 formula
-  // screenX = boardX * scale + translateX.
-  const groupTransform = useDerivedValue(() => [
-    { translateX: translateXShared.value },
-    { translateY: translateYShared.value },
-    { scale: scaleShared.value },
-  ]);
-
-  // ── Gesture.Simultaneous(pinch, pan) — §8 ────────────────────────────────────
-  const pinch = Gesture.Pinch()
-    .onStart(() => {
-      baseScale.value = scaleShared.value;
-      baseTX.value = translateXShared.value;
-      baseTY.value = translateYShared.value;
-    })
-    .onUpdate((e) => {
-      const next = applyPinch(
-        { scale: baseScale.value, translateX: baseTX.value, translateY: baseTY.value },
-        e.scale,
-        { x: e.focalX, y: e.focalY },
-      );
-      scaleShared.value = next.scale;
-      translateXShared.value = next.translateX;
-      translateYShared.value = next.translateY;
-    })
-    .onEnd(() => {
-      runOnJS(commitTransform)({
-        scale: scaleShared.value,
-        translateX: translateXShared.value,
-        translateY: translateYShared.value,
-      });
-    });
-
-  const pan = Gesture.Pan()
-    .onStart(() => {
-      baseTX.value = translateXShared.value;
-      baseTY.value = translateYShared.value;
-    })
-    .onUpdate((e) => {
-      const next = applyPan(
-        { scale: scaleShared.value, translateX: baseTX.value, translateY: baseTY.value },
-        e.translationX,
-        e.translationY,
-      );
-      translateXShared.value = next.translateX;
-      translateYShared.value = next.translateY;
-    })
-    .onEnd(() => {
-      runOnJS(commitTransform)({
-        scale: scaleShared.value,
-        translateX: translateXShared.value,
-        translateY: translateYShared.value,
-      });
-    });
-
-  const composed = Gesture.Simultaneous(pinch, pan);
-
-  // ── render data: culling uses committed transform (JS-side snapshot, §9/§10) ──
-  const nodePositions = useMemo(
-    () => Object.fromEntries(nodes.map((n) => [n.node_id, n.position])),
-    [nodes],
-  );
-  const viewport = useMemo(() => computeBoardViewport(transform, screen), [transform, screen]);
-  const visibleEdges = useMemo(
-    () => cullEdges(edges, nodePositions, viewport),
-    [edges, nodePositions, viewport],
+  const handleTransformEnd = useCallback(
+    (t: CanvasTransform) => {
+      onTransformEnd?.(t);
+      if (emitEnabled) {
+        throttledPostViewport(apiBaseUrl!, sessionId!, authorizationToken, {
+          event_type: 'viewport_changed', event_version: 1, session_id: sessionId!,
+          payload: {
+            session_id: sessionId!, scale: t.scale, translate_x: t.translateX, translate_y: t.translateY,
+            visible_node_ids: Array.from(visIdsRef.current),
+          },
+        });
+      }
+    },
+    [onTransformEnd, emitEnabled, apiBaseUrl, sessionId, authorizationToken],
   );
 
-  // Board-space paths — the reactive Group transform converts them to screen space (§9).
-  const edgePaths = useMemo(
-    () =>
-      visibleEdges.map((edge) => {
-        const src = nodePositions[edge.source_node_id];
-        const tgt = nodePositions[edge.target_node_id];
-        if (!src || !tgt) return null;
-        const svgStr = cubicBezierPath(src, tgt);
-        const style = edgeStyleForKind(edge.edge_kind);
-        const skiaPath = (Skia as any).Path?.MakeFromSVGString?.(svgStr) ?? null;
-        return { edge_id: edge.edge_id, skiaPath, style };
-      }),
-    [visibleEdges, nodePositions],
+  const gestures = useCanvasGestures({
+    nodes: liveNodes,
+    nodesRef: liveNodesRef,
+    transform,
+    nodeSize: [CHIP_W, CHIP_H],
+    onTransformEnd: handleTransformEnd,
+    onNodeDragEnd: (nodeId, x, y) => setPosOverrides((prev) => ({ ...prev, [nodeId]: { x, y } })),
+    onSelectNode: handleSelectNode,
+    onClearSelection: clearSelection,
+  });
+
+  const liveDragOverride = useLiveDragOverride(gestures, liveNodesRef);
+  const { nodePositions, visIds, visibleEdges } = useCanvasRenderData(
+    liveNodes, liveEdges, liveDragOverride, transform, screen,
   );
+  visIdsRef.current = visIds;
+
+  const limitState = nodeLimitState(liveNodes.length);
+  const selectedNode =
+    selectedNodeId != null && visIds.has(selectedNodeId)
+      ? (liveNodes.find((n) => n.node_id === selectedNodeId) ?? null)
+      : null;
+
+  const discoveryEnabled = Boolean(apiBaseUrl && sessionId);
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <GestureDetector gesture={composed}>
-        <>
-          {/* Skia layer — board-space paths inside a reactive Group (§9, Defect A fix) */}
-          <Canvas style={StyleSheet.absoluteFill}>
-            <Group transform={groupTransform}>
-              {edgePaths.map((ep) =>
-                ep?.skiaPath ? (
-                  <Path
-                    key={ep.edge_id}
-                    path={ep.skiaPath}
-                    style="stroke"
-                    strokeWidth={ep.style.dashed ? 1.5 : 2}
-                    color="#5a5a72"
-                  />
-                ) : null,
-              )}
-            </Group>
-          </Canvas>
+      <GestureDetector gesture={gestures.composed}>
+        <View style={StyleSheet.absoluteFill}>
+          <CanvasEdges
+            nodePositions={nodePositions}
+            edges={liveEdges}
+            visibleEdges={visibleEdges}
+            visIds={visIds}
+            groupTransform={gestures.groupTransform}
+          />
 
-          {/* Native node overlay — animated position, visible style + label (ADR-0013, Defect A+C fix) */}
-          {nodes.map((node) => (
-            <NodeChip
-              key={node.node_id}
-              node={node}
-              scaleShared={scaleShared}
-              translateXShared={translateXShared}
-              translateYShared={translateYShared}
+          {liveNodes
+            .map((node, idx) => ({ node, idx }))
+            .filter(({ node }) => visIds.has(node.node_id))
+            .map(({ node, idx }) => (
+              <NodeChip
+                key={node.node_id}
+                node={node}
+                nodeIdx={idx}
+                scaleShared={gestures.scaleShared}
+                translateXShared={gestures.translateXShared}
+                translateYShared={gestures.translateYShared}
+                dragNodeIdxShared={gestures.dragNodeIdx}
+                dragCurrBXShared={gestures.dragCurrBX}
+                dragCurrBYShared={gestures.dragCurrBY}
+              />
+            ))}
+          {discoveryEnabled &&
+            liveNodes
+              .map((node, idx) => ({ node, idx }))
+              .filter(({ node }) => visIds.has(node.node_id))
+              .map(({ node, idx }) => (
+                <EdgePlusButtons
+                  key={`epb-${node.node_id}`}
+                  node={node}
+                  nodeIdx={idx}
+                  scaleShared={gestures.scaleShared}
+                  translateXShared={gestures.translateXShared}
+                  translateYShared={gestures.translateYShared}
+                  dragNodeIdxShared={gestures.dragNodeIdx}
+                  dragCurrBXShared={gestures.dragCurrBX}
+                  dragCurrBYShared={gestures.dragCurrBY}
+                  nodeSize={[CHIP_W, CHIP_H]}
+                  apiBaseUrl={apiBaseUrl!}
+                  authorizationToken={authorizationToken}
+                  sessionId={sessionId!}
+                  threadContextId={node.thread_context_id ?? ''}
+                  disabled={limitState.creationBlocked}
+                  onOfferSet={(offerSet) => handleOfferSet(offerSet as EdgeOfferSet, node)}
+                  onError={handleOfferError}
+                />
+              ))}
+          {discoveryEnabled && selectedNode && (
+            <NodeToolbar
+              node={selectedNode}
+              transform={transform}
+              apiBaseUrl={apiBaseUrl!}
+              authorizationToken={authorizationToken}
+              sessionId={sessionId!}
+              onDeleted={handleDeleted}
             />
-          ))}
-        </>
+          )}
+          <NodeLimitBanner activeCount={liveNodes.length} />
+          {discoveryError ? (
+            <View style={styles.discoveryError}>
+              <Text style={styles.discoveryErrorText}>{discoveryError}</Text>
+            </View>
+          ) : null}
+        </View>
       </GestureDetector>
+      {discoveryEnabled && activeOfferSet && (
+        <EdgeOfferSetSheet
+          visible
+          offerSet={activeOfferSet.offerSet}
+          threadContextId={activeOfferSet.sourceNode.thread_context_id ?? ''}
+          sourcePosition={activeOfferSet.sourceNode.position}
+          apiBaseUrl={apiBaseUrl!}
+          authorizationToken={authorizationToken}
+          onClose={closeOfferSet}
+          onBranchCreated={handleBranchCreated}
+        />
+      )}
     </GestureHandlerRootView>
   );
 }
 
+export { SkiaCanvas };
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  nodeChip: {
+  discoveryError: {
     position: 'absolute',
-    width: CHIP_W,
-    height: CHIP_H,
-    backgroundColor: '#e8e4f8',
-    borderWidth: 1,
-    borderColor: '#9090b8',
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#7f1d1d',
   },
-  nodeLabel: { fontSize: 11, color: '#3a3a5c', fontWeight: '600' },
+  discoveryErrorText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
 });
