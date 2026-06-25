@@ -3,21 +3,34 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — M3 Canvas maturation (pan/zoom/gestures via skia + reanimated,
-node visualization, manual reference links, 65-node limits; 60fps at 40+ nodes on the
-reference mid-range Android device — development-approach.md §5 M3). Phase 3 M2 Phrase
-Selection is CLOSED (2026-06-20): the §5 M2 user/device gate was met on a physical Android
-device (a test user branched from a self-chosen phrase); the "questions aren't tappable"
-fatal risk (§9) is retired. Phase 3 M1 is Locally Complete / Operationally Pending: session
-persistence/resume, offer-set logging, edge-`+` branching, deletion cascade, and event-only
-session-path reconstruction are green locally; Render backend+worker live verification and
-physical-device Expo smoke remain deferred operational gates. Do not attempt operational
-verification unless explicitly requested.
+ACTIVE MILESTONE: Phase 3 — M3-C Infrastructure Remediation LOCALLY COMPLETE (2026-06-24).
+Seams A/B/C and Tier 2 event-emission wiring are implemented and tested: backend pytest
+120/120 green, mobile Jest 92/92 green, import-linter green. M3-C closes the three
+"compute-ready, transport-missing" gaps discovered in the 2026-06-23 audit (RCA). Next
+milestone: M4 Curriculum entry + Supabase Auth.
+SkiaCanvas orchestrator refactor COMPLETE (2026-06-25): SkiaCanvas.tsx reduced from 372 to
+242 lines (canon limit resolved) by extracting useDeletionReconciliation, useDiscoveryManager,
+useLiveDragOverride, and useCanvasRenderData; 17 new unit tests; 22 suites / 112 mobile Jest
+green. M3-B/M3-C carried housekeeping item closed. commit 4645bbd on phase-3-m3.
+Phase 3 M3 + M3-B Canvas maturation is CLOSED locally (2026-06-22): M3 base (pan/zoom/gestures
+via skia + reanimated, node visualization, 65-node limits, 60fps at 40+ nodes —
+development-approach.md §5 M3) and M3-B supplemental (edge labels F1, edge-`+` discovery UI F2,
+node selection/toolbar F3, native view culling F5, node-limit mobile UI F6) are both locally
+complete: 82/82 mobile Jest green. Deferred operational gates remain non-blocking: Stage 2 device
+60fps re-run at 40+ nodes and Stage 3 65-node smoke.
+Phase 3 M2 Phrase Selection is CLOSED (2026-06-20): the §5 M2 user/device gate was met on
+a physical Android device; the "questions aren't tappable" fatal risk (§9) is retired.
+Phase 3 M1 is Locally Complete / Operationally Pending: session persistence/resume,
+offer-set logging, edge-`+` branching, deletion cascade, and event-only session-path
+reconstruction are green locally; Render backend+worker live verification and physical-
+device Expo smoke remain deferred operational gates. Do not attempt operational verification
+unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: docs/planning/sdd/phase-3-m3-canvas-sdd.md (M3 Canvas maturation, authored
-2026-06-21; §12 red tests required before any M3 production code). Prior closed SDD:
-docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, completed; user/device gate CLOSED
+ACTIVE SDD: docs/planning/sdd/phase-3-m3c-infrastructure-remediation-sdd.md (M3-C, LOCALLY
+COMPLETE 2026-06-24; Seam A/B/C + Tier 2 event emission + App.tsx real hydration). Prior
+closed SDDs: docs/planning/sdd/phase-3-m3-canvas-sdd.md + phase-3-m3b-canvas-feature-parity-sdd.md
+(M3/M3-B, closed 2026-06-22); docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, closed
 2026-06-20).
 LIVE TRACKER: docs/planning/worklog-v7.md (worklog-v6.md rotated past the ~350-line threshold,
 2026-06-21; worklog-v5.md rotated at 346 lines).
