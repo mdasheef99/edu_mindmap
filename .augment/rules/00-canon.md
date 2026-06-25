@@ -32,8 +32,8 @@ COMPLETE 2026-06-24; Seam A/B/C + Tier 2 event emission + App.tsx real hydration
 closed SDDs: docs/planning/sdd/phase-3-m3-canvas-sdd.md + phase-3-m3b-canvas-feature-parity-sdd.md
 (M3/M3-B, closed 2026-06-22); docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, closed
 2026-06-20).
-LIVE TRACKER: docs/planning/worklog-v7.md (worklog-v6.md rotated past the ~350-line threshold,
-2026-06-21; worklog-v5.md rotated at 346 lines).
+LIVE TRACKER: docs/planning/worklog-v8.md (worklog-v7.md rotated at 405 lines, 2026-06-25;
+worklog-v6.md rotated past the ~350-line threshold, 2026-06-21; worklog-v5.md rotated at 346 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 
