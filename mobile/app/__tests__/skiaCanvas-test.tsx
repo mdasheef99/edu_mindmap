@@ -67,7 +67,7 @@ jest.mock('react-native-gesture-handler', () => {
 
 // ── imports after mocks ────────────────────────────────────────────────────────
 
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { cleanup, render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import * as UseCanvasGesturesMod from '../../canvas/useCanvasGestures';
 import { SkiaCanvas } from '../../canvas/SkiaCanvas';
 import { clampScale, CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM } from '../../canvas/gestureTransform';
@@ -339,5 +339,46 @@ describe('TA-M1/TA-M2 — event emission (M3-C SDD §9.6)', () => {
     expect(body.events[0].payload.scale).toBe(2);
     expect(body.events[0].payload.translate_x).toBe(10);
     expect(body.events[0].payload.translate_y).toBe(20);
+  });
+});
+
+// ── M3.6 — Canvas controls (pre-M4) ───────────────────────────────────────────
+describe('M3.6 — canvas toolbar controls', () => {
+  const DISCOVERY_PROPS = {
+    apiBaseUrl: 'http://localhost:8000',
+    authorizationToken: 'test-token',
+    sessionId: 'session-1',
+  };
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    global.fetch = originalFetch;
+    useMindMapStore.setState({ selectedNodeId: null });
+  });
+
+  it('toolbar zoom, fit, and reset controls commit viewport transforms through onTransformEnd', async () => {
+    const onTransformEnd = jest.fn();
+    await render(
+      <SkiaCanvas nodes={NODES} edges={EDGES} screen={SCREEN} transform={IDENTITY} onTransformEnd={onTransformEnd} />,
+    );
+
+    expect(screen.getByText('100%')).toBeTruthy();
+    expect(screen.getByTestId('canvas-snap-grid-toggle')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('canvas-zoom-in'));
+    expect(onTransformEnd).toHaveBeenLastCalledWith(expect.objectContaining({ scale: 1.25 }));
+
+    fireEvent.press(screen.getByTestId('canvas-fit-screen'));
+    expect(onTransformEnd).toHaveBeenCalledTimes(2);
+    expect(onTransformEnd.mock.calls[1][0].scale).toBeGreaterThan(0);
+
+    fireEvent.press(screen.getByTestId('canvas-reset-view'));
+    expect(onTransformEnd).toHaveBeenLastCalledWith(IDENTITY);
   });
 });

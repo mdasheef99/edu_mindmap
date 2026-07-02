@@ -188,7 +188,13 @@ def test_session_start_resolves_real_chapter_from_curriculum() -> None:
 
 
 def test_student_api_exposes_no_raw_event_endpoint() -> None:
-    """T24: /v1/student must not expose raw event history endpoints."""
+    """T24: /v1/student must not expose raw event history (read) endpoints.
+
+    Category Invisibility forbids *returning* raw event history. The M3-C Seam A
+    ingest endpoint (POST /sessions/{id}/events, student-api-spec.md §5) is a
+    write-only whitelist boundary — it is permitted, but must never offer a GET
+    that reads back the event log.
+    """
     from app.main import create_app
 
     app = create_app()
@@ -196,6 +202,18 @@ def test_student_api_exposes_no_raw_event_endpoint() -> None:
         route.path for route in app.routes if getattr(route, "path", "").startswith("/v1/student")
     }
 
+    # No top-level raw event collection endpoint.
     assert "/v1/student/events" not in student_routes
-    assert "/v1/student/sessions/{session_id}/events" not in student_routes
-    assert not any(path.endswith("/events") for path in student_routes)
+
+    # The only "/events" path is the session-scoped ingest, and it is POST-only.
+    events_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", "").startswith("/v1/student")
+        and getattr(route, "path", "").endswith("/events")
+    ]
+    assert {route.path for route in events_routes} == {
+        "/v1/student/sessions/{session_id}/events"
+    }
+    for route in events_routes:
+        assert set(getattr(route, "methods", set()) or set()) <= {"POST"}

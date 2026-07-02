@@ -64,6 +64,54 @@ Student chapter responses must not include dimensional availability, richness pr
 
 Session state may include sessions, nodes, edges, summaries, current offer sets, and podcast status. It must not embed checkpoint eligibility; checkpoints are polled separately.
 
+### `GET /sessions/{session_id}` — Canvas Payload Shape
+
+Returns a `StudentSession` envelope extended with a `canvas` field reconstructed from the
+event log via `active_canvas_from_events`. Canvas fields are student-safe (`student_rm` only):
+
+```
+{
+  "session_id": uuid,
+  "status": "active" | "inactive" | "closed",
+  "last_active_node_id": uuid | null,
+  "started_at": timestamp,
+  "last_active_at": timestamp,
+  "canvas": {
+    "nodes": [{ "node_id": uuid, "node_type": str, "content": str,
+                "position_x": float | null, "position_y": float | null,
+                "thread_context_id": uuid | null }],
+    "edges": [{ "edge_id": uuid, "source_node_id": uuid, "target_node_id": uuid,
+                "edge_kind": "ai_path" | "manual_reference", "label": str | null }],
+    "viewport": { "scale": float, "translate_x": float, "translate_y": float }
+  }
+}
+```
+
+Canvas fields must never include analytic dimensions, classification labels, coverage scores,
+propensities, or any `analytic_rm` data. If no canvas events exist yet, `canvas.nodes` and
+`canvas.edges` are empty arrays and `canvas.viewport` holds the default transform.
+
+### `POST /sessions/{session_id}/events` — Client Event Whitelist
+
+Only the following event types may be submitted by the `client` producer. All others are
+rejected with `400 Bad Request`.
+
+| Event type | Required payload fields | `visit_source` allowed values |
+|---|---|---|
+| `node_visited` | `node_id`, `session_id`, `visit_source` | `"tap"`, `"edge_plus"`, `"session_resume"` |
+| `viewport_changed` | `session_id`, `scale`, `translate_x`, `translate_y`, `visible_node_ids` | n/a |
+
+Validation rules applied at the endpoint boundary (beyond `validate_event` presence checks):
+- `visit_source` must be one of the three allowed string literals.
+- `scale` must be a float in `[CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]`.
+- `visible_node_ids` must be an array of UUID strings.
+- Extra payload fields not in the whitelist spec are stripped (not stored).
+- Worker-only event types (`question_classified`) submitted by `client` → `403 Forbidden`.
+
+Response: `202 Accepted` with `{ "accepted": N, "rejected": [...] }` where N is the count of events successfully
+appended. Individual validation failures within a batch are rejected; successfully validated
+events in the same batch are still appended (partial acceptance).
+
 ## 6. Node Endpoints
 
 | Method | Path | Purpose | Events | Jobs |

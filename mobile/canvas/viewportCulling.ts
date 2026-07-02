@@ -5,10 +5,13 @@
  * viewport box are dropped; only visible edges are drawn. The visible node_id list produced
  * by the same filter populates the viewport_changed payload's visible_node_ids (§10).
  *
- * Board-space viewport box (§9):
- *   [translateX, translateY, translateX + screenW/scale, translateY + screenH/scale]
+ * Board-space viewport box (§9) — the inverse of the §4 seam
+ * (boardX = (screenX - translateX) / scale), evaluated at the screen corners so the
+ * box stays consistent with rendering under pan/zoom:
+ *   minX = -translateX / scale,            maxX = (screenW - translateX) / scale
+ *   minY = -translateY / scale,            maxY = (screenH - translateY) / scale
  *
- * Traceability: phase-3-m3-canvas-sdd.md §9, §10.
+ * Traceability: phase-3-m3-canvas-sdd.md §4, §9, §10.
  */
 
 import { CanvasTransform, Point } from './coordinateSystem';
@@ -32,16 +35,16 @@ export interface BoardEdge {
   edge_kind?: string;
 }
 
-/** Board-space rectangle currently visible, per the §9 formula. */
+/** Board-space rectangle currently visible, per the §9 seam-inverse formula. */
 export function computeBoardViewport(
   transform: CanvasTransform,
   screen: ScreenSize,
 ): BoardViewport {
   return {
-    minX: transform.translateX,
-    minY: transform.translateY,
-    maxX: transform.translateX + screen.width / transform.scale,
-    maxY: transform.translateY + screen.height / transform.scale,
+    minX: -transform.translateX / transform.scale,
+    minY: -transform.translateY / transform.scale,
+    maxX: (screen.width - transform.translateX) / transform.scale,
+    maxY: (screen.height - transform.translateY) / transform.scale,
   };
 }
 
@@ -55,11 +58,11 @@ export function isPointInViewport(point: Point, viewport: BoardViewport): boolea
 }
 
 /** Keep an edge only if at least one endpoint is inside the viewport box. */
-export function cullEdges(
-  edges: BoardEdge[],
+export function cullEdges<T extends BoardEdge>(
+  edges: T[],
   nodePositions: Record<string, Point>,
   viewport: BoardViewport,
-): BoardEdge[] {
+): T[] {
   return edges.filter((edge) => {
     const source = nodePositions[edge.source_node_id];
     const target = nodePositions[edge.target_node_id];

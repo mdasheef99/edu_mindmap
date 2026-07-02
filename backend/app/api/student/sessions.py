@@ -11,6 +11,7 @@ from app.domain.student.sessions import (
     ChapterLaunchNotFoundError,
     SessionStartRequest,
     StudentSession,
+    StudentSessionWithCanvas,
 )
 from app.tenancy.auth import get_auth_context
 
@@ -24,6 +25,19 @@ def list_recent_sessions(
 ) -> list[StudentSession]:
     runtime = request.app.state.session_runtime
     return runtime.list_recent_student_sessions(auth=auth)
+
+
+@router.get("/sessions/{session_id}", response_model=StudentSessionWithCanvas)
+def get_session(
+    session_id: UUID,
+    request: Request,
+    auth: AuthContext = Depends(get_auth_context),
+) -> StudentSessionWithCanvas:
+    runtime = request.app.state.session_runtime
+    session = runtime.get_student_session_with_canvas(session_id=session_id, auth=auth)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
 
 
 @router.post("/sessions", response_model=StudentSession, status_code=status.HTTP_201_CREATED)

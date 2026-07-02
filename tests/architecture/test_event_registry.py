@@ -156,3 +156,32 @@ def test_viewport_changed_worker_rejected() -> None:
     event = _valid_viewport_changed_event()
     with pytest.raises(InvalidEventProducerError):
         validate_event(event, producer="worker")
+
+
+def test_node_position_updated_requires_numeric_finite_coordinates() -> None:
+    from app.events.registry import InvalidEventPayloadError, validate_event
+
+    event = {
+        "event_id": uuid4(),
+        "event_type": "node_position_updated",
+        "event_version": 1,
+        "tenant_id": uuid4(),
+        "actor_user_id": uuid4(),
+        "student_id": uuid4(),
+        "session_id": uuid4(),
+        "node_id": uuid4(),
+        "occurred_at": datetime.now(timezone.utc),
+        "payload": {
+            "node_id": str(uuid4()),
+            "session_id": str(uuid4()),
+            "position_x": "not-a-number",
+            "position_y": 12.0,
+        },
+    }
+
+    with pytest.raises(InvalidEventPayloadError, match="position_x"):
+        validate_event(event, producer="client")
+
+    event["payload"]["position_x"] = float("inf")
+    with pytest.raises(InvalidEventPayloadError, match="position_x"):
+        validate_event(event, producer="client")

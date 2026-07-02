@@ -22,7 +22,7 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
-import { PhraseSelectionReaderSheet } from '../PhraseSelectionReaderSheet';
+import { PhraseSelectionReaderSheet, OfferChoiceResult } from '../PhraseSelectionReaderSheet';
 
 // Fixed IDs must match backend/scripts/dev_smoke_bootstrap.py
 const EXAM_ID = '00000000-0000-4000-8000-000000000001';
@@ -101,8 +101,8 @@ export function M2PhraseSmokeScreen() {
     setReaderVisible(true);
   }
 
-  function handleBranchCreated(childNodeId: string) {
-    setBranchResult(childNodeId);
+  function handleBranchCreated(result: OfferChoiceResult) {
+    setBranchResult(result.child_node_id ?? null);
     setReaderVisible(false);
   }
 

@@ -20,13 +20,15 @@ import { NodeChip } from './NodeChip';
 import { CanvasEdges } from './CanvasEdges';
 import { useCanvasGestures } from './useCanvasGestures';
 import { CHIP_W, CHIP_H } from './chipConstants';
-import { postClientEvent, throttledPostViewport } from './apiClient';
+import { patchNodePosition, postClientEvent, throttledPostViewport } from './apiClient';
 import { EdgeOfferSetSheet } from './EdgeOfferSetSheet';
 import type { EdgeOfferSet } from './EdgeOfferSetSheet';
 import { useDeletionReconciliation } from './useDeletionReconciliation';
 import { useDiscoveryManager } from './useDiscoveryManager';
 import { useLiveDragOverride } from './useLiveDragOverride';
 import { useCanvasRenderData } from './useCanvasRenderData';
+import { snapPointToGrid } from './canvasControls';
+import { CanvasToolbar } from './CanvasToolbar';
 
 // ── public types ──────────────────────────────────────────────────────────────
 
@@ -71,6 +73,7 @@ export default function SkiaCanvas({
   } = useDiscoveryManager(onReloadCanvas);
 
   const [posOverrides, setPosOverrides] = useState<Record<string, Point>>({});
+  const [snapToGrid, setSnapToGrid] = useState(false);
   const committedNodes = useMemo(
     () => nodes.map((n) => ({ ...n, position: posOverrides[n.node_id] ?? n.position })),
     [nodes, posOverrides],
@@ -112,13 +115,24 @@ export default function SkiaCanvas({
     [onTransformEnd, emitEnabled, apiBaseUrl, sessionId, authorizationToken],
   );
 
+  const handleNodeDragEnd = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      const position = snapToGrid ? snapPointToGrid({ x, y }) : { x, y };
+      setPosOverrides((prev) => ({ ...prev, [nodeId]: position }));
+      if (apiBaseUrl && sessionId) {
+        patchNodePosition(apiBaseUrl, sessionId, nodeId, authorizationToken, position);
+      }
+    },
+    [snapToGrid, apiBaseUrl, sessionId, authorizationToken],
+  );
+
   const gestures = useCanvasGestures({
     nodes: liveNodes,
     nodesRef: liveNodesRef,
     transform,
     nodeSize: [CHIP_W, CHIP_H],
     onTransformEnd: handleTransformEnd,
-    onNodeDragEnd: (nodeId, x, y) => setPosOverrides((prev) => ({ ...prev, [nodeId]: { x, y } })),
+    onNodeDragEnd: handleNodeDragEnd,
     onSelectNode: handleSelectNode,
     onClearSelection: clearSelection,
   });
@@ -136,6 +150,15 @@ export default function SkiaCanvas({
       : null;
 
   const discoveryEnabled = Boolean(apiBaseUrl && sessionId);
+  const commitToolbarTransform = useCallback(
+    (next: CanvasTransform) => {
+      gestures.scaleShared.value = next.scale;
+      gestures.translateXShared.value = next.translateX;
+      gestures.translateYShared.value = next.translateY;
+      handleTransformEnd(next);
+    },
+    [gestures.scaleShared, gestures.translateXShared, gestures.translateYShared, handleTransformEnd],
+  );
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -206,6 +229,14 @@ export default function SkiaCanvas({
               <Text style={styles.discoveryErrorText}>{discoveryError}</Text>
             </View>
           ) : null}
+          <CanvasToolbar
+            transform={transform}
+            screen={screen}
+            nodes={liveNodes}
+            snapToGrid={snapToGrid}
+            onCommitTransform={commitToolbarTransform}
+            onToggleSnapToGrid={() => setSnapToGrid((value) => !value)}
+          />
         </View>
       </GestureDetector>
       {discoveryEnabled && activeOfferSet && (

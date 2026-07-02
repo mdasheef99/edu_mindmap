@@ -401,4 +401,3 @@ and concentrated domain logic that belonged in dedicated, individually-testable 
 **Next required actions**:
 1. Begin M4 (Curriculum entry + Supabase Auth) per `development-approach.md` §5 M4.
 2. `useSessionHydration` `DEV_*` constant wiring → real Supabase session (M4 auth work).
-
