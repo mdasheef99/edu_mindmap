@@ -55,7 +55,9 @@ describe('Stage 1 render-count gate (M3 SDD §13)', () => {
   const maxY = Math.max(...ys);
 
   it('test_render_path_bounded_by_node_budget_for_40_nodes', () => {
-    const fullViewportTransform = { scale: 1, translateX: minX, translateY: minY };
+    // §4 seam: screenX = boardX*scale + translateX. To map the board's [minX..maxX] box
+    // onto [0..width] at scale 1, translate by -min (board min → screen 0).
+    const fullViewportTransform = { scale: 1, translateX: -minX, translateY: -minY };
     const screen = { width: maxX - minX + 1, height: maxY - minY + 1 };
 
     const counts = countRenderPrimitives(positions, edges, fullViewportTransform, screen);
@@ -72,15 +74,16 @@ describe('Stage 1 render-count gate (M3 SDD §13)', () => {
     const fullTotal = countRenderPrimitives(
       positions,
       edges,
-      { scale: 1, translateX: minX, translateY: minY },
+      { scale: 1, translateX: -minX, translateY: -minY },
       { width: maxX - minX + 1, height: maxY - minY + 1 },
     ).total;
 
-    // Small viewport around the root at board (0,0): most nodes are off-screen.
+    // Small viewport centered on the root at board (0,0): translate = width/2 places the
+    // box at [-50,50] (§4 seam inverse), so most nodes are off-screen.
     const zoomed = countRenderPrimitives(
       positions,
       edges,
-      { scale: 1, translateX: -50, translateY: -50 },
+      { scale: 1, translateX: 50, translateY: 50 },
       { width: 100, height: 100 },
     );
 

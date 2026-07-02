@@ -306,6 +306,21 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
             }
         ),
     ),
+    ("node_position_updated", 1): EventTypeSpec(
+        event_type="node_position_updated",
+        event_version=1,
+        allowed_producers=frozenset({"client"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "node_id",
+                "session_id",
+                "position_x",
+                "position_y",
+            }
+        ),
+    ),
     ("consent_recorded", 1): EventTypeSpec(
         event_type="consent_recorded",
         event_version=1,

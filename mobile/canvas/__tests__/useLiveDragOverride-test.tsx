@@ -7,7 +7,9 @@
 
 import React, { useRef } from 'react';
 import { renderHook, act } from '@testing-library/react-native';
+import type { SharedValue } from 'react-native-reanimated';
 import { useLiveDragOverride } from '../useLiveDragOverride';
+import type { UseCanvasGesturesResult } from '../useCanvasGestures';
 import type { CanvasNode } from '../SkiaCanvas';
 
 let lastReaction: { prepare: () => any; react: (value: any) => void } | null = null;
@@ -31,12 +33,24 @@ const NODES: CanvasNode[] = [
 ];
 
 interface GestureValues {
-  dragNodeIdx: { value: number };
-  dragCurrBX: { value: number };
-  dragCurrBY: { value: number };
+  dragNodeIdx: SharedValue<number>;
+  dragCurrBX: SharedValue<number>;
+  dragCurrBY: SharedValue<number>;
 }
 
-function useWrapper(gestures: GestureValues) {
+function makeSharedValue(value: number): SharedValue<number> {
+  return { value } as SharedValue<number>;
+}
+
+function makeGestures(idx: number, x: number, y: number): GestureValues {
+  return {
+    dragNodeIdx: makeSharedValue(idx),
+    dragCurrBX: makeSharedValue(x),
+    dragCurrBY: makeSharedValue(y),
+  };
+}
+
+function useWrapper(gestures: Pick<UseCanvasGesturesResult, 'dragNodeIdx' | 'dragCurrBX' | 'dragCurrBY'>) {
   const nodesRef = useRef<CanvasNode[]>(NODES);
   return useLiveDragOverride(gestures, nodesRef);
 }
@@ -47,32 +61,32 @@ async function fireReaction() {
 
 describe('useLiveDragOverride', () => {
   it('returns null when no drag is active', async () => {
-    const gestures: GestureValues = { dragNodeIdx: { value: -1 }, dragCurrBX: { value: 0 }, dragCurrBY: { value: 0 } };
-    const { result } = await renderHook((props) => useWrapper(props), { initialProps: gestures });
+    const gestures = makeGestures(-1, 0, 0);
+    const { result } = await renderHook((props: GestureValues) => useWrapper(props), { initialProps: gestures });
     await fireReaction();
     expect(result.current).toBeNull();
   });
 
   it('returns the live board position for the dragged node', async () => {
-    const gestures: GestureValues = { dragNodeIdx: { value: 0 }, dragCurrBX: { value: 50 }, dragCurrBY: { value: 60 } };
-    const { result } = await renderHook((props) => useWrapper(props), { initialProps: gestures });
+    const gestures = makeGestures(0, 50, 60);
+    const { result } = await renderHook((props: GestureValues) => useWrapper(props), { initialProps: gestures });
     await fireReaction();
     expect(result.current).toEqual({ nodeId: 'n1', x: 50, y: 60 });
   });
 
   it('clears the override when the drag ends', async () => {
-    const dragging: GestureValues = { dragNodeIdx: { value: 0 }, dragCurrBX: { value: 50 }, dragCurrBY: { value: 60 } };
-    const { result, rerender } = await renderHook((props) => useWrapper(props), { initialProps: dragging });
+    const dragging = makeGestures(0, 50, 60);
+    const { result, rerender } = await renderHook((props: GestureValues) => useWrapper(props), { initialProps: dragging });
     await fireReaction();
     expect(result.current).toEqual({ nodeId: 'n1', x: 50, y: 60 });
-    await rerender({ dragNodeIdx: { value: -1 }, dragCurrBX: { value: 0 }, dragCurrBY: { value: 0 } });
+    await rerender(makeGestures(-1, 0, 0));
     await fireReaction();
     expect(result.current).toBeNull();
   });
 
   it('returns null for an out-of-bounds drag index', async () => {
-    const gestures: GestureValues = { dragNodeIdx: { value: 5 }, dragCurrBX: { value: 50 }, dragCurrBY: { value: 60 } };
-    const { result } = await renderHook((props) => useWrapper(props), { initialProps: gestures });
+    const gestures = makeGestures(5, 50, 60);
+    const { result } = await renderHook((props: GestureValues) => useWrapper(props), { initialProps: gestures });
     await fireReaction();
     expect(result.current).toBeNull();
   });

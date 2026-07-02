@@ -78,9 +78,11 @@ export function computeLayout(nodes: Record<string, LayoutInputNode>): LayoutRes
     if (input.positionOverridden && input.position) {
       result[id] = { x: input.position.x, y: input.position.y };
     } else {
+      const x = d.x ?? 0;
+      const y = d.y ?? 0;
       result[id] = {
-        x: Math.round((d.x - rootX) * 10) / 10,
-        y: Math.round((d.y - rootY) * 10) / 10,
+        x: Math.round((x - rootX) * 10) / 10,
+        y: Math.round((y - rootY) * 10) / 10,
       };
     }
   });

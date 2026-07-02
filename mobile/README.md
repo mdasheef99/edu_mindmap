@@ -3,6 +3,9 @@
 This directory holds standalone React Native components plus the planned runnable Expo app. Every
 component calls the backend `/v1/student` API only and stores **no** provider/AI/TTS credentials.
 
+> Before starting codebase work, read `CODEBASE_INTELLIGENCE/README.md` and the relevant map files. If
+> Augment/codebase-retrieval is available, use it to refresh the relevant area before editing.
+
 ## Components
 
 - `Phase1WalkingSkeletonScreen.tsx` — Phase 1 Walking Skeleton screen

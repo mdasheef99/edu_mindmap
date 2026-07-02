@@ -142,11 +142,21 @@ the risk it retires. Do not start milestone *n+1* while milestone *n*'s gate is 
 | M1 | Core loop deepening | Offer-set logging complete (impressions + choices + propensities), session persistence + resume, edge-`+` branching, deletion cascade with confirmation | "Our data can't be interpreted later" | One full session's path is reconstructable from events alone, without the board snapshot |
 | M2 | Phrase selection | Reader bottom-sheet flow first (`mobile-features-core-ui.md` fallback); in-node selection deferred as enhancement | The fiddliest mobile interaction | A test user branches from a phrase they chose themselves, on Android and iOS |
 | M3 | Canvas maturation | Pan/zoom/gestures via skia + reanimated, manual reference links (`edge_created`/`edge_deleted`), 65-node limits, layout | The highest engineering risk in the project (§9) | 60fps interaction at 40+ nodes on the reference mid-range Android device |
+| M3-C | Infrastructure Remediation | Close three "compute-ready, transport-missing" seams discovered in the 2026-06-23 audit: Seam A — `POST /sessions/{id}/events` (client event ingest + whitelist + boundary type/enum validation); Seam B — `GET /sessions/{id}` with full canvas payload via `active_canvas_from_events`; Seam C — `PATCH /nodes/{id}` position persistence, `NodeToolbar` cascade-response reconciliation (G1), `PhraseSelectionReaderSheet.chooseOption` full-payload propagation (G1-v); Tier 2 — `node_visited`/`viewport_changed` emission wiring in `SkiaCanvas`; replace `DEV_NODES`/`DEV_EDGES` dev fixtures with real session hydration | "Walking Skeleton is not end-to-end: data-integrity frontier is transport-missing — client cannot emit events, server cannot hydrate canvas state, drag positions are lost on reload" | All three P1 phantom endpoints (`POST /events`, `GET /sessions/{id}`, `PATCH /nodes/{id}`) implemented and registered in `main.py`; integration tests for event→projection round-trip green (TA/TB/TC suites); `DEV_NODES`/`DEV_EDGES` removed from `App.tsx`; `student-api-spec.md` parity check signed off in SDD §8 (Discipline #10) |
+| M3.6 | Canvas controls | Explicit zoom in/out toolbar buttons, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end commit using the fixed MVP grid size | "Canvas is gesture-capable but lacks clear learner-facing controls for precision navigation and alignment" | Focused canvas-control Jest green; full mobile Jest green; no M4 auth/curriculum scope pulled forward |
 | M4 | Curriculum entry + auth | Supabase Auth, exam/subject/chapter entry, dashboard re-entry, consent capture | None new — enables real-user testing | A stranger can install, sign up, and reach a chapter unaided |
 | M5 | Checkpoints | Trigger policy (cosine arithmetic over existing classification data), Try Now / Not Sure Yet capture | Outcome-signal capture | Checkpoint events flow into `analytic_rm` with correct stamps |
 | M6 | Teacher V1 + V2 | Web app (React + Vite + TanStack Query), roster/overview, chapter landscape (V2 needs **no student data** — it renders chapter analysis, so it can be built any time after Phase 0) | "Will teachers act on it?" — first real test | One real teacher uses it before a class and the §8 feedback control captures the verdict |
 | M7 | Teacher V3 panels | 3a/3b first; 3c when coverage projections are trusted; 3g Phase 1 (`coverage_by_pair` + Stage 2 attribution) after that | Gap-card usefulness; topology Phase 1 | Golden-set agreement for attribution (topology spec §4.3) before any 3g card renders |
 | M8 | Podcast | Session-derived script + TTS via worker, in-app playback | None — MVP completeness item | Release boundary statement of `mvp-execution-plan.md` §3 is fully met |
+
+**Milestone status update (2026-07-02)**: M3-C Infrastructure Remediation and the bounded M3.6
+Canvas Controls pre-M4 slice are **locally complete**. M3.6 added explicit zoom controls,
+fit-to-screen, reset view, zoom readout, and optional snap-to-grid per
+`phase-3-m3-6-canvas-controls-sdd.md` and `worklog-v8.md`; full mobile Jest was 119/119 green.
+The pre-M4 mobile TypeScript `TS2688` Jest type-definition blocker was resolved on 2026-07-01
+(`worklog-v8.md`). M4 is now the active milestone for implementation planning, with
+`phase-3-m4-curriculum-auth-sdd.md` drafted and `worklog-v9.md` opened.
 
 **Deferred without guilt** (per §2.6 — these layer on later via replay/projection or are
 post-MVP by existing decisions): image/video enrichment tiers, Perplexity integration, V4 and
@@ -183,6 +193,18 @@ exist before the code it governs, and several cannot be retrofitted at all.
    every `prompt_version` bump (`classification-reliability-protocol.md`).
 9. **Observability minimums**: Sentry in both apps, structured JSON logs, and the LLM cost
    counter in `llm_gateway` from its first call.
+10. **Every SDD must include a `student-api-spec.md` parity check before closure.**
+    Before any milestone SDD is marked closed, the developer must enumerate every
+    `student-api-spec.md` endpoint the increment depends on, verify each has a matching
+    FastAPI router function and is registered in `main.py`, and record the result in the
+    SDD's Definition-of-Done section. A phantom endpoint — documented in the spec but
+    absent from the router — in a closed SDD's dependency list is a merge-blocking defect
+    regardless of whether unit tests pass. This discipline was added after the 2026-06-23
+    infrastructure audit identified three Walking-Skeleton-critical phantom endpoints
+    (`POST /events`, `GET /sessions/{id}`, `PATCH /nodes/{id}`) that accumulated silently
+    across M1–M3 because no milestone gate checked API boundary completeness. The parity
+    check applies to both backend endpoints and mobile `fetch` call sites: every `fetch`
+    target in a milestone increment must correspond to a registered router path.
 
 ---
 

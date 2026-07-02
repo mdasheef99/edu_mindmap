@@ -157,6 +157,7 @@ Features that apply to the entire workspace/canvas.
 | Zoom in button | Bottom toolbar → "+" | Basic | 25% increment | None |
 | Zoom out button | Bottom toolbar → "−" | Basic | 25% decrement | None |
 | Fit to screen | Bottom toolbar → "Fit" | Basic | Shows all nodes | None |
+| Reset view | Bottom toolbar → reset icon | Basic | Returns to the default starting transform without changing node positions | None |
 | Center on node | Double-tap node | Advanced | Animates to center | None |
 | Minimap navigation | Bottom sheet → "Overview" | Advanced | Simplified thumbnail view | None |
 | Breadcrumb navigation | Header → path display | Advanced | Shows current location in hierarchy | None |
@@ -188,7 +189,7 @@ Features that apply to the entire workspace/canvas.
 
 | Feature | UI Location | Priority | Mobile Adaptation | Dependencies |
 |---------|-------------|----------|-------------------|--------------|
-| Snap to grid | Always enabled (simplified) | Basic | 15px grid only (no options) | None |
+| Snap to grid | Bottom toolbar → grid toggle | Basic | Optional alignment aid; snaps final node position on drag release to the fixed 15px grid | None |
 | Show grid lines | Settings → "Show Grid" | Advanced | Subtle grid overlay | None |
 | Alignment guides | Automatic during drag | Advanced | Shows when aligned with other nodes | None |
 | Custom grid size | Settings → Grid options | Exclude | Simplified to single option | None |
