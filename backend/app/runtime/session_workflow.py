@@ -11,10 +11,12 @@ from app.domain.student.sessions import (
     SessionStartRequest,
     StudentSession,
     StudentSessionWithCanvas,
+    build_root_node_created,
     build_session_resumed,
     build_session_started,
 )
 from app.events.store import InMemoryEventStore
+from app.generation.provider import GenerationProvider
 from app.projections.curriculum import InMemoryCurriculumStore
 from app.projections.student_sessions import (
     InMemoryStudentSessionProjectionStore,
@@ -33,6 +35,7 @@ def start_session_workflow(
     event_store: InMemoryEventStore,
     student_sessions: InMemoryStudentSessionProjectionStore,
     curriculum: InMemoryCurriculumStore,
+    generation_provider: GenerationProvider,
     seen_users: set[UUID],
 ) -> StudentSession:
     """Start a new student session, emitting consent_recorded on first sign-in."""
@@ -69,6 +72,15 @@ def start_session_workflow(
     )
     stored_event = event_store.append(event, producer="server")
     student_sessions.upsert(project_session_started(stored_event))
+    root_event = build_root_node_created(
+        context=SessionContext(
+            tenant_id=auth.tenant_id,
+            student_user_id=auth.user_id,
+        ),
+        session=response_model,
+        generated_node=generation_provider.root(),
+    )
+    event_store.append(root_event, producer="server")
     return response_model
 
 

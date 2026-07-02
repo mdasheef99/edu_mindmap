@@ -3,16 +3,15 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth (SDD drafted 2026-07-02;
-implementation not started).
+ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth (implementation and live catalog
+migration applied 2026-07-02; final live signup/session smoke pending before closure).
 M4 scope: B2C individual signup first via Supabase email/password, Class 10 → CBSE → Science →
 Electricity launch curriculum path, dashboard re-entry, consent capture, and a deterministic
 fixture-backed Electricity generation simulator (~10 nodes) that mimics real backend/event/canvas
 node creation. Phone/OTP auth, B2B roster/invite activation, admin/content panels, and live LLM
-generation are deferred. Supabase MCP currently exposes the wrong project
-(`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`); local Mindmap `.env` points at
-`jbmqyxhrmcbdgardamrp`, so M4 migration SQL must be generated locally and applied manually by the
-owner to the correct Supabase database.
+generation are deferred. Supabase MCP was reinstalled and verified against the correct Mindmap
+project `jbmqyxhrmcbdgardamrp`; migration `20260702173751 / m4_catalog_auth_seed` is applied
+there. The old wrong project (`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`) must not be used.
 Phase 3 M3.6 Canvas Controls is LOCALLY COMPLETE (2026-06-30): explicit zoom in/out toolbar
 controls, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end
 toggle. The pre-M4 TypeScript/Jest config blocker was resolved on 2026-07-01; canvas TypeScript and
@@ -44,9 +43,9 @@ device Expo smoke remain deferred operational gates. Do not attempt operational 
 unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: docs/planning/sdd/phase-3-m4-curriculum-auth-sdd.md (M4, DRAFTED 2026-07-02;
-B2C Supabase email auth + curriculum entry + dashboard re-entry + fixture-backed Electricity
-canvas flow; implementation not started).
+ACTIVE SDD: docs/planning/sdd/phase-3-m4-curriculum-auth-sdd.md (M4, IMPLEMENTED LOCALLY
+2026-07-02 with live catalog migration applied to `jbmqyxhrmcbdgardamrp`; final live
+signup/session smoke pending before milestone closure).
 Prior closed SDDs: docs/planning/sdd/phase-3-m3-6-canvas-controls-sdd.md (M3.6, LOCALLY COMPLETE
 2026-06-30; toolbar zoom controls, fit/reset view, zoom readout, snap-to-grid drag-end toggle);
 docs/planning/sdd/phase-3-m3-5-frontend-readiness-sdd.md (M3.5,

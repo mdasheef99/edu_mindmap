@@ -1,7 +1,7 @@
 # Phase 3 M4 Curriculum Entry + Supabase Auth - Software Design Document (SDD)
 
-**Document Version**: 0.1
-**Status**: Draft - user review required
+**Document Version**: 0.2
+**Status**: Implemented locally; live catalog migration applied; final live smoke pending
 **Phase / milestone**: Phase 3 - M4
 **Owner**: (developer)
 **Live tracker**: `docs/planning/worklog-v9.md`
@@ -14,7 +14,7 @@
 |---|---|
 | Increment name | B2C auth, curriculum entry, dashboard re-entry, and fixture-backed Electricity canvas flow |
 | Phase / milestone | Phase 3 - M4 |
-| Status | Draft - not implemented |
+| Status | Implemented locally; live catalog migration applied; final live smoke pending |
 
 **Goal**: complete the first learner-visible app loop after M3 canvas maturation: a stranger can
 sign up with Supabase Auth, reach a realistic curriculum path, start or resume Class 10 CBSE
@@ -66,20 +66,18 @@ client events, persist node positions, reconcile deletion cascades, use edge-plu
 phrase selection, and expose zoom/fit/reset/grid controls. M4 must replace the dev shell around
 that canvas with real learner entry.
 
-The current repository has these M4-relevant gaps:
+Current M4 implementation status:
 
-1. The app still uses dev API/session/token wiring in the mobile shell.
-2. The backend composition path still needs a production Postgres/Supabase runtime path equivalent
-   to the worker's Postgres-backed adapters.
-3. There are no student curriculum navigation or dashboard routers yet.
-4. Existing `curriculum` ingestion tables store analyzed content, but the app-facing catalog
-   described in `core-operational-schema.md` is not fully represented by current migrations.
-5. Existing offer/node creation uses deterministic fixture text. M4 will formalize that as a
-   fixture generation provider so behavior is intentional and later swappable.
-6. Supabase MCP currently exposes a different project (`ahntbtktjjmvfosgkmgn`,
-   `Bookconnect_reactexpo`) than the local Mindmap `.env` project ref
-   (`jbmqyxhrmcbdgardamrp`). M4 migration SQL must therefore be committed locally for manual
-   execution against the correct Supabase project, not applied through MCP in this session.
+1. Mobile defaults to the M4 B2C email/password auth and Electricity launch screen; the M2/M3
+   smoke surfaces remain behind explicit local/dev flags.
+2. Backend membership bootstrap, student curriculum/dashboard routers, fixture-backed root node
+   creation, and selected-choice fixture child generation are implemented and tested locally.
+3. The app-facing catalog SQL artifact exists at
+   `backend/migrations/source_sql/0006_m4_catalog_auth_seed.sql`.
+4. Supabase MCP was reinstalled and verified against the correct Mindmap project
+   `jbmqyxhrmcbdgardamrp`; migration `20260702173751 / m4_catalog_auth_seed` is applied there.
+5. Final M4 closure still requires a live Supabase email/password signup/login and
+   student launch/session smoke against the backend configured for `jbmqyxhrmcbdgardamrp`.
 
 ---
 
@@ -110,8 +108,8 @@ The current repository has these M4-relevant gaps:
   but email/password is the M4 path.
 - B2B school roster upload, invite activation, school admin panels, and teacher analytics.
 - Checkpoints, podcast, PYQ node creation, broader offline sync, and admin/content-ops UI.
-- Applying Supabase migrations through MCP. The correct database is not available to the MCP
-  account in this session.
+- Additional Supabase schema changes beyond the verified M4 catalog/auth seed migration. Future
+  live migrations must first verify the connector project ref is `jbmqyxhrmcbdgardamrp`.
 
 ---
 

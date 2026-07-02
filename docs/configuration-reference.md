@@ -93,6 +93,11 @@ Values are not documented here.
 | `TEST_DATABASE_URL` | tests only | opt-in live Postgres / pooled-RLS verification connection |
 | `SUPABASE_URL` | backend/mobile/web | Supabase project URL |
 | `SUPABASE_ANON_KEY` | mobile/web | client-safe Supabase key |
+| `EXPO_PUBLIC_SUPABASE_URL` | mobile | Expo-exposed Supabase project URL for B2C email/password auth |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Expo-exposed client-safe Supabase anon key |
+| `EXPO_PUBLIC_DEV_API_BASE_URL` | mobile local/dev | backend API base URL used by Expo dev builds |
+| `EXPO_PUBLIC_SHOW_CANVAS` | mobile local/dev | optional M3 canvas smoke override |
+| `EXPO_PUBLIC_SHOW_M2_SMOKE` | mobile local/dev | optional M2 phrase smoke override |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend only | privileged server operations |
 | `LLM_PROVIDER_API_KEY` | backend only | LLM Gateway provider credential |
 | `SENTRY_DSN_BACKEND` | backend | error tracking |

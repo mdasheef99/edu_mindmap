@@ -5,6 +5,7 @@ import { M2PhraseSmokeScreen } from './M2PhraseSmokeScreen';
 import { initSentry } from './observability/sentry';
 import { SkiaCanvas } from '../canvas/SkiaCanvas';
 import { useSessionHydration } from '../canvas/useSessionHydration';
+import { M4CurriculumAuthScreen } from '../M4CurriculumAuthScreen';
 
 // Mobile error tracking (M3 SDD §3, §14). DSN is SENTRY_DSN_MOBILE
 // (configuration-reference.md §10), supplied to the bundle via its EXPO_PUBLIC_ form;
@@ -28,8 +29,9 @@ const DEV_AUTH_TOKEN =
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // Toggle: set EXPO_PUBLIC_SHOW_CANVAS=true to see the M3 canvas instead of the M2 smoke screen.
+  // Toggle: set EXPO_PUBLIC_SHOW_CANVAS=true to see the M3 canvas.
   const showCanvas = process.env.EXPO_PUBLIC_SHOW_CANVAS === 'true';
+  const showM2Smoke = process.env.EXPO_PUBLIC_SHOW_M2_SMOKE === 'true';
 
   // Canonical transform kept in JS-thread state (§7 dual-state, onTransformEnd write-once-on-end).
   // SkiaCanvas shared values drive live rendering; this state drives the committed culling viewport.
@@ -73,9 +75,22 @@ export default function App() {
     );
   }
 
+  if (showM2Smoke) {
+    return (
+      <View style={styles.root}>
+        <M2PhraseSmokeScreen />
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
-      <M2PhraseSmokeScreen />
+      <M4CurriculumAuthScreen
+        apiBaseUrl={DEV_API_BASE_URL}
+        supabaseUrl={process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''}
+        supabaseAnonKey={process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''}
+      />
       <StatusBar style="auto" />
     </View>
   );

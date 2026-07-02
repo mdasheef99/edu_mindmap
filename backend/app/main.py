@@ -17,6 +17,8 @@ from uuid import uuid4
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.student.curriculum import router as curriculum_router
+from app.api.student.dashboard import router as dashboard_router
 from app.api.student.events import router as student_events_router
 from app.api.student.nodes import router as node_router
 from app.api.student.offer_choices import router as offer_choice_router
@@ -49,6 +51,8 @@ def create_app(runtime: SessionRuntime | None = None) -> FastAPI:
         student_user_id=uuid4(),
     )
     app.include_router(node_router)
+    app.include_router(curriculum_router)
+    app.include_router(dashboard_router)
     app.include_router(student_events_router)
     app.include_router(offer_choice_router)
     app.include_router(offer_set_router)

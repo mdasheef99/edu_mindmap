@@ -28,8 +28,11 @@ from app.domain.student.sessions import (
     StudentSessionWithCanvas,
 )
 from app.events.store import InMemoryEventStore
+from app.generation.fixture_electricity import ElectricityFixtureProvider
+from app.generation.provider import GenerationProvider
 from app.llm_gateway.usage import InMemoryLLMUsageStore
 from app.projections.curriculum import InMemoryCurriculumStore
+from app.projections.catalog import InMemoryCatalogStore
 from app.projections.question_classifications import (
     InMemoryQuestionClassificationProjectionStore,
 )
@@ -48,7 +51,7 @@ from app.runtime.session_workflow import (
     start_session_workflow,
 )
 from app.tenancy.consent import InMemoryConsentRecordStore
-from app.tenancy.membership_auth import resolve_membership_auth
+from app.tenancy.membership_auth import resolve_membership_auth, verify_supabase_user_id
 from app.tenancy.memberships import InMemoryMembershipStore
 from app.tenancy.pool import InMemoryTenantConnectionPool
 from app.workers.queue import InMemoryJobQueue
@@ -75,7 +78,9 @@ class SessionRuntime:
     )
     consent_records: InMemoryConsentRecordStore = field(default_factory=InMemoryConsentRecordStore)
     llm_usage: InMemoryLLMUsageStore = field(default_factory=InMemoryLLMUsageStore)
+    catalog: InMemoryCatalogStore = field(default_factory=InMemoryCatalogStore)
     curriculum: InMemoryCurriculumStore = field(default_factory=InMemoryCurriculumStore)
+    generation_provider: GenerationProvider = field(default_factory=ElectricityFixtureProvider)
     tenant_pool: InMemoryTenantConnectionPool | None = None
     jwt_secret: str = "test-secret"
     memberships: InMemoryMembershipStore = field(default_factory=InMemoryMembershipStore)
@@ -93,6 +98,19 @@ class SessionRuntime:
             memberships=self.memberships,
         )
 
+    def bootstrap_b2c_student_membership(self, token: str) -> AuthContext:
+        """Verify JWT and idempotently create the M4 B2C student membership."""
+        user_id = verify_supabase_user_id(token, jwt_secret=self.jwt_secret)
+        membership = self.memberships.ensure_student_membership(
+            user_id=user_id,
+            tenant_id=self.tenant_id,
+        )
+        return AuthContext(
+            user_id=user_id,
+            tenant_id=membership["tenant_id"],
+            role=membership["role"],
+        )
+
     @classmethod
     def for_testing(
         cls,
@@ -106,7 +124,9 @@ class SessionRuntime:
         | None = None,
         consent_records: InMemoryConsentRecordStore | None = None,
         llm_usage: InMemoryLLMUsageStore | None = None,
+        catalog: InMemoryCatalogStore | None = None,
         curriculum: InMemoryCurriculumStore | None = None,
+        generation_provider: GenerationProvider | None = None,
         tenant_pool: InMemoryTenantConnectionPool | None = None,
         jwt_secret: str | None = None,
         memberships: InMemoryMembershipStore | None = None,
@@ -122,7 +142,9 @@ class SessionRuntime:
             or InMemoryQuestionClassificationProjectionStore(),
             consent_records=consent_records or InMemoryConsentRecordStore(),
             llm_usage=llm_usage or InMemoryLLMUsageStore(),
+            catalog=catalog or InMemoryCatalogStore(),
             curriculum=curriculum or InMemoryCurriculumStore(),
+            generation_provider=generation_provider or ElectricityFixtureProvider(),
             tenant_pool=tenant_pool or InMemoryTenantConnectionPool(session_store),
             jwt_secret=jwt_secret or "test-secret",
             memberships=memberships or InMemoryMembershipStore(),
@@ -143,6 +165,7 @@ class SessionRuntime:
             event_store=self.event_store,
             student_sessions=self.student_sessions,
             curriculum=self.curriculum,
+            generation_provider=self.generation_provider,
             seen_users=self._seen_users,
         )
 
@@ -219,6 +242,7 @@ class SessionRuntime:
             tenant_pool=self.tenant_pool,
             event_store=self.event_store,
             job_queue=self.job_queue,
+            generation_provider=self.generation_provider,
         )
 
     def create_edge_offer_set(
