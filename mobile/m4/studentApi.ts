@@ -20,6 +20,12 @@ export interface StartedSession {
   sessionId: string;
 }
 
+export interface BootstrapStudentAuthResult {
+  userId: string;
+  tenantId: string;
+  role: string;
+}
+
 interface ClassRow {
   class_id: string;
   label: string;
@@ -27,12 +33,14 @@ interface ClassRow {
 
 interface ExamRow {
   exam_id: string;
-  label: string;
+  label?: string;
+  name?: string;
 }
 
 interface SubjectRow {
   subject_id: string;
-  label: string;
+  label?: string;
+  name?: string;
 }
 
 interface ChapterRow {
@@ -42,46 +50,65 @@ interface ChapterRow {
 
 interface ConceptEntryRow {
   concept_entry_id: string;
-  label: string;
+  label?: string;
+  title?: string;
+}
+
+export async function bootstrapStudentAuth(
+  args: StudentApiArgs,
+): Promise<BootstrapStudentAuthResult> {
+  const body = await postJson<{
+    user_id: string;
+    tenant_id: string;
+    role: string;
+  }>(args, '/v1/student/auth/bootstrap', {});
+  return {
+    userId: body.user_id,
+    tenantId: body.tenant_id,
+    role: body.role,
+  };
 }
 
 export async function loadElectricityLaunchPath(
   args: StudentApiArgs,
 ): Promise<ElectricityLaunchPath> {
-  const classRows = await getJson<{ classes: ClassRow[] }>(
+  const classRows = await getJson<{ items?: ClassRow[]; classes?: ClassRow[] }>(
     args,
     '/v1/student/curriculum/classes',
   );
-  const classId = requireMatch(classRows.classes, (row) => row.label === 'Class 10').class_id;
+  const classId = requireMatch(listFrom(classRows, 'classes'), (row) => row.label === 'Class 10')
+    .class_id;
 
-  const examRows = await getJson<{ exams: ExamRow[] }>(
+  const examRows = await getJson<{ items?: ExamRow[]; exams?: ExamRow[] }>(
     args,
     `/v1/student/curriculum/exams?class_id=${encodeURIComponent(classId)}`,
   );
-  const examId = requireMatch(examRows.exams, (row) => row.label === 'CBSE').exam_id;
+  const examId = requireMatch(listFrom(examRows, 'exams'), (row) => displayName(row) === 'CBSE')
+    .exam_id;
 
-  const subjectRows = await getJson<{ subjects: SubjectRow[] }>(
+  const subjectRows = await getJson<{ items?: SubjectRow[]; subjects?: SubjectRow[] }>(
     args,
     `/v1/student/curriculum/subjects?class_id=${encodeURIComponent(classId)}&exam_id=${encodeURIComponent(examId)}`,
   );
-  const subjectId = requireMatch(subjectRows.subjects, (row) => row.label === 'Science').subject_id;
+  const subjectId = requireMatch(listFrom(subjectRows, 'subjects'), (row) => displayName(row) === 'Science')
+    .subject_id;
 
-  const chapterRows = await getJson<{ chapters: ChapterRow[] }>(
+  const chapterRows = await getJson<{ items?: ChapterRow[]; chapters?: ChapterRow[] }>(
     args,
     `/v1/student/curriculum/chapters?class_id=${encodeURIComponent(classId)}&exam_id=${encodeURIComponent(examId)}&subject_id=${encodeURIComponent(subjectId)}`,
   );
   const chapterId = requireMatch(
-    chapterRows.chapters,
+    listFrom(chapterRows, 'chapters'),
     (row) => row.title === 'Electricity',
   ).chapter_id;
 
-  const conceptRows = await getJson<{ concept_entries: ConceptEntryRow[] }>(
+  const conceptRows = await getJson<{ items?: ConceptEntryRow[]; concept_entries?: ConceptEntryRow[] }>(
     args,
     `/v1/student/chapters/${encodeURIComponent(chapterId)}/concept-entries`,
   );
   const conceptEntryId = requireMatch(
-    conceptRows.concept_entries,
-    (row) => row.label.toLowerCase().includes('electricity'),
+    listFrom(conceptRows, 'concept_entries'),
+    (row) => displayName(row).toLowerCase().includes('electricity'),
   ).concept_entry_id;
 
   return { classId, examId, subjectId, chapterId, conceptEntryId };
@@ -171,6 +198,16 @@ function requireMatch<T>(rows: T[], predicate: (row: T) => boolean): T {
     throw new Error('Required M4 Electricity launch path row was not found');
   }
   return match;
+}
+
+function listFrom<T>(body: { items?: T[] } & Record<string, unknown>, key: string): T[] {
+  const named = body[key];
+  if (Array.isArray(named)) return named as T[];
+  return body.items ?? [];
+}
+
+function displayName(row: { label?: string; name?: string; title?: string }): string {
+  return row.label ?? row.name ?? row.title ?? '';
 }
 
 function trimTrailingSlash(value: string): string {

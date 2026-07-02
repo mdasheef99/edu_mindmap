@@ -38,6 +38,10 @@ describe('M4CurriculumAuthScreen', () => {
         ok: true,
         json: async () => ({ access_token: 'student-token', user: { id: 'user-1' } }),
       })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ user_id: 'user-1', tenant_id: 'tenant-1', role: 'student' }),
+      })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ classes: [{ class_id: 'class-10', label: 'Class 10' }] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ exams: [{ exam_id: 'cbse', label: 'CBSE' }] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ subjects: [{ subject_id: 'science', label: 'Science' }] }) })
@@ -71,7 +75,10 @@ describe('M4CurriculumAuthScreen', () => {
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
       'https://project.supabase.co/auth/v1/token?grant_type=password',
     );
-    expect((global.fetch as jest.Mock).mock.calls[6][1].headers.Authorization).toBe(
+    expect((global.fetch as jest.Mock).mock.calls[1][0]).toBe(
+      'http://127.0.0.1:8000/v1/student/auth/bootstrap',
+    );
+    expect((global.fetch as jest.Mock).mock.calls[7][1].headers.Authorization).toBe(
       'Bearer student-token',
     );
   });

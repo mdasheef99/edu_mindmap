@@ -79,6 +79,27 @@ def test_bootstrap_creates_one_student_membership_idempotently():
     ]
 
 
+def test_http_bootstrap_enables_student_api_access():
+    """BA-6: B2C bootstrap endpoint makes signed-in student endpoints usable."""
+    jwt_secret = "test-secret"
+    jwt_user = uuid4()
+    client, _ = _build_client_and_runtime(jwt_secret=jwt_secret)
+    token = _make_jwt(str(jwt_user), jwt_secret)
+
+    bootstrap = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    recent = client.get(
+        "/v1/student/sessions/recent",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert bootstrap.status_code == 200
+    assert bootstrap.json()["role"] == "student"
+    assert recent.status_code == 200
+
+
 def test_invalid_bootstrap_jwt_is_rejected():
     """BA-4: invalid bootstrap token is still unauthorized."""
     _, runtime = _build_client_and_runtime(jwt_secret="expected-secret")

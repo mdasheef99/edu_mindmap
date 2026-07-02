@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {
   ElectricityLaunchPath,
+  bootstrapStudentAuth,
   loadElectricityLaunchPath,
   startElectricitySession,
 } from './m4/studentApi';
@@ -48,6 +49,10 @@ export function M4CurriculumAuthScreen({
         mode === 'signup'
           ? await signUpWithEmailPassword(authArgs)
           : await signInWithEmailPassword(authArgs);
+      await bootstrapStudentAuth({
+        apiBaseUrl,
+        accessToken: authResult.accessToken,
+      });
       const loadedPath = await loadElectricityLaunchPath({
         apiBaseUrl,
         accessToken: authResult.accessToken,

@@ -379,3 +379,46 @@ live signup/session smoke remains pending before closure.
   `npm.cmd test -- --runInBand __tests__/m4StudentApi-test.ts __tests__/M4CurriculumAuthScreen-test.tsx`
   -> 2 suites passed, 8 tests passed.
 - `.pyc` cleanup after Python tests: remaining `.pyc` count = 0.
+
+---
+
+### 2026-07-03 - M4 smoke path bootstrap fix
+
+**Milestone context**: M4 remains implemented locally with the live catalog migration applied to
+the correct Supabase project. The live signup/session browser or device smoke remains pending
+before milestone closure.
+
+**Smoke findings**:
+- Local `.env` has `SUPABASE_URL` and `SUPABASE_ANON_KEY`, but no `SUPABASE_JWT_SECRET`; real
+  Supabase access-token verification cannot be completed locally until the JWT secret is supplied.
+- Direct student API smoke initially returned `403 {"detail":"No active membership for
+  authenticated user"}` after Supabase-style authentication because the HTTP app had no bootstrap
+  route for the M4 B2C membership seam.
+- Expo web startup from this sandbox failed before serving with `EPERM: operation not permitted,
+  lstat 'C:\Users\user'`, so the in-app browser smoke could not be completed from this process.
+
+**Fixes completed**:
+- Added `POST /v1/student/auth/bootstrap` to create or reuse the individual B2C student membership
+  from the authenticated bearer token before student catalog/session calls.
+- Seeded the default local FastAPI runtime with the M4 individual tenant and launch-path catalog
+  so local `uvicorn app.main:create_app --factory` runs expose the Electricity path without a
+  custom test runtime.
+- Updated the mobile M4 auth flow to call backend bootstrap after Supabase email/password
+  authentication and before loading catalog/session data.
+- Updated the mobile catalog client to accept the backend `{"items": [...]}` list shape while
+  retaining existing named-list test compatibility.
+
+**Verification**:
+- In-process FastAPI smoke with a local signed student JWT passed bootstrap, Class 10 -> CBSE ->
+  Science -> Electricity catalog traversal, session start, and canvas load.
+- Backend M4 focus:
+  `.\.venv\Scripts\python.exe -m pytest tests/integration/test_m4_auth_bootstrap.py tests/database/test_m4_catalog_sql.py tests/integration/test_m4_curriculum_dashboard.py tests/integration/test_m4_fixture_sessions.py tests/integration/test_offer_choice.py -q`
+  -> 28 passed.
+- Focused mobile M4:
+  `npm.cmd test -- --runInBand __tests__/m4StudentApi-test.ts __tests__/M4CurriculumAuthScreen-test.tsx`
+  -> 2 suites passed, 9 tests passed.
+- `.pyc` cleanup after Python tests: remaining `.pyc` count = 0.
+
+**Gate status**: M4 is still not closed. Remaining gate is a live Supabase email/password
+signup/login plus student launch/session smoke with `SUPABASE_JWT_SECRET` configured and Expo web
+or device startup running outside the sandbox failure.

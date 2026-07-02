@@ -1,5 +1,9 @@
 import { signInWithEmailPassword, signUpWithEmailPassword } from '../../m4/supabaseAuth';
-import { loadElectricityLaunchPath, startElectricitySession } from '../../m4/studentApi';
+import {
+  bootstrapStudentAuth,
+  loadElectricityLaunchPath,
+  startElectricitySession,
+} from '../../m4/studentApi';
 
 const originalFetch = global.fetch;
 
@@ -90,6 +94,29 @@ describe('M4 student API launch path', () => {
       'http://127.0.0.1:8000/v1/student/curriculum/chapters?class_id=class-10&exam_id=cbse&subject_id=science',
       'http://127.0.0.1:8000/v1/student/chapters/electricity/concept-entries',
     ]);
+  });
+
+  it('bootstraps backend B2C membership before student API calls', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ user_id: 'user-1', tenant_id: 'tenant-1', role: 'student' }),
+    });
+
+    const result = await bootstrapStudentAuth({
+      apiBaseUrl: 'http://127.0.0.1:8000',
+      accessToken: 'student-token',
+    });
+
+    expect(result).toEqual({ userId: 'user-1', tenantId: 'tenant-1', role: 'student' });
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:8000/v1/student/auth/bootstrap',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer student-token' }),
+        signal: expect.any(Object),
+        body: '{}',
+      }),
+    );
   });
 
   it('starts an Electricity session with launch path IDs', async () => {
