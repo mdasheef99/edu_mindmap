@@ -133,7 +133,14 @@ def _build_session_event_stream(
 ) -> tuple[dict[str, str], dict[str, str | None]]:
     seed = _seed_curriculum(runtime)
     session = _start_session(client, seed)
-    root_node_id = seed["concept_entry_id"]
+    root_node_id = str(
+        next(
+            event["node_id"]
+            for event in runtime.event_store.events
+            if event["event_type"] == "node_created"
+            and str(event["session_id"]) == session["session_id"]
+        )
+    )
     first = _record_offer_choice(client, session["session_id"], root_node_id, outcome="selected")
     second = _record_offer_choice(
         client, session["session_id"], str(first["child_node_id"]), outcome="selected"
@@ -179,11 +186,13 @@ def test_session_path_rebuild_tracks_context_history_and_active_structure() -> N
     ]
     assert str(path["offer_history"][-1]["offer_set_id"]) == expected["dismissed_offer_set_id"]
     assert [str(node["node_id"]) for node in path["created_path_nodes"]] == [
+        expected["root_node_id"],
         expected["first_child_node_id"],
         expected["second_child_node_id"],
         expected["third_child_node_id"],
     ]
     assert [str(node["node_id"]) for node in path["active_path_nodes"]] == [
+        expected["root_node_id"],
         expected["third_child_node_id"]
     ]
     assert [str(edge["edge_id"]) for edge in path["active_path_edges"]] == [

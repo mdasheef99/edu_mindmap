@@ -11,3 +11,4 @@ class StudentAuthBootstrapResponse(BaseModel):
     user_id: UUID
     tenant_id: UUID
     role: str
+    behavioral_analytics_consent_granted: bool

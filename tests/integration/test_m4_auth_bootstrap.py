@@ -9,6 +9,7 @@ Traceability:
 from uuid import uuid4
 
 import jwt
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
 
 
@@ -98,6 +99,117 @@ def test_http_bootstrap_enables_student_api_access():
     assert bootstrap.status_code == 200
     assert bootstrap.json()["role"] == "student"
     assert recent.status_code == 200
+
+
+def test_http_bootstrap_accepts_supabase_es256_jwks_token(monkeypatch):
+    """ADR-0017: live Supabase ES256/JWKS tokens can bootstrap M4 membership."""
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+    jwt_user = uuid4()
+    client, _ = _build_client_and_runtime(jwt_secret="unused-for-es256")
+    token = jwt.encode(
+        {
+            "iss": "https://jbmqyxhrmcbdgardamrp.supabase.co/auth/v1",
+            "sub": str(jwt_user),
+            "aud": "authenticated",
+            "role": "authenticated",
+        },
+        private_key,
+        algorithm="ES256",
+        headers={"kid": "test-key"},
+    )
+
+    class _SigningKey:
+        key = public_key
+
+    class _FakeJwksClient:
+        def __init__(self, url: str) -> None:
+            self.url = url
+
+        def get_signing_key_from_jwt(self, received_token: str):
+            assert received_token == token
+            return _SigningKey()
+
+    monkeypatch.setenv(
+        "SUPABASE_JWT_JWKS_URL",
+        "https://jbmqyxhrmcbdgardamrp.supabase.co/auth/v1/.well-known/jwks.json",
+    )
+    monkeypatch.setattr(jwt, "PyJWKClient", _FakeJwksClient)
+
+    bootstrap = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert bootstrap.status_code == 200
+    assert bootstrap.json()["user_id"] == str(jwt_user)
+    assert bootstrap.json()["role"] == "student"
+
+
+def test_es256_jwks_client_is_reused_across_authenticated_requests(monkeypatch):
+    """ADR-0017: repeated M4 requests reuse one key-caching JWKS client."""
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+    jwt_user = uuid4()
+    client, runtime = _build_client_and_runtime(jwt_secret="unused-for-es256")
+    issuer = "https://jbmqyxhrmcbdgardamrp.supabase.co/auth/v1"
+    runtime.jwt_issuer = issuer
+    runtime.jwt_jwks_url = f"{issuer}/.well-known/cache-test-jwks.json"
+    token = jwt.encode(
+        {"iss": issuer, "sub": str(jwt_user), "aud": "authenticated"},
+        private_key,
+        algorithm="ES256",
+        headers={"kid": "cache-test-key"},
+    )
+    created_clients: list[str] = []
+
+    class _SigningKey:
+        key = public_key
+
+    class _FakeJwksClient:
+        def __init__(self, url: str) -> None:
+            created_clients.append(url)
+
+        def get_signing_key_from_jwt(self, received_token: str):
+            assert received_token == token
+            return _SigningKey()
+
+    monkeypatch.setattr(jwt, "PyJWKClient", _FakeJwksClient)
+
+    first = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    second = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert created_clients == [runtime.jwt_jwks_url]
+
+
+def test_bootstrap_reports_existing_behavioral_analytics_consent():
+    """R3: a durable grant suppresses repeat mobile acknowledgement."""
+    jwt_secret = "test-secret"
+    jwt_user = uuid4()
+    client, runtime = _build_client_and_runtime(jwt_secret=jwt_secret)
+    token = _make_jwt(str(jwt_user), jwt_secret)
+
+    first = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    auth = runtime.resolve_auth(token)
+    runtime.grant_behavioral_analytics_consent(auth=auth)
+    second = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert first.json()["behavioral_analytics_consent_granted"] is False
+    assert second.json()["behavioral_analytics_consent_granted"] is True
 
 
 def test_invalid_bootstrap_jwt_is_rejected():

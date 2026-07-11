@@ -1,12 +1,13 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "index",
   "dependencies": {
     "@sentry/react-native": "~7.11.0",
     "@shopify/react-native-skia": "2.6.2",
     "d3-hierarchy": "^3.1.2",
     "expo": "~56.0.12",
+    "expo-secure-store": "~56.0.4",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -33,6 +34,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "setup-skia-web": "setup-skia-web",
+    "postinstall": "setup-skia-web",
     "test": "jest --watchAll=false"
   },
   "jest": {
@@ -44,6 +47,11 @@
     "modulePaths": [
       "<rootDir>/node_modules"
     ],
+    "moduleNameMapper": {
+      "^react$": "<rootDir>/node_modules/react",
+      "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+      "^d3-hierarchy$": "<rootDir>/node_modules/d3-hierarchy/src/index.js"
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|d3-hierarchy|@shopify/react-native-skia|react-native-reanimated|react-native-worklets|react-native-gesture-handler)"
     ]

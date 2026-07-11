@@ -99,6 +99,26 @@ def test_start_electricity_session_appends_session_and_root_node():
     assert root_event["payload"]["model_id"] == "fixture"
 
 
+def test_start_electricity_session_persists_worker_visible_consent():
+    """PR-6: the consent event and consent entity cannot diverge."""
+    client, runtime, seed = _build_client_runtime_and_seed()
+
+    first = client.post("/v1/student/sessions", json=_session_body(seed))
+    second = client.post("/v1/student/sessions", json=_session_body(seed))
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert runtime.consent_records.has_valid_behavioral_analytics(
+        tenant_id=runtime.tenant_id,
+        student_user_id=runtime.student_user_id,
+    )
+    consent_events = [
+        event for event in runtime.event_store.events if event["event_type"] == "consent_recorded"
+    ]
+    assert len(consent_events) == 1
+    assert len(runtime.consent_records.records) == 1
+
+
 def test_fetch_session_after_start_contains_root_canvas_node():
     """BG-2: GET /sessions/{id} hydrates root fixture node."""
     client, _, seed = _build_client_runtime_and_seed()
@@ -230,10 +250,11 @@ def _build_client_runtime_and_seed():
     return client, runtime, seed
 
 
-def _session_body(seed) -> dict[str, str]:
+def _session_body(seed) -> dict[str, str | bool]:
     return {
         "exam_id": str(seed.exam_id),
         "subject_id": str(seed.subject_id),
         "chapter_id": str(seed.chapter_id),
         "concept_entry_id": str(seed.root_concept_entry_id),
+        "behavioral_analytics_consent": True,
     }

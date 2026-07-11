@@ -27,4 +27,8 @@ def bootstrap_student_membership(
         user_id=auth.user_id,
         tenant_id=auth.tenant_id,
         role=auth.role,
+        behavioral_analytics_consent_granted=runtime.consent_records.has_valid_behavioral_analytics(
+            tenant_id=auth.tenant_id,
+            student_user_id=auth.user_id,
+        ),
     )

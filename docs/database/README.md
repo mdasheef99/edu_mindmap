@@ -1,6 +1,6 @@
 # Database Schema Specification Index
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Status**: Current database planning baseline  
 **Scope**: Supabase PostgreSQL schema suite for the FastAPI modular monolith
 
@@ -54,7 +54,9 @@ Required database primitives:
 ## 5. Global Conventions
 
 - Primary identifiers are UUIDs unless a source system requires another stable key.
-- Every tenant-scoped table carries `tenant_id` from migration 0001.
+- Every tenant-scoped table must carry `tenant_id`. Baseline tables received it in migration 0001;
+  the legacy M4 catalog rows were forward-corrected by `0007_m4_runtime_remediation.sql` rather
+  than rewriting the already-applied seed migration.
 - Every event carries `event_id`, `event_type`, `event_version`, `tenant_id`, `occurred_at`, and `recorded_at`.
 - Every derived analytic row carries `projection_version` and freshness metadata.
 - Timestamps use timezone-aware UTC semantics.

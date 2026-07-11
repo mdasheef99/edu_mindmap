@@ -1,6 +1,6 @@
 # Student API Specification
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Router**: `/v1/student`  
 **Read Model**: `student_rm` only
 
@@ -32,13 +32,44 @@ The mobile client must not decide the authoritative `tenant_id`, role, class mem
 - activation code redemption
 - roster upload or roster binding
 - class membership changes
-- consent-recording workflows
+- institutional/guardian consent administration or consent withdrawal workflows
 - teacher invitation or assignment
 - B2C to B2B tenant migration
 
-Those contracts belong to future admin/auth/internal API specs. B2B context never changes Category Invisibility: student endpoints still return only student-safe data from `student_rm`.
+Those contracts belong to future admin/auth/internal API specs. M4 has one deliberately narrow
+B2C exception: `POST /v1/student/sessions` may carry an explicit
+`behavioral_analytics_consent: true` acknowledgement. The backend records the first active grant
+idempotently in `consent_records` and appends `consent_recorded`; the client cannot supply the
+authoritative tenant, student, or grantor identity. Withdrawal and institutional/guardian consent
+remain future administrative workflows. B2B context never changes Category Invisibility: student
+endpoints still return only student-safe data from `student_rm`.
 
-## 4. Curriculum Endpoints
+## 4. Auth Bootstrap Endpoint
+
+| Method | Path | Purpose | Source |
+|---|---|---|---|
+| `POST` | `/v1/student/auth/bootstrap` | Verify the Supabase token and idempotently ensure the M4 B2C student membership | Supabase JWT + backend-owned memberships |
+
+Bootstrap accepts no authoritative tenant or role input. Supabase ES256 access tokens are verified
+through the configured JWKS/issuer using a cached JWKS client, then the backend assigns the
+accepted individual tenant and `student` role. A mobile-supplied `tenant_id` claim or body field is
+ignored.
+
+Response shape:
+
+```
+{
+  "user_id": "uuid",
+  "tenant_id": "uuid",
+  "role": "student",
+  "behavioral_analytics_consent_granted": true
+}
+```
+
+When `behavioral_analytics_consent_granted` is true, the client should not show the first-run
+learning-data acknowledgement again for that account.
+
+## 5. Curriculum Endpoints
 
 | Method | Path | Purpose | Source |
 |---|---|---|---|
@@ -51,18 +82,24 @@ Those contracts belong to future admin/auth/internal API specs. B2B context neve
 
 Student chapter responses must not include dimensional availability, richness profiles, gap notes, or teacher evidence.
 
-## 5. Session Endpoints
+## 6. Session Endpoints
 
 | Method | Path | Purpose | Events | Jobs |
 |---|---|---|---|---|
 | `GET` | `/v1/student/dashboard` | Continue Learning and recent sessions | none | none |
-| `POST` | `/v1/student/sessions` | Start chapter-scoped session | `session_started`, optional `node_created` | optional `project` |
+| `POST` | `/v1/student/sessions` | Start chapter-scoped session and deterministic root node | optional first `consent_recorded`, `session_started`, `node_created` | optional `project` |
 | `GET` | `/v1/student/sessions/{session_id}` | Fetch student-safe session state | none | none |
 | `POST` | `/v1/student/sessions/{session_id}/resume` | Resume session | `session_resumed` | none |
 | `POST` | `/v1/student/sessions/{session_id}/events` | Batch ingest whitelisted client events | whitelisted only | `project` as needed |
 | `POST` | `/v1/student/sessions/{session_id}/close` | Close or mark inactive | lifecycle event | optional `project` |
 
 Session state may include sessions, nodes, edges, summaries, current offer sets, and podcast status. It must not embed checkpoint eligibility; checkpoints are polled separately.
+
+The M4 request supplies class, exam, subject, chapter, and concept-entry identifiers plus the
+explicit `behavioral_analytics_consent` acknowledgement. The backend resolves `tenant_id` and
+learner identity from the verified membership, validates the complete curriculum chain under that
+tenant, pins `chapter_analysis_id`, and appends the deterministic fixture-backed root node. The
+request body must not carry an authoritative `tenant_id`.
 
 ### `GET /sessions/{session_id}` — Canvas Payload Shape
 
@@ -88,8 +125,9 @@ event log via `active_canvas_from_events`. Canvas fields are student-safe (`stud
 ```
 
 Canvas fields must never include analytic dimensions, classification labels, coverage scores,
-propensities, or any `analytic_rm` data. If no canvas events exist yet, `canvas.nodes` and
-`canvas.edges` are empty arrays and `canvas.viewport` holds the default transform.
+propensities, or any `analytic_rm` data. M4 session start creates one root `node_created` event;
+legacy or partially created sessions with no canvas events still return empty node/edge arrays and
+the default viewport.
 
 ### `POST /sessions/{session_id}/events` — Client Event Whitelist
 
@@ -112,7 +150,7 @@ Response: `202 Accepted` with `{ "accepted": N, "rejected": [...] }` where N is 
 appended. Individual validation failures within a batch are rejected; successfully validated
 events in the same batch are still appended (partial acceptance).
 
-## 6. Node Endpoints
+## 7. Node Endpoints
 
 | Method | Path | Purpose | Events | Jobs |
 |---|---|---|---|---|
@@ -124,7 +162,7 @@ events in the same batch are still appended (partial acceptance).
 
 Deletion is destructive in `student_rm` but append-only historically. `node_deleted` records the root deleted node and cascade result. Cascade edge removals use `edge_deleted` with `deletion_cause: node_cascade`.
 
-## 7. Edge Endpoints
+## 8. Edge Endpoints
 
 | Method | Path | Purpose | Events |
 |---|---|---|---|
@@ -133,7 +171,7 @@ Deletion is destructive in `student_rm` but append-only historically. `node_dele
 
 Allowed edge types are `ai_path` and `manual_reference`. Student-created manual links are not path progression.
 
-## 8. AI Offer-Set Workflow Endpoints
+## 9. AI Offer-Set Workflow Endpoints
 
 Workflow endpoints are allowed here because they represent generation acts owned by the backend LLM Gateway.
 
@@ -147,7 +185,7 @@ Offer-set responses contain only `offer_set_id`, student-safe option IDs/text, s
 
 Classification is post-hoc: `classify` is enqueued only after `offer_set_choice` and never blocks the student response.
 
-## 9. Reflective Checkpoint Endpoints
+## 10. Reflective Checkpoint Endpoints
 
 Checkpoints are dedicated, polled endpoints. They are not embedded in synchronous session-state responses.
 
@@ -162,7 +200,7 @@ Checkpoint prompts are optional, category-neutral, non-blocking, and never frame
 
 Teacher-assigned checkpoints are explicitly out of MVP scope. Checkpoints remain system-generated, post-hoc, optional, and Organic-First compatible; `/v1/teacher` cannot assign checkpoint prompts to individual learners.
 
-## 10. Podcast Endpoints
+## 11. Podcast Endpoints
 
 Podcast generation is a two-phase async lifecycle: `script_ready` → user confirmation → `audio_ready`.
 
@@ -177,7 +215,7 @@ Statuses: `script_generating`, `script_ready`, `audio_generating`, `audio_ready`
 
 The worker appends `podcast_generated` when audio is ready. Offline podcast playback/download is out of MVP scope.
 
-## 11. PYQ Endpoints
+## 12. PYQ Endpoints
 
 | Method | Path | Purpose | Events |
 |---|---|---|---|
@@ -185,6 +223,6 @@ The worker appends `podcast_generated` when audio is ready. Offline podcast play
 | `GET` | `/v1/student/pyq/{question_id}` | Get PYQ detail | none |
 | `POST` | `/v1/student/sessions/{session_id}/pyq/{question_id}/nodes` | Add PYQ as node | `node_created` |
 
-## 12. Offline Boundary
+## 13. Offline Boundary
 
 The API supports fetching student-safe session state for local persistence and reopen. MVP excludes offline AI generation, queued sync, conflict resolution, offline video behavior, and offline podcast playback. Offline dwell/revisit events are not buffered in MVP.

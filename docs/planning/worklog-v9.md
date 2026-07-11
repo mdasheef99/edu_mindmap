@@ -1,7 +1,7 @@
 # AGENT ROTATION INSTRUCTION - READ FIRST
 
-This is the active worklog as of 2026-07-02. Read this file after the source-of-truth hierarchy
-and before making M4 code or schema changes.
+This worklog is a **closed archive** as of 2026-07-10. It exceeded the 350-line governance
+threshold and must not receive new entries. Continue in `docs/planning/worklog-v10.md`.
 
 Legacy context:
 
@@ -422,3 +422,146 @@ before milestone closure.
 **Gate status**: M4 is still not closed. Remaining gate is a live Supabase email/password
 signup/login plus student launch/session smoke with `SUPABASE_JWT_SECRET` configured and Expo web
 or device startup running outside the sandbox failure.
+
+---
+
+### 2026-07-03 - M4 local Supabase env correction
+
+**Milestone context**: M4 remains locally implemented. Live signup/session smoke is still the
+remaining closure gate.
+
+**Config update**:
+- Local `.env` now includes the Mindmap Supabase project URL
+  `https://jbmqyxhrmcbdgardamrp.supabase.co` and the provided Supabase anon key under both
+  backend/shared names and Expo public names.
+- `.env.example` now lists the M4 Supabase and Expo public variables without real values.
+- `docs/configuration-reference.md` now explicitly warns that database URLs, service-role keys,
+  and JWT secrets must not be placed in `EXPO_PUBLIC_*` variables because Expo bundles those into
+  client builds.
+
+**Important note**: The provided JWT-shaped value is the Supabase anon key, not the backend JWT
+signing secret. Backend verification of real Supabase user access tokens still requires the
+backend-only `SUPABASE_JWT_SECRET` from the Supabase project settings, or the ADR-0015 JWKS path.
+
+---
+
+### 2026-07-03 - M4 live Supabase auth root-cause fix
+
+**Milestone context**: M4 remains implemented locally. Live signup/session smoke moved past the
+original Supabase auth 401 root cause and backend token-verification gap; a full browser smoke still
+requires running Uvicorn in a persistent visible terminal because this sandbox does not keep the
+background server process alive reliably.
+
+**Root causes found**:
+- The running Expo web bundle had `EXPO_PUBLIC_SUPABASE_ANON_KEY` set to the literal placeholder
+  string `"<anon key>"`, so Supabase returned `401` before backend bootstrap was involved.
+- The correct anon key works: direct Supabase signup against project `jbmqyxhrmcbdgardamrp`
+  returned `200`.
+- The live Supabase access tokens for this project are `ES256` tokens with a JWKS `kid`; backend
+  verification only accepted HS256, so bootstrap returned `401 {"detail":"Invalid Supabase token"}`
+  after signup.
+
+**Fixes completed**:
+- Backend token verification now supports Supabase ES256/JWKS tokens while preserving HS256 local
+  test-token compatibility.
+- Backend CORS now allows the Expo default web origins `http://localhost:8081` and
+  `http://127.0.0.1:8081`.
+- Mobile Supabase auth now rejects missing or literal-placeholder anon keys before calling
+  Supabase, so local misconfiguration fails with an actionable error instead of a generic 401.
+- `requirements.txt` now includes `cryptography`, required by PyJWT for ES256 verification.
+
+**Verification**:
+- Red tests were observed first: ES256/JWKS bootstrap returned 401 and placeholder anon-key mobile
+  auth called fetch.
+- Focused backend M4:
+  `.\.venv\Scripts\python.exe -m pytest tests/integration/test_m4_auth_bootstrap.py tests/database/test_m4_catalog_sql.py tests/integration/test_m4_curriculum_dashboard.py tests/integration/test_m4_fixture_sessions.py tests/integration/test_offer_choice.py -q`
+  -> 29 passed.
+- Focused mobile M4:
+  `npm.cmd test -- --runInBand __tests__/m4StudentApi-test.ts __tests__/M4CurriculumAuthScreen-test.tsx`
+  -> 2 suites passed, 10 tests passed.
+- Live in-process route smoke with a real Supabase signup token:
+  signup 200, `POST /v1/student/auth/bootstrap` 200, `GET /v1/student/curriculum/classes` 200.
+- `.pyc` cleanup after Python tests: remaining `.pyc` count = 0.
+
+---
+
+### 2026-07-03 - M4 browser smoke follow-up fixes
+
+**Milestone context**: M4 live browser smoke is actively being debugged against local Expo web and
+local FastAPI.
+
+**Findings from the Codex browser**:
+- The running Expo process had an OS-level `EXPO_PUBLIC_SUPABASE_ANON_KEY="<anon key>"` override.
+  Expo prioritized that over `mobile/app/.env`, so the UI showed `Supabase anon key is not
+  configured` even though the local env file contained the real anon key.
+- After adding a local fallback for the M4 public Supabase URL/anon key, browser signup moved past
+  auth configuration and Supabase signup.
+- The next browser error was `Student API failed: 422` after bootstrap. Root cause: the backend
+  catalog list returns `class_level_id`, while the mobile launch-path client read only `class_id`
+  and then called the exams endpoint with `class_id=undefined`.
+- After fixing the mobile mapper, browser signup moved to
+  `Student API failed: 401: Invalid Supabase token` because the visible backend process on port
+  8000 was still the stale pre-JWKS server. The fixed backend route was already verified
+  in-process with a real Supabase token.
+
+**Fixes completed**:
+- `mobile/app/App.tsx` now treats the literal placeholder `"<anon key>"` as unconfigured and falls
+  back to the M4 Mindmap Supabase project URL and public anon key for the local M4 launch screen.
+- `mobile/m4/studentApi.ts` now accepts the real backend `class_level_id` field in addition to the
+  test-friendly `class_id` alias.
+- Added `scripts/run_m4_backend_local.ps1` as a one-command visible-terminal backend runner with
+  `PYTHONPATH=backend` and `SUPABASE_URL` set for ES256/JWKS verification.
+
+**Verification**:
+- Browser smoke progressed from anon-key configuration failure to catalog mapper failure, then to
+  stale-backend token verification failure after the frontend fixes were active.
+- Backend M4 focus:
+  `.\.venv\Scripts\python.exe -m pytest tests/integration/test_m4_auth_bootstrap.py tests/database/test_m4_catalog_sql.py tests/integration/test_m4_curriculum_dashboard.py tests/integration/test_m4_fixture_sessions.py tests/integration/test_offer_choice.py -q`
+  -> 29 passed.
+- Focused mobile M4:
+  `npm.cmd test -- --runInBand __tests__/m4StudentApi-test.ts __tests__/M4CurriculumAuthScreen-test.tsx`
+  -> 2 suites passed, 11 tests passed.
+- `.pyc` cleanup after Python tests: remaining `.pyc` count = 0.
+
+**Browser smoke update**:
+- With the fixed backend running on `127.0.0.1:8000`, Codex browser signup reached
+  `Electricity ready`; `Start Electricity` was enabled.
+- Clicking `Start Electricity` switched from the M4 launch/auth screen to the mind-map canvas UI.
+  DOM showed the root Electricity node, edge/node exploration controls, zoom controls, and the
+  exploration dialog.
+- Remaining observed issue: Expo web logs repeated Skia web runtime errors
+  `Cannot read properties of undefined (reading 'PictureRecorder')`. The route/session handoff is
+  working; this is a web-rendering/runtime issue to track separately from M4 auth/session creation.
+
+---
+
+### 2026-07-03 - M4 session handoff to canvas
+
+**Milestone context**: Browser signup and session creation exposed a final mobile routing gap:
+the session was created, but the app stayed on the M4 launch/auth screen instead of showing the
+mind map.
+
+**Findings**:
+- `M4CurriculumAuthScreen` stored the started `sessionId` locally and rendered `Session: ...`, but
+  did not notify the app shell.
+- `mobile/app/App.tsx` only rendered `SkiaCanvas` for the older `EXPO_PUBLIC_SHOW_CANVAS=true`
+  dev path with a hardcoded session/token, not for the real M4 auth/session flow.
+- Supabase sign-in errors were also too generic because the auth client did not surface Supabase
+  `error`, `code`, or `error_code` fields.
+
+**Fixes completed**:
+- `M4CurriculumAuthScreen` now emits `onSessionStarted({ sessionId, accessToken })` after a
+  successful Electricity session start.
+- `App.tsx` now stores the M4 session and renders `SkiaCanvas` hydrated by the real session id and
+  Supabase access token.
+- Supabase auth error handling now preserves additional Supabase error fields so sign-in failures
+  identify the actual reason, such as invalid credentials.
+
+**Verification**:
+- Backend M4 focus:
+  `.\.venv\Scripts\python.exe -m pytest tests/integration/test_m4_auth_bootstrap.py tests/database/test_m4_catalog_sql.py tests/integration/test_m4_curriculum_dashboard.py tests/integration/test_m4_fixture_sessions.py tests/integration/test_offer_choice.py -q`
+  -> 29 passed.
+- Focused mobile M4:
+  `npm.cmd test -- --runInBand __tests__/m4StudentApi-test.ts __tests__/M4CurriculumAuthScreen-test.tsx`
+  -> 2 suites passed, 11 tests passed.
+- `.pyc` cleanup after Python tests: remaining `.pyc` count = 0.

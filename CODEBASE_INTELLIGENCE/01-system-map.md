@@ -1,56 +1,75 @@
 # 01 System Map
 
-## High-Level Architecture
-The project follows an **event-sourced modular monolith** pattern for the backend and a **hybrid native/Skia rendering** pattern for the mobile app.
+**2026-07-11 update**: physical-device remediation added cached Supabase JWKS clients, bootstrap
+consent state, progressive dashboard rendering before curriculum completion, and Supabase remote
+logout before local session clearing.
 
-### Backend (Python/FastAPI)
-- **Pattern**: Modular Monolith with CQRS-style read separation.
-- **Composition Root**: `backend/app/main.py` (58 lines — pure composition root: app
-  instantiation, CORS/Sentry middleware, router inclusion, and re-exports of `SessionRuntime`
-  / `InMemoryMembershipStore` for backward compatibility. No domain logic here.)
-- **Major Layers**:
-    - `app/domain/`: Pure types and invariants (e.g., `app/domain/student/sessions.py`).
-    - `app/api/`: FastAPI routers (e.g., `app/api/student/sessions.py`). Routers access the
-      runtime via `request.app.state.session_runtime` (duck-typed; no direct import of
-      `SessionRuntime` class to avoid circular dependencies).
-    - `app/runtime/`: In-process DI container and orchestration.
-        - `session.py` — `SessionRuntime` dataclass: the thin DI facade injected into
-          `app.state`. All methods delegate to typed workflow functions; no inline orchestration.
-          `for_testing` factory used by all integration tests.
-        - `session_workflow.py` — `start_session_workflow`, `resume_student_session_workflow`,
-          `get_student_session_with_canvas_workflow`.
-        - `curriculum_workflow.py` — `resolve_session_request`, `render_teacher_chapter_graph`.
-        - `node_position_workflow.py` — `update_node_position_workflow`.
-        - `offer_workflow.py` — phrase/edge offer-set creation, offer-choice recording.
-        - `canvas_deletion.py` — `delete_node_cascade_workflow`.
-        - `canvas_state.py` — `canvas_snapshot_from_events` (event replay → student-safe snapshot).
-    - `app/tenancy/`: Tenant identity and membership resolution.
-        - `memberships.py` — `InMemoryMembershipStore`: in-process tenant role registry.
-        - `membership_auth.py` — `resolve_membership_auth`: JWT decode + role lookup.
-        - `auth.py` — FastAPI dependency `get_auth_context`; calls `runtime.resolve_auth`
-          via duck-typing to stay decoupled from `app/runtime/`.
-        - `pool.py` — `InMemoryTenantConnectionPool`: transactional session store access.
-        - `consent.py` — `InMemoryConsentRecordStore`.
-    - `app/events/`: Event store and registry (e.g., `app/events/store.py`).
-    - `app/projections/`: Event-to-Read-Model builders.
-    - `app/workers/`: Async job handlers (e.g., `app/workers/classify.py`).
-    - `app/llm_gateway/`: Central chokepoint for AI calls.
+**Snapshot**: 2026-07-10 — M4 automated remediation complete; human gates pending.
+**Authority**: `docs/planning/development-approach.md` §§5-8,
+`docs/architecture/backend-architecture.md` §§3-8 and 11-12, ADR-0017, and the active M4
+runtime-remediation SDD.
 
-### Mobile (React Native/Expo)
-- **Pattern**: Hybrid rendering (React Native Animated Views for nodes + Skia for edges).
-- **Entry Point**: `mobile/app/index.ts` -> `mobile/app/App.tsx`
-- **State Management**: Zustand (`mobile/canvas/store.ts`).
-- **Animation/Gestures**: Reanimated + Gesture Handler (`mobile/canvas/useCanvasGestures.ts`).
-- **Physics**: D3-Force for node positioning.
+## Backend
 
-### Data & Infrastructure
-- **Database**: Supabase PostgreSQL (Event Store, Jobs, Read Models).
-- **Auth**: Supabase Auth (JWT-based).
-- **Storage**: Supabase Storage (Media/Podcasts).
-- **Job Queue**: Postgres `SELECT ... FOR UPDATE SKIP LOCKED`.
+The backend is an event-sourced FastAPI modular monolith with physically separate student and
+analytic read boundaries.
 
-### Runtime Patterns
-- **Write Path**: API -> Command -> Event Append -> Sync Projection (Student RM).
-- **Read Path**: API -> Read Model (Student RM).
-- **Async Path**: Event Append -> Job Enqueue -> Worker Claim -> Async Projection (Analytic RM).
-- **Category Invisibility**: Strict physical separation between student and analytic schemas.
+- `backend/app/main.py` is the production composition root. With no injected test runtime it fails
+  closed unless `DATABASE_URL` and `SUPABASE_URL` exist, then calls
+  `backend/app/runtime/postgres_runtime.py::build_postgres_runtime`.
+- `backend/app/api/` owns thin student and teacher routers.
+- `backend/app/domain/` owns typed requests, responses, and event builders.
+- `backend/app/runtime/` owns orchestration. `session.py` is the shared facade;
+  `session_workflow.py`, `curriculum_workflow.py`, `offer_workflow.py`,
+  `node_position_workflow.py`, and `canvas_deletion.py` contain workflows; `ports.py` prevents
+  workflows from depending on concrete in-memory stores.
+- `backend/app/events/` owns the validated append-only event registry and in-memory/Postgres stores.
+- `backend/app/projections/` owns student-safe session/catalog and analytic projections.
+- `backend/app/tenancy/` owns ES256/JWKS identity verification with cached JWKS clients,
+  membership resolution, consent, pooled transaction context, and `SET LOCAL app.tenant_id`.
+- `backend/app/workers/` and `backend/app/worker/phase1_worker.py` own Postgres
+  `FOR UPDATE SKIP LOCKED` jobs and worker orchestration.
+- `backend/app/generation/fixture_electricity.py` is the deterministic M4 Electricity generator.
+  It deliberately does not call a live LLM.
+- `backend/app/llm_gateway/` remains the only backend gateway for future live model calls and owns
+  recorded-fixture mode and usage accounting.
+
+`SessionRuntime.for_testing()` and `InMemory*` adapters remain test-only conveniences. Normal
+`create_app()` routes use pooled Postgres adapters for events, jobs, memberships, consent,
+catalog, and student sessions.
+
+## Mobile
+
+The Expo/React Native entry is `mobile/app/index.ts` → `mobile/app/App.tsx`.
+
+- The default M4 surface is `mobile/M4CurriculumAuthScreen.tsx`.
+- `mobile/m4/supabaseAuth.ts` handles email/password signup, sign-in, refresh, and Supabase remote
+  sign-out calls before local clearing.
+- `mobile/m4/sessionStore.ts` persists the Supabase refresh session with Expo SecureStore.
+- `mobile/m4/useM4AppFlow.ts` restores auth, calls B2C bootstrap, loads dashboard before the
+  sequential curriculum path, records or reuses consent state through session start, and resumes
+  recent sessions.
+- `mobile/m4/studentApi.ts` is the typed M4 API client. It never supplies authoritative tenancy.
+- `mobile/canvas/` owns the M3/M3-B hybrid canvas: Skia edges, native node views, Zustand state,
+  Reanimated/Gesture Handler interactions, hierarchy layout, viewport culling, and hydration.
+- `mobile/app/index.web.ts` prepares CanvasKit before the web app loads.
+- `EXPO_PUBLIC_SHOW_CANVAS` and `EXPO_PUBLIC_SHOW_M2_SMOKE` expose closed-milestone smoke surfaces;
+  they are not the normal M4 path.
+
+## Data and Runtime Paths
+
+- Supabase PostgreSQL stores operational data, append-only events, jobs, `student_rm`, and
+  `analytic_rm`; Supabase Auth owns credentials; Supabase Storage is reserved for media.
+- Live project: `jbmqyxhrmcbdgardamrp`. Do not use the old Bookconnect project.
+- Applied M4 migrations: `20260702173751 / m4_catalog_auth_seed` and
+  `20260710075416 / m4_runtime_remediation`.
+- Migration `backend/migrations/source_sql/0007_m4_runtime_remediation.sql` forward-adds and
+  backfills missing catalog `tenant_id`, constraints, indexes, and RLS without rewriting the
+  applied seed.
+
+Runtime paths:
+
+- Write: API → validated event append → synchronous student projection and/or durable job.
+- Read: API → tenant-scoped operational/`student_rm` data or event-replayed canvas.
+- Async: selected choice → classify job → worker event → consent-gated `analytic_rm` projection.
+- Student APIs must never import or serialize analytic internals.

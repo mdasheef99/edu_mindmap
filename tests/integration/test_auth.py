@@ -184,8 +184,8 @@ def test_valid_jwt_without_membership_returns_membership_error():
     assert response.json()["detail"] == "No active membership for authenticated user"
 
 
-def test_first_signin_appends_consent_recorded():
-    """T??: first sign-in must append a consent_recorded event."""
+def test_acknowledged_first_session_appends_consent_recorded():
+    """M4 §6.4: an explicit acknowledgement appends consent_recorded once."""
     jwt_secret = "test-secret"
     jwt_user = uuid4()
     resolved_tenant = uuid4()
@@ -200,7 +200,10 @@ def test_first_signin_appends_consent_recorded():
 
     response = client.post(
         "/v1/student/sessions",
-        json=_session_start_body(runtime, tenant_id=resolved_tenant),
+        json={
+            **_session_start_body(runtime, tenant_id=resolved_tenant),
+            "behavioral_analytics_consent": True,
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
 

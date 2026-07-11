@@ -3,7 +3,7 @@
  *
  * Mirrors the backend pattern (backend/app/observability/sentry.py): Sentry is
  * optional and initialized only when a DSN is supplied, otherwise this is a no-op.
- * The DSN is SENTRY_DSN_MOBILE (configuration-reference.md §10), resolved at the
+ * The DSN is EXPO_PUBLIC_SENTRY_DSN_MOBILE (configuration-reference.md §10), resolved at the
  * App.tsx call site and passed in so this module stays pure and CI-testable.
  *
  * Traceability: phase-3-m3-canvas-sdd.md §3, §14.

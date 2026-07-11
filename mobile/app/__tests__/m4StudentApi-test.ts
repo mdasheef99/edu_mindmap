@@ -1,4 +1,8 @@
-import { signInWithEmailPassword, signUpWithEmailPassword } from '../../m4/supabaseAuth';
+import {
+  signInWithEmailPassword,
+  signOutSupabaseSession,
+  signUpWithEmailPassword,
+} from '../../m4/supabaseAuth';
 import {
   bootstrapStudentAuth,
   loadElectricityLaunchPath,
@@ -16,7 +20,12 @@ describe('M4 Supabase auth service', () => {
   it('signs up with Supabase email/password using anon key headers', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ access_token: 'supabase-token', user: { id: 'user-1' } }),
+      json: async () => ({
+        access_token: 'supabase-token',
+        refresh_token: 'refresh-token',
+        expires_at: 2_000_000_000,
+        user: { id: 'user-1' },
+      }),
     });
 
     const result = await signUpWithEmailPassword({
@@ -36,10 +45,29 @@ describe('M4 Supabase auth service', () => {
     );
   });
 
+  it('rejects placeholder Supabase anon key before calling auth API', async () => {
+    global.fetch = jest.fn();
+
+    await expect(
+      signUpWithEmailPassword({
+        supabaseUrl: 'https://project.supabase.co',
+        anonKey: '<anon key>',
+        email: 'student@gmail.com',
+        password: 'secret-123',
+      }),
+    ).rejects.toThrow('Supabase anon key is not configured');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('signs in with Supabase password grant', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ access_token: 'login-token', user: { id: 'user-1' } }),
+      json: async () => ({
+        access_token: 'login-token',
+        refresh_token: 'refresh-token',
+        expires_at: 2_000_000_000,
+        user: { id: 'user-1' },
+      }),
     });
 
     const result = await signInWithEmailPassword({
@@ -53,6 +81,27 @@ describe('M4 Supabase auth service', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'https://project.supabase.co/auth/v1/token?grant_type=password',
       expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('revokes the Supabase session during sign-out', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 204 });
+
+    await signOutSupabaseSession({
+      supabaseUrl: 'https://project.supabase.co/',
+      anonKey: 'anon',
+      accessToken: 'access-token',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://project.supabase.co/auth/v1/logout',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          apikey: 'anon',
+          Authorization: 'Bearer access-token',
+        }),
+      }),
     );
   });
 });
@@ -82,10 +131,15 @@ describe('M4 student API launch path', () => {
 
     expect(result).toEqual({
       classId: 'class-10',
+      classLabel: 'Class 10',
       examId: 'cbse',
+      examName: 'CBSE',
       subjectId: 'science',
+      subjectName: 'Science',
       chapterId: 'electricity',
+      chapterTitle: 'Electricity',
       conceptEntryId: 'concept-root',
+      conceptTitle: 'Electricity overview',
     });
     expect((global.fetch as jest.Mock).mock.calls.map(([url]) => url)).toEqual([
       'http://127.0.0.1:8000/v1/student/curriculum/classes',
@@ -96,10 +150,58 @@ describe('M4 student API launch path', () => {
     ]);
   });
 
+  it('loads launch path from backend items response shape', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [{ class_level_id: 'class-10', slug: 'class-10', label: 'Class 10' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [{ exam_id: 'cbse', slug: 'cbse', name: 'CBSE' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [{ subject_id: 'science', slug: 'science', name: 'Science' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [{ chapter_id: 'electricity', slug: 'electricity', title: 'Electricity' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [{ concept_entry_id: 'concept-root', title: 'Electricity overview' }],
+        }),
+      });
+
+    const result = await loadElectricityLaunchPath({
+      apiBaseUrl: 'http://127.0.0.1:8000',
+      accessToken: 'student-token',
+    });
+
+    expect(result.classId).toBe('class-10');
+    expect((global.fetch as jest.Mock).mock.calls[1][0]).toBe(
+      'http://127.0.0.1:8000/v1/student/curriculum/exams?class_id=class-10',
+    );
+  });
+
   it('bootstraps backend B2C membership before student API calls', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ user_id: 'user-1', tenant_id: 'tenant-1', role: 'student' }),
+      json: async () => ({
+        user_id: 'user-1',
+        tenant_id: 'tenant-1',
+        role: 'student',
+        behavioral_analytics_consent_granted: true,
+      }),
     });
 
     const result = await bootstrapStudentAuth({
@@ -107,7 +209,12 @@ describe('M4 student API launch path', () => {
       accessToken: 'student-token',
     });
 
-    expect(result).toEqual({ userId: 'user-1', tenantId: 'tenant-1', role: 'student' });
+    expect(result).toEqual({
+      userId: 'user-1',
+      tenantId: 'tenant-1',
+      role: 'student',
+      behavioralAnalyticsConsentGranted: true,
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       'http://127.0.0.1:8000/v1/student/auth/bootstrap',
       expect.objectContaining({
@@ -130,11 +237,17 @@ describe('M4 student API launch path', () => {
       accessToken: 'student-token',
       launchPath: {
         classId: 'class-10',
+        classLabel: 'Class 10',
         examId: 'cbse',
+        examName: 'CBSE',
         subjectId: 'science',
+        subjectName: 'Science',
         chapterId: 'electricity',
+        chapterTitle: 'Electricity',
         conceptEntryId: 'concept-root',
+        conceptTitle: 'Electricity overview',
       },
+      behavioralAnalyticsConsent: true,
     });
 
     expect(session.sessionId).toBe('session-1');
@@ -149,6 +262,7 @@ describe('M4 student API launch path', () => {
           subject_id: 'science',
           chapter_id: 'electricity',
           concept_entry_id: 'concept-root',
+          behavioral_analytics_consent: true,
         }),
       }),
     );
@@ -167,11 +281,17 @@ describe('M4 student API launch path', () => {
         accessToken: 'student-token',
         launchPath: {
           classId: 'class-10',
+          classLabel: 'Class 10',
           examId: 'cbse',
+          examName: 'CBSE',
           subjectId: 'science',
+          subjectName: 'Science',
           chapterId: 'electricity',
+          chapterTitle: 'Electricity',
           conceptEntryId: 'concept-root',
+          conceptTitle: 'Electricity overview',
         },
+        behavioralAnalyticsConsent: true,
       }),
     ).rejects.toThrow('Student API failed: 404: Chapter not found in curriculum');
   });

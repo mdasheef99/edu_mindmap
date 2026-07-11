@@ -1,31 +1,63 @@
-# 07 Deployment & Ops Map
+# 07 Deployment and Operations Map
 
-## Hosting
-- **Backend + Worker**: Render (`render.yaml`).
-- **Mobile**: Expo Application Services (EAS) or standard native builds.
-- **Database**: Supabase (PostgreSQL).
+**2026-07-11 update**: the physical-device run should be restarted after the JWKS cache,
+progressive dashboard, persisted consent, and remote sign-out fixes. Retest sign out -> sign in
+again on the same account.
 
-## Environment Variables
-- `DATABASE_URL`: Postgres connection string.
-- `JWT_SECRET`: For auth token signing/verification.
-- `LLM_API_KEY`: Anthropic/OpenAI key for LLM Gateway.
-- `SENTRY_DSN`: Error tracking.
-- `RENDER_EXTERNAL_URL`: Public backend URL.
+**Snapshot**: 2026-07-10.
 
-## CI/CD
-- **Pipeline**: GitHub Actions (assumed).
-- **Checks**:
-    - Backend Pytest + Coverage.
-    - Mobile Jest.
-    - Import Linter (Boundary enforcement).
-    - MyPy / TypeScript type checks.
+## Services
 
-## Monitoring & Observability
-- **Sentry**: Crash reporting and error tracking (`backend/app/observability/sentry.py`).
-- **Postgres Logs**: For slow queries or `SKIP LOCKED` deadlocks.
-- **LLM Usage**: Tracked via `InMemoryLLMUsageStore` (or DB equivalent) to monitor costs.
+- `render.yaml` defines the FastAPI web service and `backend/app/worker/phase1_worker.py` worker.
+- Both use the same Supabase Postgres database. The API composes the durable pooled runtime; the
+  worker claims Postgres `SKIP LOCKED` jobs.
+- Expo/EAS owns native delivery; Expo web export includes CanvasKit support.
+- Supabase provides PostgreSQL, Auth, and Storage.
 
-## Operational Caveats
-- **Tenant Isolation**: Connection pool must be handled carefully to avoid leaking `SET LOCAL app.tenant_id` across requests (see ADR-0010/Canon).
-- **Worker Scaling**: The current `SKIP LOCKED` queue is designed for the MVP modular monolith. Scaling to multiple worker instances is supported by the Postgres lock mechanism.
-- **Stale Snapshots**: Ensure that `projection_version` is incremented when snapshot logic changes, triggering a rebuild.
+## Required Configuration
+
+Backend/API:
+
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- optional explicit `SUPABASE_JWT_JWKS_URL` / `SUPABASE_AUTH_URL`
+- `SENTRY_DSN_BACKEND`
+
+Worker/model path:
+
+- `DATABASE_URL`, `SUPABASE_URL`, `JOB_QUEUE_BACKEND=postgres_skip_locked`
+- `LLM_PROVIDER`, model ids, and backend-only `LLM_PROVIDER_API_KEY` when live models are enabled
+
+Expo M4 app:
+
+- `EXPO_PUBLIC_API_BASE_URL`
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- optional `EXPO_PUBLIC_SENTRY_DSN_MOBILE`
+
+`SUPABASE_JWT_SECRET` is for local/test HS256 fixtures only. Never expose database, service-role,
+JWT fixture, or LLM provider secrets through `EXPO_PUBLIC_*`.
+
+## Database Operations
+
+- Live project ref: `jbmqyxhrmcbdgardamrp`; the old Bookconnect project is out of scope.
+- Applied migrations: `20260702173751 / m4_catalog_auth_seed` and
+  `20260710075416 / m4_runtime_remediation`.
+- Keep `backend/migrations/source_sql/0007_m4_runtime_remediation.sql` forward-only; do not edit the
+  already-applied seed to hide migration history.
+- A release gate must use a non-bypass app-role `TEST_DATABASE_URL` to verify pooled RLS isolation.
+
+## Observability and Run Health
+
+- Backend Sentry initialization: `backend/app/observability/sentry.py`.
+- Mobile Sentry initialization: `mobile/app/observability/sentry.ts`.
+- Monitor API health/restarts, worker completion/dead letters, Postgres/RLS errors, slow session
+  replay, and LLM usage accounting.
+- Production startup should fail on missing database/auth configuration. Treat any fallback to
+  in-memory state as a defect.
+
+## Current Local Device Run
+
+As recorded in `docs/planning/worklog-v10.md`, the durable backend is bound to `0.0.0.0:8000` and
+Expo Go LAN to `exp://192.168.31.183:8081`. The LAN address is process-local operational data and
+must not be committed as app configuration.

@@ -8,6 +8,8 @@ fail before reaching the append-only `events` table.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
+from numbers import Real
 from typing import Any, Mapping
 
 
@@ -372,5 +374,11 @@ def validate_event(event: Mapping[str, Any], *, producer: str) -> Mapping[str, A
     )
     if missing_payload_fields:
         raise InvalidEventPayloadError(f"Missing required payload fields: {missing_payload_fields}")
+
+    if event_type == "node_position_updated":
+        for field in ("position_x", "position_y"):
+            value = payload[field]
+            if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(float(value)):
+                raise InvalidEventPayloadError(f"{field} must be a finite number")
 
     return event

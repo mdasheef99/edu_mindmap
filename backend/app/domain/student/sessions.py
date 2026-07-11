@@ -21,6 +21,7 @@ class SessionStartRequest(BaseModel):
     chapter_id: UUID
     concept_entry_id: UUID
     chapter_analysis_id: UUID | None = None
+    behavioral_analytics_consent: bool = False
 
 
 class SessionContext(BaseModel):

@@ -1,36 +1,62 @@
-# 06 Testing & Verification Map
+# 06 Testing and Verification Map
 
-## Test Frameworks
-- **Backend**: `pytest`
-- **Mobile**: `Jest`
-- **Boundary Checks**: `import-linter`
+**2026-07-11 update**: physical-device remediation coverage added cached JWKS reuse, bootstrap
+consent mapping, consent prompt suppression, remote Supabase logout, and progressive dashboard
+rendering before curriculum completion.
 
-## Key Test Locations
-- **Backend Unit/Integration**: `tests/` (mirrors `backend/app/` structure).
-- **Mobile Logic**: `mobile/app/__tests__/`.
-- **Worker Jobs**: `tests/workers/`.
+**Snapshot**: 2026-07-10. Current automated M4 remediation gates are green; human gates remain.
 
-## Setup & Fixtures
-- **SessionRuntime.for_testing**: Creates an in-memory runtime for fast, isolated backend tests.
-- **InMemoryEventStore**: Mocked event log.
-- **LLM Fixtures**: LLM responses are recorded in `LLM_CI_MODE` to avoid external costs and non-determinism in CI.
+## Test Systems and Locations
 
-## Critical Test Commands
-- **Backend Tests**: `pytest`
-- **Mobile Tests**: `npm test` (inside `mobile/app/`)
-- **Import Linter**: `lint-imports`
-- **Type Check**: `tsc --noEmit` (mobile) or `mypy` (backend).
+- Backend: `pytest` under `tests/{architecture,chapter_analysis,database,integration,projections}`.
+- Mobile/canvas: Jest tests under `mobile/app/__tests__/` and `mobile/canvas/__tests__/`.
+- Boundaries: four import-linter contracts in `pyproject.toml`, with subprocess assertions in
+  `tests/architecture/`.
+- Type safety: TypeScript for the Expo app/canvas. There is no current merge-blocking mypy gate.
+- Deterministic AI: recorded fixtures/contract checks under `LLM_CI_MODE`; no live LLM in CI.
+- Live Postgres tests: opt-in via non-bypass `TEST_DATABASE_URL`; they must not silently fall back
+  to a bypass production credential.
 
-## Verification Risks
-- **60fps Mobile Performance**: Cannot be verified in Jest; requires manual verification on physical devices (Stage 2 gate).
-- **Concurrent Job Claims**: `SKIP LOCKED` behavior should be tested under load to ensure no duplicate job execution.
-- **Snapshot Determinism**: Replaying the same event log must always produce a byte-identical read model.
+## Commands
 
-## Smoke Testing
-- **Script**: `backend/scripts/dev_smoke_bootstrap.py --dev-smoke`
-- **Purpose**: Bootstraps a local backend with a seeded canvas and prints a token for Expo Go.
-- **Workflow**:
-    1. Run bootstrap script.
-    2. Open Expo Go on physical device.
-    3. Paste `apiBaseUrl` and token into `M2PhraseSmokeScreen`.
-    4. Verify branching and canvas hydration.
+From the repository root in PowerShell:
+
+```powershell
+$env:PYTHONPATH='backend'
+python -m pytest --basetemp=.pytest-tmp
+lint-imports
+```
+
+The workspace-local `--basetemp` is required on this Windows environment. In the Codex sandbox,
+the four import-linter subprocess tests can fail only because the user-level `lint-imports.exe`
+path under AppData is not accessible; run those isolated tests with approved escalation or verify
+the contracts directly with `lint-imports`. After Python tests, delete generated `*.pyc` and
+verify the count is zero.
+
+From `mobile/app`:
+
+```powershell
+npm test -- --runInBand
+npx tsc --noEmit
+npx expo export --platform web
+```
+
+## Latest Evidence
+
+- Backend: 147 regular tests plus 4/4 isolated import-linter tests green (151 combined); direct
+  import-linter reports 4 kept, 0 broken.
+- Mobile: 27/27 suites and 136/136 tests green; TypeScript green.
+- Web export: green and contains `dist/canvaskit.wasm`.
+- Native bundling: Expo Go Android Hermes bundle succeeded with 1,822 modules and 11,243,312 bytes.
+- Live durable smoke: signup/bootstrap → consent-aware session/root → branch → runtime recreation →
+  dashboard/resume/hydrate; the Postgres worker completed classification and projection.
+- Live schema readback: all 15 audited tables contain `tenant_id` and have RLS enabled.
+
+## Remaining Human/Operational Gates
+
+1. Physical Android: stranger signup → dashboard → Electricity → canvas and resume.
+2. Interactive browser: render the web canvas without `PictureRecorder`/CanvasKit errors.
+3. Pooled non-bypass app-role: prove cross-tenant denial through RLS.
+
+Jest/export/bundle success does not substitute for these gates. Likewise, schema metadata alone is
+not the non-bypass RLS behavior test.

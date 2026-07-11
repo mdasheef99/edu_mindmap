@@ -1,6 +1,6 @@
 # Core Operational Schema
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Status**: Current MVP schema baseline  
 **Scope**: Tenancy, membership, consent, curriculum, PYQ, and media metadata
 
@@ -174,14 +174,20 @@ Behavioral analytics consent gates classification/projection inclusion and teach
 
 | Table | Purpose | Key Fields |
 |---|---|---|
-| `curriculum_classes` | class/syllabus levels | `class_level_id`, `label`, `sort_order` |
-| `exams` | CBSE, ICSE, state boards, NEET, JEE, etc. | `exam_id`, `class_level_id`, `name`, `status` |
-| `subjects` | exam/class subjects | `subject_id`, `exam_id`, `name`, `status` |
-| `chapters` | launchable chapter catalog | `chapter_id`, `subject_id`, `title`, `status`, `chapter_analysis_id` |
-| `concept_entries` | supported session entry points | `concept_entry_id`, `chapter_id`, `title`, `status` |
-| `chapter_analysis_versions` | analysis version registry | `chapter_analysis_id`, `chapter_id`, `qa_status`, `version`, `generated_at` |
+| `curriculum_classes` | class/syllabus levels | `class_level_id`, `tenant_id`, `label`, `sort_order` |
+| `exams` | CBSE, ICSE, state boards, NEET, JEE, etc. | `exam_id`, `tenant_id`, `class_level_id`, `name`, `status` |
+| `subjects` | exam/class subjects | `subject_id`, `tenant_id`, `exam_id`, `name`, `status` |
+| `chapters` | launchable chapter catalog | `chapter_id`, `tenant_id`, `subject_id`, `title`, `status`, `chapter_analysis_id` |
+| `concept_entries` | supported session entry points | `concept_entry_id`, `tenant_id`, `chapter_id`, `title`, `status` |
+| `chapter_analysis_versions` | analysis version registry | `chapter_analysis_id`, `tenant_id`, `chapter_id`, `qa_status`, `version`, `generated_at` |
 
 Only chapters with approved launch status and required analysis references may be used to start sessions.
+
+Migration `0007_m4_runtime_remediation.sql` is the forward-only correction for the already-applied
+M4 seed: it adds/backfills missing `tenant_id` on `curriculum_classes`, `exams`, `subjects`,
+`chapter_analysis_versions`, and `concept_entries`; makes the columns non-null; adds tenant foreign
+keys and indexes; and replaces permissive catalog policies with tenant-isolation RLS policies.
+`chapters` already carried `tenant_id` before this remediation.
 
 ## 7. PYQ Tables
 

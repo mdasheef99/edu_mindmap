@@ -22,11 +22,9 @@ from app.domain.student.offer_sets import (
     build_phrase_offer_set,
 )
 from app.canvas.limits import NodeLimitExceeded, canvas_node_hard_limit
-from app.events.store import InMemoryEventStore
 from app.generation.provider import GenerationProvider, GeneratedNode
 from app.runtime.canvas_state import count_active_nodes
-from app.tenancy.pool import InMemoryTenantConnectionPool
-from app.workers.queue import InMemoryJobQueue
+from app.runtime.ports import EventStorePort, JobQueuePort, TenantPoolPort
 
 
 def record_offer_choice_workflow(
@@ -36,9 +34,9 @@ def record_offer_choice_workflow(
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
-    job_queue: InMemoryJobQueue,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
+    job_queue: JobQueuePort,
     generation_provider: GenerationProvider | None = None,
 ) -> OfferChoiceResponse | None:
     resolved = auth or AuthContext(
@@ -128,8 +126,8 @@ def create_edge_offer_set_workflow(
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
 ) -> EdgeOfferSetResponse | None:
     resolved = auth or AuthContext(
         user_id=fallback_user_id, tenant_id=fallback_tenant_id, role="student"
@@ -161,8 +159,8 @@ def create_phrase_offer_set_workflow(
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
 ) -> PhraseOfferSetResponse | None:
     resolved = auth or AuthContext(
         user_id=fallback_user_id, tenant_id=fallback_tenant_id, role="student"

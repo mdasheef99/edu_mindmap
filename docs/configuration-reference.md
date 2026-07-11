@@ -95,28 +95,33 @@ Values are not documented here.
 | `SUPABASE_ANON_KEY` | mobile/web | client-safe Supabase key |
 | `EXPO_PUBLIC_SUPABASE_URL` | mobile | Expo-exposed Supabase project URL for B2C email/password auth |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Expo-exposed client-safe Supabase anon key |
-| `EXPO_PUBLIC_DEV_API_BASE_URL` | mobile local/dev | backend API base URL used by Expo dev builds |
+| `EXPO_PUBLIC_API_BASE_URL` | mobile | backend API base URL used by the M4 Expo app |
 | `EXPO_PUBLIC_SHOW_CANVAS` | mobile local/dev | optional M3 canvas smoke override |
 | `EXPO_PUBLIC_SHOW_M2_SMOKE` | mobile local/dev | optional M2 phrase smoke override |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend only | privileged server operations |
 | `LLM_PROVIDER_API_KEY` | backend only | LLM Gateway provider credential |
 | `SENTRY_DSN_BACKEND` | backend | error tracking |
-| `SENTRY_DSN_MOBILE` | mobile | error tracking |
+| `EXPO_PUBLIC_SENTRY_DSN_MOBILE` | mobile | Expo-exposed mobile error-tracking DSN |
 | `SENTRY_DSN_WEB` | teacher web | error tracking |
+
+Expo-exposed variables are bundled into client builds. Do not put `DATABASE_URL`,
+`TEST_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `SUPABASE_JWT_SECRET` into any
+`EXPO_PUBLIC_*` variable. M4 client auth uses only the Supabase project URL and anon key. Backend
+token verification follows ADR-0017: ES256/JWKS for the live Supabase runtime. The
+`SUPABASE_JWT_SECRET` HS256 path is deterministic local/test-fixture compatibility only.
 
 ### 10.1 Phase 2 placeholders — Supabase Auth + curriculum ingestion
 
 Names only; values are never documented here. Auth rows back `backend-architecture.md` §5.4 (JWT →
 backend-resolved tenant/role) and ADR-0015 (`adr-log-02.md`); ingestion rows back
 `chapter-analysis-pipeline-specification.md` P0–P4 and
-`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6. The exact JWT verification mechanism
-(shared HS256 secret vs JWKS asymmetric) is fixed by ADR-0015; both placeholders are listed so
-either choice is ready.
+`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6. ADR-0017 supersedes ADR-0015 for
+the live runtime and selects asymmetric ES256/JWKS validation.
 
 | Variable | Owner | Purpose |
 |---|---|---|
-| `SUPABASE_JWT_SECRET` | backend only | verify Supabase Auth JWTs (HS256 path) |
-| `SUPABASE_JWT_JWKS_URL` | backend only | JWKS endpoint for asymmetric JWT verification (ADR-0015 alternative) |
+| `SUPABASE_JWT_SECRET` | tests/local fixtures only | deterministic HS256 fixture-token verification; not the live path |
+| `SUPABASE_JWT_JWKS_URL` | backend only | optional explicit JWKS endpoint for ADR-0017 ES256 verification; otherwise derived from `SUPABASE_URL` |
 | `SUPABASE_AUTH_URL` | backend/mobile/web | Supabase Auth issuer/base URL |
 | `TEST_DATABASE_URL` | tests/CI/local | non-bypass app-role Postgres URL for opt-in live RLS and curriculum ingest tests; local pytest loads this key from `.env` if it is not exported |
 | `CURRICULUM_SOURCE_DIR` | ingestion operator | path to source chapter PDF/text inputs for P0 |

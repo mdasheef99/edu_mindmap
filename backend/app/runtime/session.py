@@ -40,6 +40,15 @@ from app.projections.student_sessions import InMemoryStudentSessionProjectionSto
 from app.runtime.canvas_deletion import delete_node_cascade_workflow
 from app.runtime.curriculum_workflow import render_teacher_chapter_graph
 from app.runtime.node_position_workflow import update_node_position_workflow
+from app.runtime.ports import (
+    ConsentRecordStorePort,
+    CurriculumStorePort,
+    EventStorePort,
+    JobQueuePort,
+    MembershipStorePort,
+    StudentSessionStorePort,
+    TenantPoolPort,
+)
 from app.runtime.offer_workflow import (
     create_edge_offer_set_workflow,
     create_phrase_offer_set_workflow,
@@ -47,6 +56,7 @@ from app.runtime.offer_workflow import (
 )
 from app.runtime.session_workflow import (
     get_student_session_with_canvas_workflow,
+    record_behavioral_analytics_consent_workflow,
     resume_student_session_workflow,
     start_session_workflow,
 )
@@ -68,23 +78,24 @@ class SessionRuntime:
 
     tenant_id: UUID
     student_user_id: UUID
-    event_store: InMemoryEventStore = field(default_factory=InMemoryEventStore)
-    job_queue: InMemoryJobQueue = field(default_factory=InMemoryJobQueue)
-    student_sessions: InMemoryStudentSessionProjectionStore = field(
+    event_store: EventStorePort = field(default_factory=InMemoryEventStore)
+    job_queue: JobQueuePort = field(default_factory=InMemoryJobQueue)
+    student_sessions: StudentSessionStorePort = field(
         default_factory=InMemoryStudentSessionProjectionStore
     )
     analytic_question_classifications: InMemoryQuestionClassificationProjectionStore = field(
         default_factory=InMemoryQuestionClassificationProjectionStore
     )
-    consent_records: InMemoryConsentRecordStore = field(default_factory=InMemoryConsentRecordStore)
+    consent_records: ConsentRecordStorePort = field(default_factory=InMemoryConsentRecordStore)
     llm_usage: InMemoryLLMUsageStore = field(default_factory=InMemoryLLMUsageStore)
     catalog: InMemoryCatalogStore = field(default_factory=InMemoryCatalogStore)
-    curriculum: InMemoryCurriculumStore = field(default_factory=InMemoryCurriculumStore)
+    curriculum: CurriculumStorePort = field(default_factory=InMemoryCurriculumStore)
     generation_provider: GenerationProvider = field(default_factory=ElectricityFixtureProvider)
-    tenant_pool: InMemoryTenantConnectionPool | None = None
+    tenant_pool: TenantPoolPort | None = None
     jwt_secret: str = "test-secret"
-    memberships: InMemoryMembershipStore = field(default_factory=InMemoryMembershipStore)
-    _seen_users: set[UUID] = field(default_factory=set)
+    jwt_jwks_url: str | None = None
+    jwt_issuer: str | None = None
+    memberships: MembershipStorePort = field(default_factory=InMemoryMembershipStore)
 
     def __post_init__(self) -> None:
         if self.tenant_pool is None:
@@ -96,11 +107,18 @@ class SessionRuntime:
             token,
             jwt_secret=self.jwt_secret,
             memberships=self.memberships,
+            jwks_url=self.jwt_jwks_url,
+            issuer=self.jwt_issuer,
         )
 
     def bootstrap_b2c_student_membership(self, token: str) -> AuthContext:
         """Verify JWT and idempotently create the M4 B2C student membership."""
-        user_id = verify_supabase_user_id(token, jwt_secret=self.jwt_secret)
+        user_id = verify_supabase_user_id(
+            token,
+            jwt_secret=self.jwt_secret,
+            jwks_url=self.jwt_jwks_url,
+            issuer=self.jwt_issuer,
+        )
         membership = self.memberships.ensure_student_membership(
             user_id=user_id,
             tenant_id=self.tenant_id,
@@ -129,6 +147,8 @@ class SessionRuntime:
         generation_provider: GenerationProvider | None = None,
         tenant_pool: InMemoryTenantConnectionPool | None = None,
         jwt_secret: str | None = None,
+        jwt_jwks_url: str | None = None,
+        jwt_issuer: str | None = None,
         memberships: InMemoryMembershipStore | None = None,
     ) -> "SessionRuntime":
         session_store = student_sessions or InMemoryStudentSessionProjectionStore()
@@ -147,6 +167,8 @@ class SessionRuntime:
             generation_provider=generation_provider or ElectricityFixtureProvider(),
             tenant_pool=tenant_pool or InMemoryTenantConnectionPool(session_store),
             jwt_secret=jwt_secret or "test-secret",
+            jwt_jwks_url=jwt_jwks_url,
+            jwt_issuer=jwt_issuer,
             memberships=memberships or InMemoryMembershipStore(),
         )
 
@@ -166,7 +188,7 @@ class SessionRuntime:
             student_sessions=self.student_sessions,
             curriculum=self.curriculum,
             generation_provider=self.generation_provider,
-            seen_users=self._seen_users,
+            consent_records=self.consent_records,
         )
 
     def get_student_session(self, session_id: str) -> StudentSession | None:
@@ -321,7 +343,8 @@ class SessionRuntime:
         resolved = auth or AuthContext(
             user_id=self.student_user_id, tenant_id=self.tenant_id, role="student"
         )
-        self.consent_records.grant_behavioral_analytics(
-            tenant_id=resolved.tenant_id,
-            student_user_id=resolved.user_id,
+        record_behavioral_analytics_consent_workflow(
+            auth=resolved,
+            event_store=self.event_store,
+            consent_records=self.consent_records,
         )

@@ -19,7 +19,17 @@ class InMemoryConsentRecordStore:
         *,
         tenant_id: UUID,
         student_user_id: UUID,
+        event_id: UUID | None = None,
     ) -> dict[str, Any]:
+        for record in reversed(self.records):
+            if (
+                record["tenant_id"] == tenant_id
+                and record["student_user_id"] == student_user_id
+                and record["consent_kind"] == "behavioral_analytics"
+                and record["state"] == "granted"
+                and record["withdrawn_at"] is None
+            ):
+                return deepcopy(record)
         record = {
             "consent_id": uuid4(),
             "tenant_id": tenant_id,
@@ -28,6 +38,7 @@ class InMemoryConsentRecordStore:
             "state": "granted",
             "granted_at": datetime.now(timezone.utc),
             "withdrawn_at": None,
+            "event_id": event_id,
         }
         self.records.append(deepcopy(record))
         return record

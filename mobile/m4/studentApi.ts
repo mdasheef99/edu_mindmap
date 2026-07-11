@@ -6,28 +6,49 @@ export interface StudentApiArgs {
 
 export interface ElectricityLaunchPath {
   classId: string;
+  classLabel: string;
   examId: string;
+  examName: string;
   subjectId: string;
+  subjectName: string;
   chapterId: string;
+  chapterTitle: string;
   conceptEntryId: string;
+  conceptTitle: string;
 }
 
 export interface StartSessionArgs extends StudentApiArgs {
   launchPath: ElectricityLaunchPath;
+  behavioralAnalyticsConsent: boolean;
 }
 
 export interface StartedSession {
   sessionId: string;
 }
 
+export interface DashboardSession {
+  sessionId: string;
+  chapterId: string;
+  chapterTitle: string;
+  lastActiveAt: string;
+  status: string;
+}
+
+export interface StudentDashboard {
+  continueLearning: DashboardSession | null;
+  recentSessions: DashboardSession[];
+}
+
 export interface BootstrapStudentAuthResult {
   userId: string;
   tenantId: string;
   role: string;
+  behavioralAnalyticsConsentGranted: boolean;
 }
 
 interface ClassRow {
-  class_id: string;
+  class_id?: string;
+  class_level_id?: string;
   label: string;
 }
 
@@ -54,64 +75,81 @@ interface ConceptEntryRow {
   title?: string;
 }
 
-export async function bootstrapStudentAuth(
-  args: StudentApiArgs,
-): Promise<BootstrapStudentAuthResult> {
+export async function bootstrapStudentAuth(args: StudentApiArgs): Promise<BootstrapStudentAuthResult> {
   const body = await postJson<{
     user_id: string;
     tenant_id: string;
     role: string;
+    behavioral_analytics_consent_granted: boolean;
   }>(args, '/v1/student/auth/bootstrap', {});
   return {
     userId: body.user_id,
     tenantId: body.tenant_id,
     role: body.role,
+    behavioralAnalyticsConsentGranted: body.behavioral_analytics_consent_granted,
   };
 }
 
-export async function loadElectricityLaunchPath(
-  args: StudentApiArgs,
-): Promise<ElectricityLaunchPath> {
+export async function loadElectricityLaunchPath(args: StudentApiArgs): Promise<ElectricityLaunchPath> {
   const classRows = await getJson<{ items?: ClassRow[]; classes?: ClassRow[] }>(
     args,
     '/v1/student/curriculum/classes',
   );
-  const classId = requireMatch(listFrom(classRows, 'classes'), (row) => row.label === 'Class 10')
-    .class_id;
+  const classRow = requireMatch(listFrom(classRows, 'classes'), (row) => row.label === 'Class 10');
+  const classId = classRow.class_id ?? requireId(
+      classRow.class_level_id,
+      'Class 10',
+    );
 
   const examRows = await getJson<{ items?: ExamRow[]; exams?: ExamRow[] }>(
     args,
     `/v1/student/curriculum/exams?class_id=${encodeURIComponent(classId)}`,
   );
-  const examId = requireMatch(listFrom(examRows, 'exams'), (row) => displayName(row) === 'CBSE')
-    .exam_id;
+  const examRow = requireMatch(listFrom(examRows, 'exams'), (row) => displayName(row) === 'CBSE');
+  const examId = examRow.exam_id;
 
   const subjectRows = await getJson<{ items?: SubjectRow[]; subjects?: SubjectRow[] }>(
     args,
     `/v1/student/curriculum/subjects?class_id=${encodeURIComponent(classId)}&exam_id=${encodeURIComponent(examId)}`,
   );
-  const subjectId = requireMatch(listFrom(subjectRows, 'subjects'), (row) => displayName(row) === 'Science')
-    .subject_id;
+  const subjectRow = requireMatch(
+    listFrom(subjectRows, 'subjects'),
+    (row) => displayName(row) === 'Science',
+  );
+  const subjectId = subjectRow.subject_id;
 
   const chapterRows = await getJson<{ items?: ChapterRow[]; chapters?: ChapterRow[] }>(
     args,
     `/v1/student/curriculum/chapters?class_id=${encodeURIComponent(classId)}&exam_id=${encodeURIComponent(examId)}&subject_id=${encodeURIComponent(subjectId)}`,
   );
-  const chapterId = requireMatch(
+  const chapterRow = requireMatch(
     listFrom(chapterRows, 'chapters'),
     (row) => row.title === 'Electricity',
-  ).chapter_id;
+  );
+  const chapterId = chapterRow.chapter_id;
 
   const conceptRows = await getJson<{ items?: ConceptEntryRow[]; concept_entries?: ConceptEntryRow[] }>(
     args,
     `/v1/student/chapters/${encodeURIComponent(chapterId)}/concept-entries`,
   );
-  const conceptEntryId = requireMatch(
+  const conceptRow = requireMatch(
     listFrom(conceptRows, 'concept_entries'),
     (row) => displayName(row).toLowerCase().includes('electricity'),
-  ).concept_entry_id;
+  );
+  const conceptEntryId = conceptRow.concept_entry_id;
 
-  return { classId, examId, subjectId, chapterId, conceptEntryId };
+  return {
+    classId,
+    classLabel: classRow.label,
+    examId,
+    examName: displayName(examRow),
+    subjectId,
+    subjectName: displayName(subjectRow),
+    chapterId,
+    chapterTitle: chapterRow.title,
+    conceptEntryId,
+    conceptTitle: displayName(conceptRow),
+  };
 }
 
 export async function startElectricitySession(
@@ -122,8 +160,49 @@ export async function startElectricitySession(
     subject_id: args.launchPath.subjectId,
     chapter_id: args.launchPath.chapterId,
     concept_entry_id: args.launchPath.conceptEntryId,
+    behavioral_analytics_consent: args.behavioralAnalyticsConsent,
   });
   return { sessionId: body.session_id };
+}
+
+export async function loadStudentDashboard(args: StudentApiArgs): Promise<StudentDashboard> {
+  const body = await getJson<{
+    continue_learning?: DashboardSessionRow | null;
+    recent_sessions?: DashboardSessionRow[];
+  }>(args, '/v1/student/dashboard');
+  return {
+    continueLearning: body.continue_learning ? mapDashboardSession(body.continue_learning) : null,
+    recentSessions: (body.recent_sessions ?? []).map(mapDashboardSession),
+  };
+}
+
+export async function resumeStudentSession(
+  args: StudentApiArgs & { sessionId: string },
+): Promise<StartedSession> {
+  const body = await postJson<{ session_id: string }>(
+    args,
+    `/v1/student/sessions/${encodeURIComponent(args.sessionId)}/resume`,
+    {},
+  );
+  return { sessionId: body.session_id };
+}
+
+interface DashboardSessionRow {
+  session_id: string;
+  chapter_id: string;
+  chapter_title: string;
+  last_active_at: string;
+  status: string;
+}
+
+function mapDashboardSession(row: DashboardSessionRow): DashboardSession {
+  return {
+    sessionId: row.session_id,
+    chapterId: row.chapter_id,
+    chapterTitle: row.chapter_title,
+    lastActiveAt: row.last_active_at,
+    status: row.status,
+  };
 }
 
 async function getJson<T>(args: StudentApiArgs, path: string): Promise<T> {
@@ -137,7 +216,7 @@ async function getJson<T>(args: StudentApiArgs, path: string): Promise<T> {
 async function postJson<T>(
   args: StudentApiArgs,
   path: string,
-  body: Record<string, string>,
+  body: Record<string, unknown>,
 ): Promise<T> {
   const response = await fetchWithTimeout(args, path, {
     method: 'POST',
@@ -208,6 +287,13 @@ function listFrom<T>(body: { items?: T[] } & Record<string, unknown>, key: strin
 
 function displayName(row: { label?: string; name?: string; title?: string }): string {
   return row.label ?? row.name ?? row.title ?? '';
+}
+
+function requireId(value: string | undefined, label: string): string {
+  if (!value) {
+    throw new Error(`Required M4 Electricity launch path ID was not found for ${label}`);
+  }
+  return value;
 }
 
 function trimTrailingSlash(value: string): string {

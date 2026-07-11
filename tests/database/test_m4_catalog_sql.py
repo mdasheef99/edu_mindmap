@@ -133,6 +133,32 @@ def test_m4_manual_sql_declares_catalog_tables_rls_and_project_warning():
     assert "bookconnect" in sql
 
 
+def test_m4_forward_remediation_migration_carries_tenancy_and_indexes():
+    """DB-1: applied 0006 is corrected only by a forward migration."""
+    sql_path = Path("backend/migrations/source_sql/0007_m4_runtime_remediation.sql")
+    sql = sql_path.read_text(encoding="utf-8").lower()
+
+    for table in (
+        "curriculum_classes",
+        "exams",
+        "subjects",
+        "chapter_analysis_versions",
+        "concept_entries",
+    ):
+        assert f"alter table public.{table}" in sql
+        assert "tenant_id" in sql
+
+    assert "chapter_analysis_versions_chapter_id" in sql
+    for index_name in (
+        "chapters_class_level_id_idx",
+        "chapters_exam_id_idx",
+        "chapters_subject_id_idx",
+        "chapters_chapter_analysis_id_idx",
+        "subjects_class_level_id_idx",
+    ):
+        assert index_name in sql
+
+
 import typing
 
 def _field_names(model: type) -> set[str]:

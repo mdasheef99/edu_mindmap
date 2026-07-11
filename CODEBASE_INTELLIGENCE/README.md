@@ -1,28 +1,44 @@
 # Codebase Intelligence Pack
 
-This folder contains a durable semantic map of the Mindmap Learning Project. It is designed to provide high-value architectural and operational knowledge to developers and AI agents.
+**2026-07-11 update**: M4 has an additional physical-device remediation for dashboard latency,
+persisted consent acknowledgement, and sign-out/re-login token handling. Native Android retest,
+interactive web, and non-bypass app-role RLS gates remain before closure.
 
-## Purpose
-The primary goal is to ensure that any session—human or AI—starts with a clear understanding of the project's invariants, boundaries, and critical flows, reducing the risk of architectural drift or security violations.
+This folder is a durable orientation map for the Mindmap Learning Project. It reduces rediscovery
+cost, but it does not override canon or the source-of-truth hierarchy.
 
-## When to Read
-- **Before starting work** on a new feature or refactor.
-- **When Augment/codebase-retrieval is available**, use these maps to focus your queries.
-- **After major architectural changes**, update the relevant map files.
+**Current snapshot**: 2026-07-10 — M4 Curriculum Entry + Supabase Auth automated remediation is
+complete; native Android, interactive web, and non-bypass app-role RLS gates remain before closure.
+
+## Required Reading Order
+
+1. `.augment/rules/00-canon.md`
+2. Active SDD and worklog named by canon
+3. Source hierarchy named by canon
+4. `AGENT_INSTRUCTIONS.md`
+5. Relevant maps below
+6. Current code, tests, migrations, and live read-only evidence
 
 ## Contents
-1. **01-system-map.md**: High-level architecture, entry points, and runtime patterns.
-2. **02-critical-flows.md**: Key user and business workflows.
-3. **03-backend-data-map.md**: API, DB, Auth, and Storage integration.
-4. **04-feature-inventory.md**: Ownership map of major modules.
-5. **05-security-risk-map.md**: Security boundaries, invariants, and risks.
-6. **06-testing-verification-map.md**: Testing setup and verification guidance.
-7. **07-deployment-ops-map.md**: Env vars, CI/CD, and operational caveats.
-8. **08-future-work-readiness.md**: Recommended reading and next steps.
-9. **09-augment-query-log.md**: Log of Augment queries used to build this pack.
 
-## How to Update
-- Use `Augment/codebase-retrieval` to verify the current state.
-- Keep descriptions concise and link to exact file paths.
-- Clearly mark assumptions or stale information.
-- Follow the "Mindmap Canon" in `.augment/rules/00-canon.md`.
+1. `01-system-map.md` — current production/test composition, mobile structure, and runtime paths.
+2. `02-critical-flows.md` — auth/bootstrap, dashboard/catalog, consent/session/root, branching,
+   worker, resume/hydration, and deletion flows.
+3. `03-backend-data-map.md` — Postgres adapters, auth/consent, schemas, jobs, and remaining RLS gate.
+4. `04-feature-inventory.md` — milestone ownership/status and reuse boundaries.
+5. `05-security-risk-map.md` — Category Invisibility, tenancy, event sourcing, secrets, and risks.
+6. `06-testing-verification-map.md` — commands, latest evidence, and human/operational gates.
+7. `07-deployment-ops-map.md` — Render/Expo/Supabase services, env names, migrations, and health.
+8. `08-future-work-readiness.md` — immediate closure work, honest gaps, and likely touchpoints.
+9. `09-augment-query-log.md` — Augment queries and clearly labeled direct-verification refreshes.
+
+## Maintenance Rules
+
+- Verify live state before relying on a map; dates and remaining gates matter.
+- When Augment is available, use it to focus semantic retrieval. When it is not, use direct evidence
+  and label that evidence honestly.
+- Keep exact paths concise, update affected maps after architectural changes, and record significant
+  discovery in the log.
+- Never place secrets, bearer tokens, database credentials, or private Supabase keys in this pack.
+- Requirements must trace upward to canon's source hierarchy; maps may describe but never invent
+  behavior.

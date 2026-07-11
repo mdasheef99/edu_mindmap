@@ -12,9 +12,8 @@ from app.domain.student.deletions import (
     build_edge_deleted,
     build_node_deleted,
 )
-from app.events.store import InMemoryEventStore
 from app.runtime.canvas_state import active_canvas_from_events
-from app.tenancy.pool import InMemoryTenantConnectionPool
+from app.runtime.ports import EventStorePort, TenantPoolPort
 
 
 def delete_node_cascade_workflow(
@@ -23,8 +22,8 @@ def delete_node_cascade_workflow(
     node_id: UUID,
     confirmed: bool,
     auth: AuthContext,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
 ) -> NodeDeletionResponse | None:
     if not confirmed:
         raise DeletionConfirmationRequired("node deletion requires confirmed=true")
