@@ -3,18 +3,21 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth, **automated remediation
-complete; human gates pending** (2026-07-11). The earlier browser path was a local in-memory
+ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth, **CLOSED** (2026-07-11).
+Next milestone is M5 Checkpoints; it has not started. The earlier browser path was a local in-memory
 smoke prototype, not a durable production-runtime verification. Production API composition,
 live restart durability, consent-aware worker projection, TypeScript/Jest/pytest/import-linter,
-and Android bundling are now verified. Do not close M4 or start M5 until the remaining native
-Android user gate, interactive web render gate, and non-bypass app-role RLS isolation gate pass.
+Android bundling, native user flow, and non-bypass pooled-RLS isolation are verified.
 The 2026-07-11 physical-device gate found dashboard latency, repeated consent prompting, and
 post-signout re-login `Invalid Supabase token` failures. Remediation cached Supabase JWKS clients,
 returned persisted behavioral consent from bootstrap, moved dashboard rendering ahead of the
-sequential curriculum fetches, and performs Supabase remote logout before local session clearing.
-These changes are automated-test verified but require a fresh physical-device retest before M4
-closure.
+sequential curriculum fetches, performs Supabase remote logout before local session clearing, and
+adds a bounded 30-second ES256 clock-skew tolerance after live diagnostics identified a zero-leeway
+`ImmatureSignatureError`. Final physical-device validation verifies post-fix sign-in/restoration,
+dashboard, the API-derived Electricity path, resume/hydration, new-session creation, branching, and
+active writes. The live non-bypass pooled-RLS test is green. Interactive web is explicitly excluded
+from the M4 closure gate; Expo web export with CanvasKit remains green and interactive browser smoke
+is retained as a non-blocking follow-up.
 M4 scope: B2C individual signup first via Supabase email/password, Class 10 → CBSE → Science →
 Electricity launch curriculum path, dashboard re-entry, consent capture, and a deterministic
 fixture-backed Electricity generation simulator (~10 nodes) that mimics real backend/event/canvas
@@ -61,10 +64,10 @@ device Expo smoke remain deferred operational gates. Do not attempt operational 
 unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md (M4 remediation;
+CLOSED SDD: docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md v0.3 (M4 remediation;
 production Postgres composition, durable auth/consent/session flow, mobile dashboard/resume, and
-platform closure gates; automated remediation complete, human gates pending). Parent SDD:
-phase-3-m4-curriculum-auth-sdd.md v0.4.
+platform closure gates; closed 2026-07-11). Parent SDD:
+phase-3-m4-curriculum-auth-sdd.md v0.6 (closed 2026-07-11).
 Prior closed SDDs: docs/planning/sdd/phase-3-m3-6-canvas-controls-sdd.md (M3.6, LOCALLY COMPLETE
 2026-06-30; toolbar zoom controls, fit/reset view, zoom readout, snap-to-grid drag-end toggle);
 docs/planning/sdd/phase-3-m3-5-frontend-readiness-sdd.md (M3.5,

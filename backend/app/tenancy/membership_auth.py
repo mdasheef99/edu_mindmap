@@ -18,6 +18,8 @@ from jwt import MissingRequiredClaimError
 from app.domain.auth import AuthContext, NoActiveMembershipError
 from app.runtime.ports import MembershipStorePort
 
+SUPABASE_JWT_CLOCK_SKEW_SECONDS = 30
+
 
 def verify_supabase_user_id(
     token: str,
@@ -74,6 +76,7 @@ def _decode_es256_supabase_jwt(
     decode_args: dict[str, Any] = {
         "algorithms": ["ES256"],
         "audience": "authenticated",
+        "leeway": SUPABASE_JWT_CLOCK_SKEW_SECONDS,
     }
     if resolved_issuer:
         decode_args["issuer"] = resolved_issuer

@@ -6,6 +6,7 @@ Traceability:
 - docs/architecture/backend-architecture.md §§5.4-5.5, 11
 """
 
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import jwt
@@ -188,6 +189,53 @@ def test_es256_jwks_client_is_reused_across_authenticated_requests(monkeypatch):
     assert first.status_code == 200
     assert second.status_code == 200
     assert created_clients == [runtime.jwt_jwks_url]
+
+
+def test_es256_accepts_small_clock_skew_but_rejects_far_future_iat(monkeypatch):
+    """ADR-0017: tolerate 30s clock skew without accepting far-future tokens."""
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+    issuer = "https://jbmqyxhrmcbdgardamrp.supabase.co/auth/v1"
+    client, runtime = _build_client_and_runtime(jwt_secret="unused-for-es256")
+    runtime.jwt_issuer = issuer
+    runtime.jwt_jwks_url = f"{issuer}/.well-known/leeway-test-jwks.json"
+
+    class _SigningKey:
+        key = public_key
+
+    class _FakeJwksClient:
+        def __init__(self, _url: str) -> None:
+            pass
+
+        def get_signing_key_from_jwt(self, _received_token: str):
+            return _SigningKey()
+
+    monkeypatch.setattr(jwt, "PyJWKClient", _FakeJwksClient)
+
+    def token_with_iat(seconds_ahead: int) -> str:
+        return jwt.encode(
+            {
+                "iss": issuer,
+                "sub": str(uuid4()),
+                "aud": "authenticated",
+                "iat": datetime.now(timezone.utc) + timedelta(seconds=seconds_ahead),
+            },
+            private_key,
+            algorithm="ES256",
+            headers={"kid": "leeway-test-key"},
+        )
+
+    within_tolerance = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token_with_iat(20)}"},
+    )
+    outside_tolerance = client.post(
+        "/v1/student/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token_with_iat(120)}"},
+    )
+
+    assert within_tolerance.status_code == 200
+    assert outside_tolerance.status_code == 401
 
 
 def test_bootstrap_reports_existing_behavioral_analytics_consent():

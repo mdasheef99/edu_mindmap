@@ -1,7 +1,7 @@
 # Phase 3 M4 Runtime + Closure Remediation — Software Design Document
 
-**Document Version**: 0.2  
-**Status**: Automated remediation complete; human gates pending  
+**Document Version**: 0.3
+**Status**: Closed (2026-07-11)
 **Phase / milestone**: Phase 3 — M4  
 **Parent SDD**: `phase-3-m4-curriculum-auth-sdd.md`  
 **Live tracker**: `docs/planning/worklog-v10.md`
@@ -165,4 +165,29 @@ The current M4 UI intentionally exposes only the Class 10 -> CBSE -> Science -> 
 That is the accepted M4 launch scope, not a newly discovered defect. General arbitrary curriculum
 selection remains out of this milestone unless a higher-ranked SDD schedules it.
 
-Fresh physical-device retest remains required before M4 closure.
+### 6.1 Post-remediation partial retest
+
+After the 30-second bounded ES256 clock-skew correction, the physical device restored its stored
+Supabase session successfully. Backend evidence shows bootstrap, dashboard, the complete API-derived
+Class 10 -> CBSE -> Science -> Electricity path, session resume/hydration, event ingest, branching,
+and new-session creation succeeding. The earlier `ImmatureSignatureError` did not recur.
+
+Final user validation confirms the remaining native flow works after the correction. Auth
+restoration/sign-in, dashboard, curriculum-path loading, resume, canvas handoff, new-session
+creation, branching, and active session writes are verified. DB-2 passed through the configured
+non-bypass pooled app-role connection. Interactive web is explicitly excluded from the M4 closure
+gate under R7/definition-of-done item 9; the production web export with CanvasKit remains green and
+interactive browser rendering is retained as a non-blocking follow-up.
+
+The single visible curriculum path is intentional for M4. The client fetches class, exam, subject,
+chapter, and concept-entry data from the API, but the live catalog currently supplies only Class 10
+-> CBSE -> Science -> Electricity. Arbitrary multi-option curriculum selection is not required by
+this bounded launch milestone.
+
+## 7. Closure Record
+
+M4 closed on 2026-07-11. All production-runtime, durable auth/consent/session, mobile native-flow,
+automated-test, and pooled-RLS gates are satisfied. The user confirmed the corrected physical-device
+flow is working. Curriculum loading performs five dependent API lookups for the single bounded path,
+so a short progressive-loading delay is expected and is not a closure blocker. WEB-1 is explicitly
+excluded from this native-first milestone; interactive web smoke remains follow-up work.

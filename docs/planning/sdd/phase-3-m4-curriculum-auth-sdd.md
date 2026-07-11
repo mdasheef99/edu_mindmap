@@ -1,7 +1,7 @@
 # Phase 3 M4 Curriculum Entry + Supabase Auth - Software Design Document (SDD)
 
-**Document Version**: 0.5
-**Status**: Automated remediation complete; native/web human gates pending
+**Document Version**: 0.6
+**Status**: Closed (2026-07-11)
 **Phase / milestone**: Phase 3 - M4
 **Owner**: (developer)
 **Live tracker**: `docs/planning/worklog-v10.md`
@@ -15,7 +15,7 @@
 |---|---|
 | Increment name | B2C auth, curriculum entry, dashboard re-entry, and fixture-backed Electricity canvas flow |
 | Phase / milestone | Phase 3 - M4 |
-| Status | Automated remediation complete; native/web human gates pending |
+| Status | Closed (2026-07-11) |
 
 **Goal**: complete the first learner-visible app loop after M3 canvas maturation: a stranger can
 sign up with Supabase Auth, reach a realistic curriculum path, start or resume Class 10 CBSE

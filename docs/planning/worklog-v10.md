@@ -8,9 +8,9 @@ that threshold.
 - `worklog-v9.md` is closed at 567 lines. It records the original M4 implementation and browser
   smoke debugging.
 - M3-C, M3.5, and M3.6 remain closed. Do not reopen them.
-- M4 automated remediation is complete; native Android and interactive web human gates remain.
-- Parent SDD: `phase-3-m4-curriculum-auth-sdd.md` v0.4.
-- Active SDD: `phase-3-m4-runtime-closure-remediation-sdd.md`.
+- M4 is closed as of 2026-07-11; M5 Checkpoints is next and has not started.
+- Parent SDD: `phase-3-m4-curriculum-auth-sdd.md` v0.6 (closed).
+- Remediation SDD: `phase-3-m4-runtime-closure-remediation-sdd.md` v0.3 (closed).
 - Supabase MCP is connected to the correct project `jbmqyxhrmcbdgardamrp`.
 - Live migration `20260702173751 / m4_catalog_auth_seed` is applied.
 - The original M4 code was a useful smoke prototype; the remediated API and worker now share the
@@ -180,3 +180,70 @@ close production composition plus mobile closure gaps red-first under the remedi
 - Restart physical-device backend and Expo services with the fixed code.
 - Native Android retest: sign in, confirm faster dashboard, confirm consent stays recorded,
   sign out, sign in again, bootstrap/dashboard should not produce the invalid-token error.
+
+## 2026-07-11 -- Physical-device JWT clock-skew remediation
+
+**Device evidence**:
+
+- Fresh Supabase password sign-in reached `Loading dashboard`, then bootstrap returned
+  `401 Invalid Supabase token` repeatedly.
+- Safe server-side diagnostics identified the exact PyJWT failure as
+  `ImmatureSignatureError: The token is not yet valid (iat)`; signature/auth-server login had
+  succeeded, but ES256 verification allowed zero clock difference.
+- Windows time-change history showed repeated hardware-clock corrections, while PyJWT 2.9 uses
+  zero leeway unless the verifier supplies one.
+
+**Implemented**:
+
+- Added a fixed 30-second clock-skew tolerance to the ADR-0017 ES256/JWKS decode path. Signature,
+  issuer, audience, `iat`, `nbf`, and expiry validation remain enabled; a token 120 seconds in the
+  future remains rejected.
+- Temporarily added safe auth-failure diagnostics to identify the exact PyJWT exception without
+  logging tokens; removed the diagnostic after confirming the bounded-tolerance fix live.
+- Hardened all local M4 backend runners to load repository `.env` values explicitly and override
+  unrelated parent-process configuration; LAN runners bind to `0.0.0.0:8000`.
+
+**Verification**:
+
+- Red-first ES256 boundary test: +20-second token initially returned 401.
+- Focused bootstrap suite after implementation: 10/10 green.
+- Broader auth integration set: 15/15 green.
+
+**Remaining**:
+
+- Explicitly repeat the native sign-out -> fresh sign-in sequence after the final correction.
+
+**Live partial retest evidence**:
+
+- After backend restart with the 30-second tolerance, the device restored its stored Supabase
+  session without asking for credentials. Backend access logs show multiple bootstrap 200s,
+  dashboard 200s, the complete Class 10 -> CBSE -> Science -> Electricity catalog path at 200,
+  existing-session resume/hydration at 200, event ingest at 202, and offer creation/choice writes.
+- The prior `ImmatureSignatureError` did not recur. This confirms auth restoration and active
+  session use, but it does not substitute for an explicit post-fix sign-out -> sign-in retest.
+- The current catalog contains only the bounded M4 launch path. The mobile client derives that
+  path from API responses, but the UI intentionally does not present arbitrary class/exam/subject/
+  chapter choices when there is only one supported path. General curriculum selection remains
+  outside M4 per the active SDD section 6.
+
+## 2026-07-11 -- M4 closed
+
+**Final evidence**:
+
+- The user reports the corrected physical-device flow is working. Live backend logs corroborate
+  repeated bootstrap/dashboard/catalog 200s, session resume/hydration 200s, new session 201,
+  event/choice 202s, branch creation 201s, and node-position persistence 200.
+- The post-fix JWT path no longer emits `ImmatureSignatureError`; bounded +20-second tolerance and
+  far-future rejection remain covered by tests.
+- Live `test_real_postgres_rls_isolation_through_tenant_context` passed through the configured
+  non-bypass `TEST_DATABASE_URL`, closing DB-2.
+- Chrome extension control was unavailable, so no interactive-browser evidence is claimed.
+  Interactive web is explicitly excluded from the native-first M4 closure gate under active SDD
+  R7/definition-of-done item 9. The production Expo export with `canvaskit.wasm` remains green;
+  interactive web rendering is a non-blocking follow-up.
+- Curriculum loading is progressive but sequential across class, exam, subject, chapter, and
+  concept-entry endpoints. A short delay is expected for the bounded one-path M4 catalog and is
+  not a closure blocker.
+
+**Status**: Phase 3 M4 Curriculum Entry + Supabase Auth is CLOSED. M5 Checkpoints is next and has
+not started.

@@ -108,7 +108,9 @@ Expo-exposed variables are bundled into client builds. Do not put `DATABASE_URL`
 `TEST_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `SUPABASE_JWT_SECRET` into any
 `EXPO_PUBLIC_*` variable. M4 client auth uses only the Supabase project URL and anon key. Backend
 token verification follows ADR-0017: ES256/JWKS for the live Supabase runtime. The
-`SUPABASE_JWT_SECRET` HS256 path is deterministic local/test-fixture compatibility only.
+`SUPABASE_JWT_SECRET` HS256 path is deterministic local/test-fixture compatibility only. Live
+ES256 verification applies a fixed 30-second clock-skew tolerance while continuing to validate
+the signature, issuer, audience, issued-at, not-before, and expiry claims.
 
 ### 10.1 Phase 2 placeholders — Supabase Auth + curriculum ingestion
 
