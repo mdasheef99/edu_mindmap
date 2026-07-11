@@ -187,6 +187,8 @@ Binding rules:
 - Validate the signature using the key selected by `kid` from the configured/derived JWKS URL.
 - Accept only the configured asymmetric algorithm for the live path.
 - Validate `iss`, `aud=authenticated`, expiration, and required UUID-shaped `sub`.
+- Apply a fixed 30-second clock-skew tolerance to ES256 `iat`, `nbf`, and expiration validation;
+  do not disable temporal-claim validation. Tokens outside that bounded tolerance fail closed.
 - Resolve tenant and role only from backend-owned memberships after token verification.
 - Cache signing keys through the JWT/JWKS client and fail closed when keys/configuration cannot be
   resolved.
@@ -204,9 +206,11 @@ Binding rules:
 - Render/local production startup must supply and validate the Supabase issuer/JWKS configuration.
 - Auth tests require both deterministic mocked-JWKS coverage and a separately gated live token
   smoke; CI never depends on the network.
+- Boundary tests prove a token 20 seconds ahead is accepted while a token 120 seconds ahead is
+  rejected, preserving a bounded distributed-clock allowance.
 - ADR-0015 remains historical context for the earlier HS256 decision but no longer governs the
   live runtime.
 
 ---
 
-*Document Version 1.2 | Architecture Decision Record Log — 02*
+*Document Version 1.3 | Architecture Decision Record Log — 02*

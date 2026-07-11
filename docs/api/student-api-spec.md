@@ -51,7 +51,8 @@ endpoints still return only student-safe data from `student_rm`.
 | `POST` | `/v1/student/auth/bootstrap` | Verify the Supabase token and idempotently ensure the M4 B2C student membership | Supabase JWT + backend-owned memberships |
 
 Bootstrap accepts no authoritative tenant or role input. Supabase ES256 access tokens are verified
-through the configured JWKS/issuer using a cached JWKS client, then the backend assigns the
+through the configured JWKS/issuer using a cached JWKS client and a fixed 30-second temporal-claim
+clock-skew tolerance, then the backend assigns the
 accepted individual tenant and `student` role. A mobile-supplied `tenant_id` claim or body field is
 ignored.
 
