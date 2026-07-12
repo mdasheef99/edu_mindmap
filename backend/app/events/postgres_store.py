@@ -28,6 +28,10 @@ SELECT_EVENT_SQL = """
 SELECT * FROM events WHERE event_id = %(event_id)s
 """
 
+SELECT_EVENTS_SQL = """
+SELECT * FROM events ORDER BY recorded_at, event_id
+"""
+
 
 class PostgresEventStore:
     """Append-only event store using the migration 0001 `events` table."""
@@ -55,6 +59,17 @@ class PostgresEventStore:
         if row is None:
             raise LookupError(f"event not found: {event_id}")
         return _row_to_dict(row)
+
+    @property
+    def events(self) -> list[dict[str, Any]]:
+        """Return events visible under the current transaction-local tenant context."""
+        with self.connection.transaction():
+            cursor = self.connection.execute(SELECT_EVENTS_SQL)
+            return [_row_to_dict(row) for row in cursor.fetchall()]
+
+    def rollback_to(self, event_count: int) -> None:
+        """Compatibility hook; the surrounding Postgres transaction performs rollback."""
+        del event_count
 
 
 _EVENT_COLUMNS = (

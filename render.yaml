@@ -8,6 +8,14 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_JWKS_URL
+        sync: false
+      - key: M4_INDIVIDUAL_TENANT_ID
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
       - key: LLM_PROVIDER
         sync: false
       - key: LLM_STAGE1_MODEL_ID
@@ -27,6 +35,8 @@ services:
     startCommand: PYTHONPATH=backend python -m app.worker.phase1_worker
     envVars:
       - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
         sync: false
       - key: JOB_QUEUE_BACKEND
         value: postgres_skip_locked

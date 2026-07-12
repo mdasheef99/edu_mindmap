@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel
 
+from app.generation.provider import GeneratedNode
+
 
 class ChapterLaunchNotFoundError(Exception):
     """Raised when a requested chapter is not launchable from curriculum for this tenant."""
@@ -19,6 +21,7 @@ class SessionStartRequest(BaseModel):
     chapter_id: UUID
     concept_entry_id: UUID
     chapter_analysis_id: UUID | None = None
+    behavioral_analytics_consent: bool = False
 
 
 class SessionContext(BaseModel):
@@ -118,6 +121,48 @@ def build_session_started(
         "closed_at": None,
     }
     return event, session_row, StudentSession.model_validate(session_row)
+
+
+def build_root_node_created(
+    *,
+    context: SessionContext,
+    session: StudentSession,
+    generated_node: GeneratedNode,
+    now: datetime | None = None,
+    event_id: UUID | None = None,
+    node_id: UUID | None = None,
+) -> dict[str, Any]:
+    occurred_at = now or datetime.now(timezone.utc)
+    resolved_event_id = event_id or uuid4()
+    resolved_node_id = node_id or uuid4()
+    payload = {
+        "node_id": str(resolved_node_id),
+        "session_id": str(session.session_id),
+        "node_type": "ai",
+        "content": generated_node.node_body,
+        "source_node_id": str(session.concept_entry_id),
+        "source_offer_set_id": str(session.session_id),
+        "source_option_id": str(session.concept_entry_id),
+        "source_option_text": generated_node.node_title,
+        "thread_context_id": str(session.concept_entry_id),
+        "fixture_node_key": generated_node.node_key,
+        "node_title": generated_node.node_title,
+        "prompt_version": generated_node.prompt_version,
+        "model_id": generated_node.model_id,
+        "lineage": generated_node.lineage,
+    }
+    return {
+        "event_id": resolved_event_id,
+        "event_type": "node_created",
+        "event_version": 1,
+        "tenant_id": context.tenant_id,
+        "actor_user_id": context.student_user_id,
+        "student_id": context.student_user_id,
+        "session_id": session.session_id,
+        "node_id": resolved_node_id,
+        "occurred_at": occurred_at,
+        "payload": payload,
+    }
 
 
 def build_session_resumed(

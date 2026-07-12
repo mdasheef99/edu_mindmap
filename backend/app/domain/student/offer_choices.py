@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, model_validator
 
+from app.generation.provider import GeneratedNode
+
 
 class OfferChoiceRequest(BaseModel):
     session_id: UUID
@@ -94,13 +96,18 @@ def build_selected_child_path(
     edge_id: UUID | None = None,
     node_event_id: UUID | None = None,
     edge_event_id: UUID | None = None,
+    generated_node: GeneratedNode | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     occurred_at = now or datetime.now(timezone.utc)
     resolved_child_node_id = child_node_id or uuid4()
     resolved_edge_id = edge_id or uuid4()
-    child_content = f"Explore: {request.selected_option_text}"
+    child_content = (
+        generated_node.node_body
+        if generated_node is not None
+        else f"Explore: {request.selected_option_text}"
+    )
 
-    node_payload = {
+    node_payload: dict[str, Any] = {
         "node_id": str(resolved_child_node_id),
         "session_id": str(request.session_id),
         "node_type": "ai",
@@ -111,6 +118,15 @@ def build_selected_child_path(
         "source_option_text": request.selected_option_text,
         "thread_context_id": str(request.thread_context_id),
     }
+    if generated_node is not None:
+        node_payload |= {
+            "fixture_node_key": generated_node.node_key,
+            "node_title": generated_node.node_title,
+            "prompt_version": generated_node.prompt_version,
+            "model_id": generated_node.model_id,
+            "lineage": generated_node.lineage,
+            "is_terminal": generated_node.is_terminal,
+        }
     edge_payload = {
         "edge_id": str(resolved_edge_id),
         "session_id": str(request.session_id),
@@ -120,6 +136,9 @@ def build_selected_child_path(
         "created_by": "offer_set_choice",
         "source_offer_set_id": str(offer_set_id),
         "source_choice_event_id": str(choice_event["event_id"]),
+        "label": generated_node.edge_label
+        if generated_node is not None
+        else request.selected_option_text,
     }
     node_event = {
         "event_id": node_event_id or uuid4(),

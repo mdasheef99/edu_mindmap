@@ -229,13 +229,14 @@ def _has_forbidden_key(obj) -> bool:
     return False
 
 
-def test_tb1_empty_canvas() -> None:
+def test_tb1_started_canvas_contains_fixture_root() -> None:
     client, runtime = _build_client_and_runtime()
     session_id = _start_session(client, runtime)
     response = client.get(f"/v1/student/sessions/{session_id}")
     assert response.status_code == 200
     canvas = response.json()["canvas"]
-    assert canvas["nodes"] == []
+    assert len(canvas["nodes"]) == 1
+    assert canvas["nodes"][0]["content"].startswith("Electricity studies")
     assert canvas["edges"] == []
 
 
@@ -246,9 +247,9 @@ def test_tb2_node_created_appears() -> None:
     response = client.get(f"/v1/student/sessions/{session_id}")
     assert response.status_code == 200
     nodes = response.json()["canvas"]["nodes"]
-    assert len(nodes) == 1
-    assert nodes[0]["node_id"] == str(node_id)
-    assert nodes[0]["content"] == "Explore: Ohm"
+    assert len(nodes) == 2
+    created = next(node for node in nodes if node["node_id"] == str(node_id))
+    assert created["content"] == "Explore: Ohm"
 
 
 def test_tb3_node_deleted_removed() -> None:
@@ -260,7 +261,9 @@ def test_tb3_node_deleted_removed() -> None:
     )
     response = client.get(f"/v1/student/sessions/{session_id}")
     assert response.status_code == 200
-    assert response.json()["canvas"]["nodes"] == []
+    remaining = response.json()["canvas"]["nodes"]
+    assert len(remaining) == 1
+    assert remaining[0]["content"].startswith("Electricity studies")
 
 
 def test_tb4_edge_deleted_removed() -> None:
@@ -283,8 +286,9 @@ def test_tb5_node_position_updated_supersedes() -> None:
     response = client.get(f"/v1/student/sessions/{session_id}")
     assert response.status_code == 200
     nodes = response.json()["canvas"]["nodes"]
-    assert nodes[0]["position_x"] == 123.5
-    assert nodes[0]["position_y"] == -7.0
+    positioned = next(node for node in nodes if node["node_id"] == str(node_id))
+    assert positioned["position_x"] == 123.5
+    assert positioned["position_y"] == -7.0
 
 
 def test_tb6_wrong_tenant_returns_404() -> None:

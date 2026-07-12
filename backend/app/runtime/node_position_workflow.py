@@ -11,9 +11,8 @@ from app.domain.student.nodes import (
     NodePositionUpdate,
     build_node_position_updated,
 )
-from app.events.store import InMemoryEventStore
 from app.runtime.canvas_state import active_canvas_from_events
-from app.tenancy.pool import InMemoryTenantConnectionPool
+from app.runtime.ports import EventStorePort, TenantPoolPort
 
 
 def update_node_position_workflow(
@@ -22,8 +21,8 @@ def update_node_position_workflow(
     node_id: UUID,
     payload: NodePositionUpdate,
     auth: AuthContext,
-    event_store: InMemoryEventStore,
-    tenant_pool: InMemoryTenantConnectionPool,
+    event_store: EventStorePort,
+    tenant_pool: TenantPoolPort,
 ) -> NodePositionResponse | None:
     """Validate, guard, and record a node-position update event.
 

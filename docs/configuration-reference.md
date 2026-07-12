@@ -93,35 +93,43 @@ Values are not documented here.
 | `TEST_DATABASE_URL` | tests only | opt-in live Postgres / pooled-RLS verification connection |
 | `SUPABASE_URL` | backend/mobile/web | Supabase project URL |
 | `SUPABASE_ANON_KEY` | mobile/web | client-safe Supabase key |
+| `EXPO_PUBLIC_SUPABASE_URL` | mobile | Expo-exposed Supabase project URL for B2C email/password auth |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Expo-exposed client-safe Supabase anon key |
+| `EXPO_PUBLIC_API_BASE_URL` | mobile | backend API base URL used by the M4 Expo app |
+| `EXPO_PUBLIC_SHOW_CANVAS` | mobile local/dev | optional M3 canvas smoke override |
+| `EXPO_PUBLIC_SHOW_M2_SMOKE` | mobile local/dev | optional M2 phrase smoke override |
+| `EXPO_PUBLIC_DEV_API_BASE_URL` | mobile dev only | explicit backend URL for the development Canvas path |
+| `EXPO_PUBLIC_DEV_SESSION_ID` | mobile dev only | explicit seeded development session |
+| `EXPO_PUBLIC_DEV_AUTH_TOKEN` | mobile dev only | explicit disposable development bearer token |
+| `M4_INDIVIDUAL_TENANT_ID` | backend | required configured B2C individual tenant; production startup fails if absent or malformed |
+| `CORS_ALLOWED_ORIGINS` | backend | comma-separated browser origins; empty disables browser cross-origin access |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend only | privileged server operations |
 | `LLM_PROVIDER_API_KEY` | backend only | LLM Gateway provider credential |
 | `SENTRY_DSN_BACKEND` | backend | error tracking |
-| `SENTRY_DSN_MOBILE` | mobile | error tracking |
+| `EXPO_PUBLIC_SENTRY_DSN_MOBILE` | mobile | Expo-exposed mobile error-tracking DSN |
 | `SENTRY_DSN_WEB` | teacher web | error tracking |
-| `CORS_ALLOWED_ORIGINS` | backend | comma-separated browser origins; empty disables CORS |
-| `DEV_JWT_SECRET` | dev smoke only | required disposable signing secret; no source fallback |
-| `EXPO_PUBLIC_SHOW_CANVAS` | mobile dev only | enables the pre-M4 development Canvas path |
-| `EXPO_PUBLIC_DEV_API_BASE_URL` | mobile dev only | development backend URL |
-| `EXPO_PUBLIC_DEV_SESSION_ID` | mobile dev only | seeded development session |
-| `EXPO_PUBLIC_DEV_AUTH_TOKEN` | mobile dev only | disposable development bearer token |
 
-The three `EXPO_PUBLIC_DEV_*` values are required only when
-`EXPO_PUBLIC_SHOW_CANVAS=true`. They have no committed fallback values and must never be used
-for production authentication.
+Expo-exposed variables are bundled into client builds. Do not put `DATABASE_URL`,
+`TEST_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `SUPABASE_JWT_SECRET` into any
+`EXPO_PUBLIC_*` variable. M4 client auth uses only the Supabase project URL and anon key. Backend
+token verification follows ADR-0017: ES256/JWKS for the live Supabase runtime. Production
+configuration never reads `SUPABASE_JWT_SECRET`; deterministic tests inject an HS256 fixture
+verifier explicitly. Live
+ES256 verification applies a fixed 30-second clock-skew tolerance while continuing to validate
+the signature, issuer, audience, issued-at, not-before, and expiry claims.
 
 ### 10.1 Phase 2 placeholders — Supabase Auth + curriculum ingestion
 
 Names only; values are never documented here. Auth rows back `backend-architecture.md` §5.4 (JWT →
 backend-resolved tenant/role) and ADR-0015 (`adr-log-02.md`); ingestion rows back
 `chapter-analysis-pipeline-specification.md` P0–P4 and
-`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6. The exact JWT verification mechanism
-(shared HS256 secret vs JWKS asymmetric) is fixed by ADR-0015; both placeholders are listed so
-either choice is ready.
+`docs/planning/sdd/phase-2-curriculum-ingestion-sdd.md` §3, §6. ADR-0017 supersedes ADR-0015 for
+the live runtime and selects asymmetric ES256/JWKS validation.
 
 | Variable | Owner | Purpose |
 |---|---|---|
-| `SUPABASE_JWT_SECRET` | backend only | verify Supabase Auth JWTs (HS256 path) |
-| `SUPABASE_JWT_JWKS_URL` | backend only | JWKS endpoint for asymmetric JWT verification (ADR-0015 alternative) |
+| `SUPABASE_JWT_SECRET` | test harness only | optional fixture input passed explicitly to tests; ignored by production configuration |
+| `SUPABASE_JWT_JWKS_URL` | backend only | optional explicit JWKS endpoint for ADR-0017 ES256 verification; otherwise derived from `SUPABASE_URL` |
 | `SUPABASE_AUTH_URL` | backend/mobile/web | Supabase Auth issuer/base URL |
 | `TEST_DATABASE_URL` | tests/CI/local | non-bypass app-role Postgres URL for opt-in live RLS and curriculum ingest tests; local pytest loads this key from `.env` if it is not exported |
 | `CURRICULUM_SOURCE_DIR` | ingestion operator | path to source chapter PDF/text inputs for P0 |

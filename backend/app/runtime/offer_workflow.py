@@ -22,10 +22,9 @@ from app.domain.student.offer_sets import (
     build_edge_offer_set,
     build_phrase_offer_set,
 )
-from app.events.store import InMemoryEventStore
+from app.generation.provider import GeneratedNode, GenerationProvider
 from app.runtime.canvas_state import count_active_nodes
-from app.tenancy.pool import InMemoryTenantConnectionPool
-from app.workers.queue import InMemoryJobQueue
+from app.runtime.ports import EventStorePort, JobQueuePort, TenantPoolPort
 
 
 def record_offer_choice_workflow(
@@ -35,9 +34,10 @@ def record_offer_choice_workflow(
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
-    job_queue: InMemoryJobQueue,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
+    job_queue: JobQueuePort,
+    generation_provider: GenerationProvider | None = None,
 ) -> OfferChoiceResponse | None:
     resolved = auth or AuthContext(
         user_id=fallback_user_id, tenant_id=fallback_tenant_id, role="student"
@@ -72,6 +72,12 @@ def record_offer_choice_workflow(
                 offer_set_id=offer_set_id,
                 request=payload,
                 choice_event=stored_choice_event,
+                generated_node=_fixture_child_for_source(
+                    events=event_store.events,
+                    source_node_id=payload.source_node_id,
+                    selected_option_text=payload.selected_option_text or "",
+                    generation_provider=generation_provider,
+                ),
             )
             event_store.append(node_event, producer="server")
             event_store.append(edge_event, producer="server")
@@ -86,14 +92,40 @@ def record_offer_choice_workflow(
     return response_model
 
 
+def _fixture_child_for_source(
+    *,
+    events: list[dict],
+    source_node_id: UUID,
+    selected_option_text: str,
+    generation_provider: GenerationProvider | None,
+) -> GeneratedNode | None:
+    if generation_provider is None:
+        return None
+    for event in reversed(events):
+        if event.get("event_type") != "node_created":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        if str(payload.get("node_id")) == str(source_node_id):
+            source_key = payload.get("fixture_node_key")
+            if isinstance(source_key, str):
+                return generation_provider.child_for_choice(
+                    source_key=source_key,
+                    selected_option_text=selected_option_text,
+                )
+            return None
+    return None
+
+
 def create_edge_offer_set_workflow(
     *,
     payload: EdgeOfferSetRequest,
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
 ) -> EdgeOfferSetResponse | None:
     resolved = auth or AuthContext(
         user_id=fallback_user_id, tenant_id=fallback_tenant_id, role="student"
@@ -125,8 +157,8 @@ def create_phrase_offer_set_workflow(
     auth: AuthContext | None,
     fallback_user_id: UUID,
     fallback_tenant_id: UUID,
-    tenant_pool: InMemoryTenantConnectionPool,
-    event_store: InMemoryEventStore,
+    tenant_pool: TenantPoolPort,
+    event_store: EventStorePort,
 ) -> PhraseOfferSetResponse | None:
     resolved = auth or AuthContext(
         user_id=fallback_user_id, tenant_id=fallback_tenant_id, role="student"
