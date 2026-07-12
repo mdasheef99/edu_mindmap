@@ -46,7 +46,12 @@ describe('M2PhraseSmokeScreen', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('renders heading, field labels, and start button', async () => {
-    await render(<M2PhraseSmokeScreen />);
+    await render(
+      <M2PhraseSmokeScreen
+        devApiBaseUrl="http://dev.invalid"
+        devAuthToken="disposable-test-token"
+      />,
+    );
     screen.getByText('M2 Phrase Selection Smoke');
     screen.getByText('API Base URL');
     screen.getByText('Auth Token');
@@ -75,14 +80,19 @@ describe('M2PhraseSmokeScreen', () => {
   });
 
   it('Fill dev defaults button pre-fills URL and token', async () => {
-    await render(<M2PhraseSmokeScreen />);
+    await render(
+      <M2PhraseSmokeScreen
+        devApiBaseUrl="http://dev.invalid"
+        devAuthToken="disposable-test-token"
+      />,
+    );
     await act(async () => {
       fireEvent.press(screen.getByText('Fill dev defaults'));
     });
     const urlInput = screen.getByTestId('api-base-url-input');
-    expect(urlInput.props.value).toMatch(/^http:\/\//);
+    expect(urlInput.props.value).toBe('http://dev.invalid');
     const tokenInput = screen.getByTestId('auth-token-input');
-    expect(tokenInput.props.value).toMatch(/^eyJ/);
+    expect(tokenInput.props.value).toBe('disposable-test-token');
   });
 
   it('"Open phrase reader" is not rendered before session starts', async () => {
