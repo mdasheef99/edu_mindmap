@@ -1,10 +1,11 @@
 # Phase 3 M4 Curriculum Entry + Supabase Auth - Software Design Document (SDD)
 
-**Document Version**: 0.1
-**Status**: Draft - user review required
+**Document Version**: 0.6
+**Status**: Closed (2026-07-11)
 **Phase / milestone**: Phase 3 - M4
 **Owner**: (developer)
-**Live tracker**: `docs/planning/worklog-v9.md`
+**Live tracker**: `docs/planning/worklog-v10.md`
+**Active remediation SDD**: `phase-3-m4-runtime-closure-remediation-sdd.md`
 
 ---
 
@@ -14,7 +15,7 @@
 |---|---|
 | Increment name | B2C auth, curriculum entry, dashboard re-entry, and fixture-backed Electricity canvas flow |
 | Phase / milestone | Phase 3 - M4 |
-| Status | Draft - not implemented |
+| Status | Closed (2026-07-11) |
 
 **Goal**: complete the first learner-visible app loop after M3 canvas maturation: a stranger can
 sign up with Supabase Auth, reach a realistic curriculum path, start or resume Class 10 CBSE
@@ -66,20 +67,20 @@ client events, persist node positions, reconcile deletion cascades, use edge-plu
 phrase selection, and expose zoom/fit/reset/grid controls. M4 must replace the dev shell around
 that canvas with real learner entry.
 
-The current repository has these M4-relevant gaps:
+Current M4 implementation status (corrected by the 2026-07-10 runtime audit):
 
-1. The app still uses dev API/session/token wiring in the mobile shell.
-2. The backend composition path still needs a production Postgres/Supabase runtime path equivalent
-   to the worker's Postgres-backed adapters.
-3. There are no student curriculum navigation or dashboard routers yet.
-4. Existing `curriculum` ingestion tables store analyzed content, but the app-facing catalog
-   described in `core-operational-schema.md` is not fully represented by current migrations.
-5. Existing offer/node creation uses deterministic fixture text. M4 will formalize that as a
-   fixture generation provider so behavior is intentional and later swappable.
-6. Supabase MCP currently exposes a different project (`ahntbtktjjmvfosgkmgn`,
-   `Bookconnect_reactexpo`) than the local Mindmap `.env` project ref
-   (`jbmqyxhrmcbdgardamrp`). M4 migration SQL must therefore be committed locally for manual
-   execution against the correct Supabase project, not applied through MCP in this session.
+1. Mobile defaults to the M4 B2C email/password auth and Electricity launch screen; the M2/M3
+   smoke surfaces remain behind explicit local/dev flags.
+2. Backend membership bootstrap, student curriculum/dashboard routers, fixture-backed root node
+   creation, and selected-choice fixture child generation are implemented and tested locally.
+3. The app-facing catalog SQL artifact exists at
+   `backend/migrations/source_sql/0006_m4_catalog_auth_seed.sql`.
+4. Supabase MCP was reinstalled and verified against the correct Mindmap project
+   `jbmqyxhrmcbdgardamrp`; migration `20260702173751 / m4_catalog_auth_seed` is applied there.
+5. The recorded browser smoke used the default in-memory testing runtime. It did not exercise
+   durable Supabase memberships, catalog reads, sessions, events, consent, or jobs.
+6. M4 closure now follows `phase-3-m4-runtime-closure-remediation-sdd.md`; a repeat live smoke is
+   meaningful only after the API and worker share the Postgres runtime.
 
 ---
 
@@ -110,8 +111,8 @@ The current repository has these M4-relevant gaps:
   but email/password is the M4 path.
 - B2B school roster upload, invite activation, school admin panels, and teacher analytics.
 - Checkpoints, podcast, PYQ node creation, broader offline sync, and admin/content-ops UI.
-- Applying Supabase migrations through MCP. The correct database is not available to the MCP
-  account in this session.
+- Additional Supabase schema changes beyond the verified M4 catalog/auth seed migration. Future
+  live migrations must first verify the connector project ref is `jbmqyxhrmcbdgardamrp`.
 
 ---
 
@@ -149,9 +150,10 @@ The mobile app uses Supabase Auth email/password for M4:
 
 ### 6.2 Backend Auth
 
-Backend auth follows ADR-0015:
+Backend auth follows ADR-0017 for the live runtime (ADR-0015 remains test-fixture history):
 
-1. Verify the Supabase JWT using `SUPABASE_JWT_SECRET` in the backend environment.
+1. Verify the Supabase ES256 JWT against the configured project issuer/JWKS; deterministic HS256
+   tokens are test-fixture compatibility only.
 2. Extract only the user id from token claims.
 3. Resolve tenant and role from backend-owned memberships.
 4. Ignore any mobile-supplied `tenant_id`, role, or membership claim.
@@ -167,6 +169,8 @@ M4 needs a narrow bootstrap path because individual signup precedes school/B2B o
   one `memberships` row with role `student` in the individual tenant.
 - The bootstrap path must be idempotent.
 - The bootstrap path must not allow the mobile client to pick a tenant.
+- Bootstrap returns persisted consent state as `behavioral_analytics_consent_granted` so mobile can
+  avoid repeating the learning-data acknowledgement for an account with an active grant.
 - B2B invite/roster activation remains out of scope.
 
 ### 6.4 Consent Capture
@@ -175,6 +179,8 @@ M4 captures the minimal consent state required by the current milestone gate:
 
 - Record a B2C app consent acknowledgement before or during first session start.
 - Append `consent_recorded` once per user/consent kind.
+- If bootstrap reports an active behavioral-analytics grant, mobile must show consent as already
+  recorded rather than asking the learner to acknowledge the same consent again.
 - Keep the current worker rule: classification/projection gates must honor consent state.
 - Minor/guardian-grade consent UX and school-managed consent are deferred to B2B onboarding, but
   the data model must remain compatible with `backend-architecture.md` Section 12.
@@ -215,12 +221,12 @@ Initial seed path:
 The schema must support adding other classes, boards, exams, subjects, and chapters later without
 changing the mobile navigation model.
 
-### 7.3 Manual Supabase SQL
+### 7.3 Supabase Migration Status
 
-Because MCP is connected to the wrong project, M4 implementation must produce migration/source SQL
-that the owner can manually run against the correct Supabase database. The SQL must be idempotent
-where practical and must not hardcode generated production ids into schema DDL. Seed data may use
-stable natural keys/slugs plus deterministic UUIDs only if documented.
+Supabase MCP is connected to the correct project `jbmqyxhrmcbdgardamrp`. Migration
+`20260702173751 / m4_catalog_auth_seed` is applied. The 2026-07-10 audit found schema/runtime drift;
+the applied migration must not be rewritten. Any correction is a reviewed forward migration under
+`phase-3-m4-runtime-closure-remediation-sdd.md`.
 
 ---
 
@@ -381,7 +387,9 @@ Mobile needs:
 Backend needs:
 
 - `DATABASE_URL`
-- `SUPABASE_JWT_SECRET`
+- `SUPABASE_URL`
+- optional explicit `SUPABASE_JWT_JWKS_URL` / `SUPABASE_AUTH_URL`
+- `SUPABASE_JWT_SECRET` only for deterministic local/test HS256 fixtures
 - existing Sentry/LLM/test variables as applicable
 
 No mobile-side LLM credentials are allowed.
@@ -416,6 +424,8 @@ All tests must be written red before production code.
 | BA-3 | First B2C user without membership hits bootstrap path | Creates one student membership idempotently. |
 | BA-4 | Invalid/expired JWT | 401. |
 | BA-5 | Valid JWT without membership on non-bootstrap endpoint | 403 or membership-specific error. |
+| BA-6 | Repeated authenticated requests with ES256/JWKS | Reuse the cached JWKS client/key path; do not refetch signing metadata per request. |
+| BA-7 | Bootstrap after prior consent grant | Response includes `behavioral_analytics_consent_granted: true`. |
 
 ### 12.2 Backend Curriculum and Dashboard
 
@@ -461,6 +471,9 @@ All tests must be written red before production code.
 | MA-5 | Resume session | Opens existing canvas from dashboard. |
 | MA-6 | Canvas receives real token/session id | No dev session/token constants in the normal M4 path. |
 | MA-7 | Existing canvas tests remain green | M3-C/M3.6 behavior not regressed. |
+| MA-8 | Existing consent grant | Consent acknowledgement is suppressed and start uses the persisted grant. |
+| MA-9 | Sign out then sign in again | Supabase remote logout plus local clearing allows clean re-login and backend bootstrap. |
+| MA-10 | Dashboard with slow curriculum endpoints | Dashboard renders before the full curriculum path has finished loading. |
 
 ---
 
@@ -469,24 +482,25 @@ All tests must be written red before production code.
 Per `development-approach.md` Section 6 discipline #10, M4 cannot close until every endpoint used
 by the mobile M4 flow has a router and `main.py` registration.
 
-| Endpoint | Router | M4 status before implementation |
-|---|---|---|
-| `GET /v1/student/dashboard` | `student/dashboard.py` | new |
-| `GET /v1/student/curriculum/classes` | `student/curriculum.py` | new |
-| `GET /v1/student/curriculum/exams` | `student/curriculum.py` | new |
-| `GET /v1/student/curriculum/subjects` | `student/curriculum.py` | new |
-| `GET /v1/student/curriculum/chapters` | `student/curriculum.py` | new |
-| `GET /v1/student/chapters/{chapter_id}` | `student/curriculum.py` | new |
-| `GET /v1/student/chapters/{chapter_id}/concept-entries` | `student/curriculum.py` | new |
-| `POST /v1/student/sessions` | `student/sessions.py` | existing, needs M4 launch/root-node behavior |
-| `GET /v1/student/sessions/{session_id}` | `student/sessions.py` | existing from M3-C |
-| `POST /v1/student/sessions/{session_id}/resume` | `student/sessions.py` | existing |
-| `POST /v1/student/sessions/{session_id}/events` | `student/events.py` | existing from M3-C |
-| `PATCH /v1/student/sessions/{session_id}/nodes/{node_id}` | `student/nodes.py` | existing from M3-C |
-| `DELETE /v1/student/sessions/{session_id}/nodes/{node_id}` | `student/nodes.py` | existing |
-| `POST /v1/student/offer-sets/phrase` | `student/offer_sets.py` | existing |
-| `POST /v1/student/offer-sets/edge` | `student/offer_sets.py` | existing |
-| `POST /v1/student/offer-sets/{offer_set_id}/choices` | `student/offer_choices.py` | existing, needs fixture provider integration |
+| Endpoint | Router | Registered in `main.py` | Mobile call site / status |
+|---|---|---|---|
+| `POST /v1/student/auth/bootstrap` | `student/auth.py` | yes | `m4/studentApi.ts`; implemented, includes persisted consent state |
+| `GET /v1/student/dashboard` | `student/dashboard.py` | yes | `m4/studentApi.ts`; implemented |
+| `GET /v1/student/curriculum/classes` | `student/curriculum.py` | yes | `m4/studentApi.ts`; implemented |
+| `GET /v1/student/curriculum/exams` | `student/curriculum.py` | yes | `m4/studentApi.ts`; implemented |
+| `GET /v1/student/curriculum/subjects` | `student/curriculum.py` | yes | `m4/studentApi.ts`; implemented |
+| `GET /v1/student/curriculum/chapters` | `student/curriculum.py` | yes | `m4/studentApi.ts`; implemented |
+| `GET /v1/student/chapters/{chapter_id}` | `student/curriculum.py` | yes | supported; chapter selection uses list DTO |
+| `GET /v1/student/chapters/{chapter_id}/concept-entries` | `student/curriculum.py` | yes | `m4/studentApi.ts`; implemented |
+| `POST /v1/student/sessions` | `student/sessions.py` | yes | `m4/studentApi.ts`; root + explicit consent implemented |
+| `GET /v1/student/sessions/{session_id}` | `student/sessions.py` | yes | `canvas/useSessionHydration.ts`; implemented |
+| `POST /v1/student/sessions/{session_id}/resume` | `student/sessions.py` | yes | `m4/studentApi.ts`; implemented |
+| `POST /v1/student/sessions/{session_id}/events` | `student/events.py` | yes | `canvas/apiClient.ts`; implemented |
+| `PATCH /v1/student/sessions/{session_id}/nodes/{node_id}` | `student/nodes.py` | yes | `canvas/apiClient.ts`; implemented |
+| `DELETE /v1/student/sessions/{session_id}/nodes/{node_id}` | `student/nodes.py` | yes | `canvas/apiClient.ts`; implemented |
+| `POST /v1/student/offer-sets/phrase` | `student/offer_sets.py` | yes | phrase reader; implemented |
+| `POST /v1/student/offer-sets/edge` | `student/offer_sets.py` | yes | edge discovery; implemented |
+| `POST /v1/student/offer-sets/{offer_set_id}/choices` | `student/offer_choices.py` | yes | phrase/edge discovery; fixture provider implemented |
 
 ---
 
@@ -516,7 +530,7 @@ M4 is locally complete when:
 
 | ID | Decision | Proposed M4 answer |
 |---|---|---|
-| OD-1 | Exact Supabase project used for manual SQL | Owner will run SQL against project ref `jbmqyxhrmcbdgardamrp`; MCP currently cannot access it. |
+| OD-1 | Exact Supabase project | Resolved: MCP exposes `jbmqyxhrmcbdgardamrp`; migration `20260702173751 / m4_catalog_auth_seed` is applied. |
 | OD-2 | Email/password vs phone OTP | Email/password for M4; phone OTP later. |
 | OD-3 | Real generation vs fixture simulation | Fixture simulation for M4; real generation later behind same provider interface. |
 | OD-4 | Admin/content panel for adding future exams | Deferred; M4 uses migration/seed/operator-ingested catalog. |

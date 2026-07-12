@@ -1,6 +1,6 @@
 # Schema Traceability and Validation
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Status**: Current MVP validation baseline  
 **Trace Chain**: Feature → Endpoint → Event → Read Model → Worker Job → Table(s)
 
@@ -14,9 +14,10 @@ This document extends `docs/api/feature-endpoint-traceability.md` into the datab
 
 | Feature | Endpoint | Event | Read Model | Worker Job | Table(s) |
 |---|---|---|---|---|---|
+| B2C auth bootstrap | `POST /v1/student/auth/bootstrap` | none | operational | none | `memberships` |
 | Curriculum navigation | `GET /v1/student/curriculum/*` | none | curriculum | none | `curriculum_classes`, `exams`, `subjects`, `chapters` |
 | Launchable chapter metadata | `GET /v1/student/chapters/{chapter_id}` | none | student-safe curriculum | none | `chapters`, `chapter_analysis_versions`, `concept_entries` |
-| Start session | `POST /v1/student/sessions` | `session_started` | `student_rm` | optional `project` | `events`, `student_rm.sessions` |
+| Start M4 session | `POST /v1/student/sessions` | optional first `consent_recorded`, `session_started`, root `node_created` | operational + `student_rm` | optional `project` | `consent_records`, `events`, `student_rm.sessions` |
 | Resume session | `POST /v1/student/sessions/{session_id}/resume` | `session_resumed` | `student_rm` | none | `events`, `student_rm.sessions` |
 | Fetch session state | `GET /v1/student/sessions/{session_id}` | none | `student_rm` | none | `student_rm.sessions`, `student_rm.nodes`, `student_rm.edges`, `student_rm.podcasts` |
 | Batch client events | `POST /v1/student/sessions/{session_id}/events` | whitelisted events | event store | `project` | `events`, `jobs` |
@@ -42,7 +43,8 @@ This document extends `docs/api/feature-endpoint-traceability.md` into the datab
 | Class aggregate | teacher aggregate endpoint | `teacher_view_accessed` | `analytic_rm` | `project` | `events`, `analytic_rm.class_aggregates` |
 | Teacher feedback | `POST /v1/teacher/feedback` | `teacher_feedback` | audit/analytic | optional `project` | `events`, feedback/audit table |
 | Institutional activation | future admin/auth endpoint | `membership_changed` if state changes | operational | optional `project` | `activation_codes`, `provisional_accounts`, `memberships`, `events` |
-| Consent recording | future admin/auth endpoint | `consent_recorded` | operational/projection gates | `project`, `replay` on withdrawal | `consent_records`, `events`, `jobs` |
+| M4 B2C consent acknowledgement | `POST /v1/student/sessions` | `consent_recorded` on first active grant | operational/projection gates | `project` | `consent_records`, `events`, `jobs` |
+| Institutional/guardian consent or withdrawal | future admin/auth endpoint | `consent_recorded` | operational/projection gates | `project`, `replay` on withdrawal | `consent_records`, `events`, `jobs` |
 | B2C to B2B migration | future admin/internal endpoint | `tenant_migration`, `membership_changed` | operational | `replay` if history inclusion changes | `tenant_migrations`, `memberships`, `events`, `jobs` |
 
 ## 3. Category Invisibility Validation
@@ -83,6 +85,8 @@ Required checks:
 Checklist:
 
 - every tenant-scoped table includes `tenant_id`
+- migration `0007_m4_runtime_remediation.sql` forward-corrects and RLS-protects the five legacy
+  public M4 catalog tables that initially lacked it
 - every job includes `tenant_id`
 - every event includes `tenant_id`
 - teacher queries require active teaching assignment and class membership check

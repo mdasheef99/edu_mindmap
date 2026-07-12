@@ -195,9 +195,11 @@ def test_student_api_exposes_no_raw_event_endpoint() -> None:
     write-only whitelist boundary — it is permitted, but must never offer a GET
     that reads back the event log.
     """
-    from app.main import create_app
+    from uuid import uuid4
 
-    app = create_app()
+    from app.main import SessionRuntime, create_app
+
+    app = create_app(runtime=SessionRuntime.for_testing(tenant_id=uuid4(), student_user_id=uuid4()))
     student_routes = {
         route.path for route in app.routes if getattr(route, "path", "").startswith("/v1/student")
     }

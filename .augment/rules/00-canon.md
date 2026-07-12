@@ -3,16 +3,39 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth (SDD drafted 2026-07-02;
-implementation not started).
+ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth, **CLOSED** (2026-07-11).
+INTEGRATION STATUS: the closed historical M4 implementation is being reconstructed locally onto
+the post-PR-6 `main`. Historical closure evidence remains authoritative for the source behavior;
+the reconstructed branch must repeat all local gates before it is eligible for a draft PR.
+Next milestone is M5 Checkpoints; it has not started. The earlier browser path was a local in-memory
+smoke prototype, not a durable production-runtime verification. Production API composition,
+live restart durability, consent-aware worker projection, TypeScript/Jest/pytest/import-linter,
+Android bundling, native user flow, and non-bypass pooled-RLS isolation are verified.
+The 2026-07-11 physical-device gate found dashboard latency, repeated consent prompting, and
+post-signout re-login `Invalid Supabase token` failures. Remediation cached Supabase JWKS clients,
+returned persisted behavioral consent from bootstrap, moved dashboard rendering ahead of the
+sequential curriculum fetches, performs Supabase remote logout before local session clearing, and
+adds a bounded 30-second ES256 clock-skew tolerance after live diagnostics identified a zero-leeway
+`ImmatureSignatureError`. Final physical-device validation verifies post-fix sign-in/restoration,
+dashboard, the API-derived Electricity path, resume/hydration, new-session creation, branching, and
+active writes. The live non-bypass pooled-RLS test is green. Interactive web is explicitly excluded
+from the M4 closure gate; Expo web export with CanvasKit remains green and interactive browser smoke
+is retained as a non-blocking follow-up.
 M4 scope: B2C individual signup first via Supabase email/password, Class 10 → CBSE → Science →
 Electricity launch curriculum path, dashboard re-entry, consent capture, and a deterministic
 fixture-backed Electricity generation simulator (~10 nodes) that mimics real backend/event/canvas
 node creation. Phone/OTP auth, B2B roster/invite activation, admin/content panels, and live LLM
-generation are deferred. Supabase MCP currently exposes the wrong project
-(`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`); local Mindmap `.env` points at
-`jbmqyxhrmcbdgardamrp`, so M4 migration SQL must be generated locally and applied manually by the
-owner to the correct Supabase database.
+generation are deferred. Supabase MCP was reinstalled and verified against the correct Mindmap
+project `jbmqyxhrmcbdgardamrp`; migrations `20260702173751 / m4_catalog_auth_seed` and
+`20260710075416 / m4_runtime_remediation` are applied there. The forward migration adds/backfills
+required catalog `tenant_id` columns, constraints, indexes, and RLS policies. Fresh live readback
+confirms all 15 required operational/catalog/read-model tables have `tenant_id` and RLS enabled.
+The old wrong project (`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`) must not be used.
+Current automated gates: backend 147 regular tests plus 4 isolated import-linter subprocess tests
+green (151 combined), direct import-linter 4/4 contracts kept, mobile 136/136 Jest and TypeScript
+green; Expo Android Hermes bundle 1,822 modules / 11,243,312 bytes from the prior device-server
+open. The four import-linter subprocess tests need the user-level `lint-imports.exe` outside the
+sandbox on this Windows machine, so direct contract output remains the canonical boundary evidence.
 Phase 3 M3.6 Canvas Controls is LOCALLY COMPLETE (2026-06-30): explicit zoom in/out toolbar
 controls, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end
 toggle. The pre-M4 TypeScript/Jest config blocker was resolved on 2026-07-01; canvas TypeScript and
@@ -27,8 +50,8 @@ green. M3-B/M3-C carried housekeeping item closed. commit 4645bbd on phase-3-m3.
 Phase 3 M3.5 Frontend Readiness bridge is VERIFIED / COMPLETE (2026-06-25): learner-safe
 NodeChip text, SkiaCanvas edge-`+` neutral error banner, and useSessionHydration title/content
 persistence are implemented and verified by automated Jest tests plus physical device Expo Go
-smoke; 18 suites / 97 mobile Jest green. Pre-existing TS2688 Jest type-definition config issue
-remains a known non-blocking blocker for `tsc --noEmit`.
+smoke; 18 suites / 97 mobile Jest green. The former TS2688 Jest type-definition blocker was
+resolved before M4; current `tsc --noEmit` is green.
 Phase 3 M3 + M3-B Canvas maturation is CLOSED locally (2026-06-22): M3 base (pan/zoom/gestures
 via skia + reanimated, node visualization, 65-node limits, 60fps at 40+ nodes —
 development-approach.md §5 M3) and M3-B supplemental (edge labels F1, edge-`+` discovery UI F2,
@@ -44,9 +67,10 @@ device Expo smoke remain deferred operational gates. Do not attempt operational 
 unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: docs/planning/sdd/phase-3-m4-curriculum-auth-sdd.md (M4, DRAFTED 2026-07-02;
-B2C Supabase email auth + curriculum entry + dashboard re-entry + fixture-backed Electricity
-canvas flow; implementation not started).
+CLOSED SDD: docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md v0.3 (M4 remediation;
+production Postgres composition, durable auth/consent/session flow, mobile dashboard/resume, and
+platform closure gates; closed 2026-07-11). Parent SDD:
+phase-3-m4-curriculum-auth-sdd.md v0.6 (closed 2026-07-11).
 Prior closed SDDs: docs/planning/sdd/phase-3-m3-6-canvas-controls-sdd.md (M3.6, LOCALLY COMPLETE
 2026-06-30; toolbar zoom controls, fit/reset view, zoom readout, snap-to-grid drag-end toggle);
 docs/planning/sdd/phase-3-m3-5-frontend-readiness-sdd.md (M3.5,
@@ -55,9 +79,8 @@ docs/planning/sdd/phase-3-m3c-infrastructure-remediation-sdd.md (M3-C, 2026-06-2
 docs/planning/sdd/phase-3-m3-canvas-sdd.md + phase-3-m3b-canvas-feature-parity-sdd.md
 (M3/M3-B, closed 2026-06-22); docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, closed
 2026-06-20).
-LIVE TRACKER: docs/planning/worklog-v9.md (worklog-v8.md rotated before M4 implementation planning,
-2026-07-02; worklog-v7.md rotated at 405 lines, 2026-06-25; worklog-v6.md rotated past the
-~350-line threshold, 2026-06-21; worklog-v5.md rotated at 346 lines).
+LIVE TRACKER: docs/planning/worklog-v11.md (`worklog-v10.md` preserved/closed at 348 lines;
+`worklog-v9.md` preserved/closed at 567 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 

@@ -52,8 +52,9 @@ Continue numbering from ADR-0015. Do not renumber or move earlier decisions from
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| ADR-0015 | Supabase Auth JWT validation strategy | Accepted |
+| ADR-0015 | Supabase Auth JWT validation strategy | Superseded for live runtime by ADR-0017 |
 | ADR-0016 | M3 canvas layout engine: deterministic `d3-hierarchy` | Accepted |
+| ADR-0017 | Supabase Auth ES256/JWKS live validation | Accepted |
 
 ---
 
@@ -161,4 +162,55 @@ Binding rules:
 
 ---
 
-*Document Version 1.1 | Architecture Decision Record Log — 02*
+## ADR-0017 — Supabase Auth ES256/JWKS live validation
+
+**Status**: Accepted
+**Date**: 2026-07-10
+**Phase**: Phase 3 — M4 runtime/closure remediation
+**Supersedes**: ADR-0015 for the live Supabase runtime; HS256 remains test-fixture compatibility
+**Source-of-truth refs**: `development-approach.md` §7.1; `backend-architecture.md` §§5.4, 5.5,
+9.6, and 11; `phase-3-m4-runtime-closure-remediation-sdd.md` §§2-5.
+
+### Context
+
+ADR-0015 selected a shared HS256 secret before the target Supabase project was exercised. The live
+project `jbmqyxhrmcbdgardamrp` issues ES256 access tokens with a JWKS `kid`. The M4 browser smoke
+therefore failed until an uncommitted JWKS compatibility path was added. Leaving the accepted ADR
+on HS256 while silently deploying ES256 would make auth behavior and configuration unauditable.
+
+### Decision
+
+The live backend validates Supabase access tokens with the project's ES256 JWKS endpoint.
+
+Binding rules:
+
+- Validate the signature using the key selected by `kid` from the configured/derived JWKS URL.
+- Accept only the configured asymmetric algorithm for the live path.
+- Validate `iss`, `aud=authenticated`, expiration, and required UUID-shaped `sub`.
+- Apply a fixed 30-second clock-skew tolerance to ES256 `iat`, `nbf`, and expiration validation;
+  do not disable temporal-claim validation. Tokens outside that bounded tolerance fail closed.
+- Resolve tenant and role only from backend-owned memberships after token verification.
+- Cache signing keys through the JWT/JWKS client and fail closed when keys/configuration cannot be
+  resolved.
+- `SUPABASE_URL` or explicit issuer/JWKS variables are backend runtime configuration. They are not
+  mobile secrets.
+- HS256 tokens are permitted only in deterministic local/test fixtures unless a future Supabase
+  project explicitly requires a new accepted decision.
+- The client uses only the project URL and active publishable/anon key; it never receives signing
+  secrets, service-role keys, database credentials, or provider credentials.
+
+### Consequences
+
+- The implementation now matches the real Supabase signing configuration and supports key rotation
+  without distributing a shared signing secret.
+- Render/local production startup must supply and validate the Supabase issuer/JWKS configuration.
+- Auth tests require both deterministic mocked-JWKS coverage and a separately gated live token
+  smoke; CI never depends on the network.
+- Boundary tests prove a token 20 seconds ahead is accepted while a token 120 seconds ahead is
+  rejected, preserving a bounded distributed-clock allowance.
+- ADR-0015 remains historical context for the earlier HS256 decision but no longer governs the
+  live runtime.
+
+---
+
+*Document Version 1.3 | Architecture Decision Record Log — 02*

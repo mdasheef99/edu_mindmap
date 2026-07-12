@@ -10,14 +10,14 @@ from app.domain.student.sessions import (
     ChapterLaunchNotFoundError,
     SessionStartRequest,
 )
-from app.projections.curriculum import InMemoryCurriculumStore
+from app.runtime.ports import CurriculumStorePort
 
 
 def resolve_session_request(
     payload: SessionStartRequest,
     *,
     tenant_id: UUID,
-    curriculum: InMemoryCurriculumStore,
+    curriculum: CurriculumStorePort,
 ) -> SessionStartRequest:
     """Look up the chapter in the curriculum and inject chapter_analysis_id.
 
@@ -39,7 +39,7 @@ def render_teacher_chapter_graph(
     *,
     chapter_id: UUID,
     auth: AuthContext,
-    curriculum: InMemoryCurriculumStore,
+    curriculum: CurriculumStorePort,
 ) -> TeacherChapterGraph:
     """Render the teacher chapter graph for the given chapter_id.
 

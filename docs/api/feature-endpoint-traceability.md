@@ -1,6 +1,6 @@
 # Feature Endpoint Traceability
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Trace Chain**: Feature → Endpoint → Event → Read Model → Worker Job
 
 ---
@@ -22,10 +22,11 @@ This document proves that the API surface preserves Category Invisibility and Or
 
 | Feature | Endpoint | Event | Read Model | Worker Job |
 |---|---|---|---|---|
+| B2C auth bootstrap | `POST /v1/student/auth/bootstrap` | none | backend-owned `memberships` | none |
 | Class/exam/subject/chapter navigation | `GET /v1/student/curriculum/*` | none | curriculum tables | none |
 | Launchable chapter metadata | `GET /v1/student/chapters/{chapter_id}` | none | student-safe curriculum/chapter projection | none |
 | Concept entry selection | `GET /v1/student/chapters/{chapter_id}/concept-entries` | none | student-safe chapter projection | none |
-| Start session | `POST /v1/student/sessions` | `session_started` | `student_rm.sessions` | optional `project` |
+| Start M4 session | `POST /v1/student/sessions` | optional first `consent_recorded`, `session_started`, root `node_created` | `consent_records`, `student_rm.sessions`, event-replayed canvas | optional `project` |
 | Resume session | `POST /v1/student/sessions/{session_id}/resume` | `session_resumed` | `student_rm.sessions` | none |
 | Fetch session state | `GET /v1/student/sessions/{session_id}` | none | `student_rm` only | none |
 | Batch client events | `POST /v1/student/sessions/{session_id}/events` | whitelisted client events | event store | `project` as needed |
@@ -58,7 +59,8 @@ This document proves that the API surface preserves Category Invisibility and Or
 | Class aggregate | `GET /v1/teacher/classes/{class_id}/chapters/{chapter_id}/aggregate` | `teacher_view_accessed` | `analytic_rm.class_aggregates` | `project` |
 | Teacher feedback | `POST /v1/teacher/feedback` | `teacher_feedback` | feedback/audit tables + event store | optional `project` |
 | Institutional Activation | Future/Deferred admin/auth endpoint | `membership_changed` if activation changes membership state | tenancy/membership tables | optional `project` |
-| Consent Recording | Future/Deferred admin/auth endpoint | `consent_recorded` | consent tables + projection gates | `project`, `replay` on withdrawal |
+| M4 B2C consent acknowledgement | `POST /v1/student/sessions` with explicit `behavioral_analytics_consent: true` | `consent_recorded` on first active grant | `consent_records` + projection gates | `project` |
+| Institutional/guardian consent or withdrawal | Future/Deferred admin/auth endpoint | `consent_recorded` | consent tables + projection gates | `project`, `replay` on withdrawal |
 | B2C to B2B Migration | Future/Deferred admin/internal endpoint | `tenant_migration`, `membership_changed` | tenancy/membership tables | `replay` if historical inclusion changes |
 | Roster upload prerequisite | future `/v1/admin` | `roster_uploaded` | tenancy/class membership tables | `project` |
 | Membership change prerequisite | future `/v1/admin` | `membership_changed` | tenancy/class membership tables | `project` |
@@ -75,7 +77,7 @@ Checkpoints are polled with `GET /v1/student/sessions/{session_id}/checkpoint`. 
 
 ## 6. B2B Boundary Proof
 
-Teacher endpoints require tenant, roster, assignment, membership, and consent state. Exact roster upload, activation code, teacher invitation, consent recording, tenant provisioning, and internal replay contracts are deferred to future admin/internal API specs.
+Teacher endpoints require tenant, roster, assignment, membership, and consent state. Exact roster upload, activation code, teacher invitation, institutional/guardian consent administration and withdrawal, tenant provisioning, and internal replay contracts are deferred to future admin/internal API specs. M4 implements only the explicit B2C session-start acknowledgement described above.
 
 The student learning API assumes active context has already been resolved by the backend. It does not trust mobile-supplied tenant/role/membership claims and does not define activation-code or roster-management contracts.
 

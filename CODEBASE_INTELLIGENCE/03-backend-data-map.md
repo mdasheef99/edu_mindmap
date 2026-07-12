@@ -1,40 +1,73 @@
-# 03 Backend & Data Map
+# 03 Backend and Data Map
 
-## API Integration
-- **Framework**: FastAPI.
-- **Client**: Mobile uses `fetch` via `mobile/canvas/apiClient.ts` and `mobile/canvas/useSessionHydration.ts`.
-- **Base URL**: Environment-dependent (LAN IP for dev, Render URL for production).
+**2026-07-11 update**: live Supabase ES256/JWKS verification now reuses a cached JWKS client across
+authenticated requests, and auth bootstrap returns persisted behavioral-consent state.
 
-## Database Access (PostgreSQL)
-- **Platform**: Supabase.
-- **Invariants**:
-    - Every row must have `tenant_id`.
-    - `events` table is append-only (no `UPDATE`/`DELETE`).
-- **Read Models**:
-    - `student_rm`: Student-safe data (nodes, edges, sessions).
-    - `analytic_rm`: Teacher/Admin data (vectors, classifications, PII-sensitive).
+**Snapshot**: 2026-07-10.
+**Primary authority**: `docs/architecture/backend-architecture.md` §§5-8 and 11-12.
 
-## Auth & Session Handling
-- **Identity**: Supabase Auth (JWT).
-- **Resolution**: `backend/app/tenancy/auth.py` resolves `user_id` -> `tenant_id` and `role`.
-- **JWT Secret**: Managed via environment variables.
+## API and Runtime Composition
 
-## Job Queue
-- **Pattern**: Postgres `SKIP LOCKED` (`backend/app/workers/`).
-- **Jobs**:
-    - `classify`: Post-hoc AI classification of student responses.
-    - `project`: Rebuilding read models from event stream.
-    - `chapter_analysis`: Pipeline for processing curriculum content.
+- FastAPI routers live in `backend/app/api/`; `backend/app/main.py` wires them to one runtime in
+  `app.state.session_runtime`.
+- Normal startup requires `DATABASE_URL` and `SUPABASE_URL` and builds
+  `PostgresSessionRuntime` through `backend/app/runtime/postgres_runtime.py`.
+- Tests inject `SessionRuntime.for_testing()`; an in-memory test passing is not evidence of live
+  durability.
+- Mobile API calls live in `mobile/m4/studentApi.ts` for M4 and `mobile/canvas/apiClient.ts` for
+  canvas operations.
 
-## AI & LLM Gateway
-- **Module**: `backend/app/llm_gateway/`.
-- **Chokepoint**: Single point of entry for all Anthropic/OpenAI calls.
-- **Accounting**: `InMemoryLLMUsageStore` (and Postgres equivalent) tracks costs.
+## Postgres Adapters
 
-## Storage
-- **Platform**: Supabase Storage.
-- **Usage**: Podcast audio files, student-uploaded media.
+- `backend/app/tenancy/postgres_pool.py`: pooled connection/transaction proxy.
+- `backend/app/tenancy/postgres_context.py`: `SET LOCAL app.tenant_id` helper.
+- `backend/app/events/postgres_store.py`: append-only events.
+- `backend/app/workers/postgres_queue.py`: `FOR UPDATE SKIP LOCKED` jobs.
+- `backend/app/tenancy/postgres_memberships.py`: backend-owned membership bootstrap/resolution.
+- `backend/app/tenancy/postgres_consent.py`: durable consent entity state.
+- `backend/app/projections/postgres_catalog.py`: public M4 catalog reads.
+- `backend/app/projections/curriculum_postgres.py`: Phase 2 curriculum reads.
+- `backend/app/projections/postgres_student_sessions.py`: durable student session projection.
+- `backend/app/projections/postgres_question_classifications.py`: consent-gated analytic output.
 
-## Stale/Uncertain Areas
-- **Live Auth**: Migration to real Supabase Auth is planned but may need verification of JWT hook behavior in production.
-- **Mocks**: `InMemoryEventStore` and `InMemoryStudentSessionProjectionStore` are heavily used in tests but must be mirrored by real Postgres implementations.
+Every tenant-scoped query must use the backend-resolved tenant. The pooled runtime opens a
+transaction, sets the tenant GUC locally, performs the operation, and commits or rolls back so
+tenant state cannot leak across pooled requests. RLS is the database backstop.
+
+## Auth and Consent
+
+- Supabase Auth owns credential identity.
+- `backend/app/tenancy/membership_auth.py` verifies live Supabase ES256 tokens with JWKS and issuer
+  checks through a cached JWKS client. Deterministic tests inject a separate HS256 fixture
+  verifier; production configuration never selects it.
+- `backend/app/tenancy/auth.py` resolves authenticated requests to server-owned membership context.
+- `POST /v1/student/auth/bootstrap` idempotently creates the M4 B2C membership in the configured
+  individual tenant and reports active behavioral-consent state; mobile tenant/role claims are
+  ignored.
+- Session start records the explicit B2C behavioral-analytics acknowledgement as both an
+  append-only event and a durable consent entity. Analytic worker writes remain consent-gated.
+
+## Schemas and Migrations
+
+- `public`: operational tables, events, jobs, memberships, consent, and M4 launch catalog.
+- `curriculum`: Phase 2 chapter content, segments, concepts, and concept edges.
+- `student_rm`: student-safe session state only.
+- `analytic_rm`: classifications and future teacher/research projections; never read by student API.
+- `backend/migrations/source_sql/0007_m4_runtime_remediation.sql` adds/backfills missing catalog
+  `tenant_id`, constraints, indexes, and RLS. Live readback on 2026-07-10 found `tenant_id` and RLS
+  enabled on all 15 audited operational/catalog/read-model tables.
+
+## Jobs, AI, and Storage
+
+- The MVP queue is Postgres only; `JOB_MAX_ATTEMPTS=5` dead-letters repeated failures.
+- Selected offer-set choices enqueue classification asynchronously; generation never imports or
+  waits for classification.
+- M4 generation is deterministic fixture-backed. Future/live providers must pass through
+  `backend/app/llm_gateway/`, with recorded fixtures in CI and usage accounting from the first call.
+- Supabase Storage is the planned byte store for podcast/media artifacts; database rows retain
+  metadata and authorization context.
+
+## Remaining Operational Evidence
+
+The live schema audit used a credential that may bypass RLS. M4 still requires a pooled
+non-bypass app-role cross-tenant isolation smoke before closure.
