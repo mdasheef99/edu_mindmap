@@ -122,7 +122,12 @@ def _build_runtime():  # type: ignore[return]
 def _seed_canvas_session(runtime: any) -> None:
     from datetime import datetime, timezone
     from uuid import uuid4
-    from app.domain.student.sessions import build_session_started, SessionStartRequest, SessionContext
+
+    from app.domain.student.sessions import (
+        SessionContext,
+        SessionStartRequest,
+        build_session_started,
+    )
 
     # 1. Start Session
     start_req = SessionStartRequest(
@@ -139,7 +144,9 @@ def _seed_canvas_session(runtime: any) -> None:
         session_id=SESSION_ID,
     )
     runtime.event_store.append(evt, producer="server")
-    runtime.student_sessions.upsert(session_row)  # session_row has tenant_id; session_model does not
+    runtime.student_sessions.upsert(
+        session_row
+    )  # session_row has tenant_id; session_model does not
 
     def _evt(etype: str, payload: dict):
         evt = {
@@ -154,7 +161,15 @@ def _seed_canvas_session(runtime: any) -> None:
             "payload": payload,
         }
         # Lift top-level fields required by registry
-        for k in ["node_id", "edge_id", "exam_id", "subject_id", "chapter_id", "chapter_analysis_id", "concept_entry_id"]:
+        for k in [
+            "node_id",
+            "edge_id",
+            "exam_id",
+            "subject_id",
+            "chapter_id",
+            "chapter_analysis_id",
+            "concept_entry_id",
+        ]:
             if k in payload:
                 evt[k] = payload[k]
         return evt
@@ -167,58 +182,88 @@ def _seed_canvas_session(runtime: any) -> None:
     dummy = "00000000-0000-0000-0000-000000000000"
 
     # 2. Nodes
-    runtime.event_store.append(_evt("node_created", {
-        "session_id": str(SESSION_ID),
-        "student_user_id": str(STUDENT_USER_ID),
-        "node_id": node_a_id,
-        "node_type": "concept",
-        "content": "Electric current",
-        "source_node_id": dummy,
-        "source_offer_set_id": dummy,
-        "source_option_id": dummy,
-        "source_option_text": "ROOT",
-        "thread_context_id": thread_id,
-    }), producer="server")
+    runtime.event_store.append(
+        _evt(
+            "node_created",
+            {
+                "session_id": str(SESSION_ID),
+                "student_user_id": str(STUDENT_USER_ID),
+                "node_id": node_a_id,
+                "node_type": "concept",
+                "content": "Electric current",
+                "source_node_id": dummy,
+                "source_offer_set_id": dummy,
+                "source_option_id": dummy,
+                "source_option_text": "ROOT",
+                "thread_context_id": thread_id,
+            },
+        ),
+        producer="server",
+    )
 
-    runtime.event_store.append(_evt("node_created", {
-        "session_id": str(SESSION_ID),
-        "student_user_id": str(STUDENT_USER_ID),
-        "node_id": node_b_id,
-        "node_type": "concept",
-        "content": "Ohm's Law",
-        "source_node_id": node_a_id,
-        "source_offer_set_id": dummy,
-        "source_option_id": dummy,
-        "source_option_text": "Manual",
-        "thread_context_id": thread_id,
-    }), producer="server")
+    runtime.event_store.append(
+        _evt(
+            "node_created",
+            {
+                "session_id": str(SESSION_ID),
+                "student_user_id": str(STUDENT_USER_ID),
+                "node_id": node_b_id,
+                "node_type": "concept",
+                "content": "Ohm's Law",
+                "source_node_id": node_a_id,
+                "source_offer_set_id": dummy,
+                "source_option_id": dummy,
+                "source_option_text": "Manual",
+                "thread_context_id": thread_id,
+            },
+        ),
+        producer="server",
+    )
 
     # 3. Edge
-    runtime.event_store.append(_evt("edge_created", {
-        "edge_id": edge_id,
-        "session_id": str(SESSION_ID),
-        "node_id": node_a_id,
-        "source_node_id": node_a_id,
-        "target_node_id": node_b_id,
-        "edge_kind": "manual_reference",
-        "label": "relates to",
-        "created_by": "server",
-    }), producer="server")
+    runtime.event_store.append(
+        _evt(
+            "edge_created",
+            {
+                "edge_id": edge_id,
+                "session_id": str(SESSION_ID),
+                "node_id": node_a_id,
+                "source_node_id": node_a_id,
+                "target_node_id": node_b_id,
+                "edge_kind": "manual_reference",
+                "label": "relates to",
+                "created_by": "server",
+            },
+        ),
+        producer="server",
+    )
 
     # 4. Positions
-    runtime.event_store.append(_evt("node_position_updated", {
-        "node_id": node_a_id,
-        "session_id": str(SESSION_ID),
-        "position_x": 100.0,
-        "position_y": 100.0,
-    }), producer="client")
+    runtime.event_store.append(
+        _evt(
+            "node_position_updated",
+            {
+                "node_id": node_a_id,
+                "session_id": str(SESSION_ID),
+                "position_x": 100.0,
+                "position_y": 100.0,
+            },
+        ),
+        producer="client",
+    )
 
-    runtime.event_store.append(_evt("node_position_updated", {
-        "node_id": node_b_id,
-        "session_id": str(SESSION_ID),
-        "position_x": 300.0,
-        "position_y": 150.0,
-    }), producer="client")
+    runtime.event_store.append(
+        _evt(
+            "node_position_updated",
+            {
+                "node_id": node_b_id,
+                "session_id": str(SESSION_ID),
+                "position_x": 300.0,
+                "position_y": 150.0,
+            },
+        ),
+        producer="client",
+    )
 
     # 5. Extra nodes. The initial canvas is 390x844 at scale 1 with 280x180 chips, so the
     # on-screen board box (with cull padding) is roughly x in [-140, 530], y in [-90, 934].
@@ -235,34 +280,52 @@ def _seed_canvas_session(runtime: any) -> None:
     ]
     for label, px, py, parent_id, edge_label in extra_nodes:
         nid = str(uuid4())
-        runtime.event_store.append(_evt("node_created", {
-            "session_id": str(SESSION_ID),
-            "student_user_id": str(STUDENT_USER_ID),
-            "node_id": nid,
-            "node_type": "concept",
-            "content": label,
-            "source_node_id": parent_id,
-            "source_offer_set_id": dummy,
-            "source_option_id": dummy,
-            "source_option_text": "Manual",
-            "thread_context_id": thread_id,
-        }), producer="server")
-        runtime.event_store.append(_evt("node_position_updated", {
-            "node_id": nid,
-            "session_id": str(SESSION_ID),
-            "position_x": px,
-            "position_y": py,
-        }), producer="client")
-        runtime.event_store.append(_evt("edge_created", {
-            "edge_id": str(uuid4()),
-            "session_id": str(SESSION_ID),
-            "node_id": parent_id,
-            "source_node_id": parent_id,
-            "target_node_id": nid,
-            "edge_kind": "manual_reference",
-            "label": edge_label,
-            "created_by": "server",
-        }), producer="server")
+        runtime.event_store.append(
+            _evt(
+                "node_created",
+                {
+                    "session_id": str(SESSION_ID),
+                    "student_user_id": str(STUDENT_USER_ID),
+                    "node_id": nid,
+                    "node_type": "concept",
+                    "content": label,
+                    "source_node_id": parent_id,
+                    "source_offer_set_id": dummy,
+                    "source_option_id": dummy,
+                    "source_option_text": "Manual",
+                    "thread_context_id": thread_id,
+                },
+            ),
+            producer="server",
+        )
+        runtime.event_store.append(
+            _evt(
+                "node_position_updated",
+                {
+                    "node_id": nid,
+                    "session_id": str(SESSION_ID),
+                    "position_x": px,
+                    "position_y": py,
+                },
+            ),
+            producer="client",
+        )
+        runtime.event_store.append(
+            _evt(
+                "edge_created",
+                {
+                    "edge_id": str(uuid4()),
+                    "session_id": str(SESSION_ID),
+                    "node_id": parent_id,
+                    "source_node_id": parent_id,
+                    "target_node_id": nid,
+                    "edge_kind": "manual_reference",
+                    "label": edge_label,
+                    "created_by": "server",
+                },
+            ),
+            producer="server",
+        )
 
 
 def main() -> None:

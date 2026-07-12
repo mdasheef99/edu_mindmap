@@ -14,10 +14,9 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import jwt
-from fastapi.testclient import TestClient
-
 from app.domain.auth import AuthContext
 from app.domain.student.nodes import NodePositionUpdate
+from fastapi.testclient import TestClient
 
 
 def _build_client_and_runtime(jwt_secret: str = "test-secret"):

@@ -212,8 +212,6 @@ def test_student_api_exposes_no_raw_event_endpoint() -> None:
         if getattr(route, "path", "").startswith("/v1/student")
         and getattr(route, "path", "").endswith("/events")
     ]
-    assert {route.path for route in events_routes} == {
-        "/v1/student/sessions/{session_id}/events"
-    }
+    assert {route.path for route in events_routes} == {"/v1/student/sessions/{session_id}/events"}
     for route in events_routes:
         assert set(getattr(route, "methods", set()) or set()) <= {"POST"}

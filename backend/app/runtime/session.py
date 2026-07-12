@@ -128,7 +128,6 @@ class SessionRuntime:
             memberships=memberships or InMemoryMembershipStore(),
         )
 
-
     # ── Session lifecycle ────────────────────────────────────────────────────
 
     def start_session(

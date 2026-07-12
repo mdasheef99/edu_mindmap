@@ -90,6 +90,7 @@ def _apply_backend_scope(event: dict[str, Any], *, auth: AuthContext, session_id
     if isinstance(payload, dict):
         payload["session_id"] = str(session_id)
 
+
 def _classify(event: dict[str, Any]) -> tuple[bool, str | None, int | None]:
     try:
         validate_event(event, producer="client")
@@ -115,7 +116,11 @@ def _classify(event: dict[str, Any]) -> tuple[bool, str | None, int | None]:
         if isinstance(scale, bool) or not isinstance(scale, (int, float)):
             return False, "scale must be numeric", status.HTTP_400_BAD_REQUEST
         if not canvas_min_zoom() <= float(scale) <= canvas_max_zoom():
-            return False, "scale outside [CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]", status.HTTP_400_BAD_REQUEST
+            return (
+                False,
+                "scale outside [CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM]",
+                status.HTTP_400_BAD_REQUEST,
+            )
         if not isinstance(payload.get("visible_node_ids"), list):
             return False, "visible_node_ids must be a list", status.HTTP_400_BAD_REQUEST
 
