@@ -158,6 +158,13 @@ The pre-M4 mobile TypeScript `TS2688` Jest type-definition blocker was resolved 
 (`worklog-v8.md`). M4 is now the active milestone for implementation planning, with
 `phase-3-m4-curriculum-auth-sdd.md` drafted and `worklog-v9.md` opened.
 
+**Milestone status update (2026-07-11)**: M4 Curriculum Entry + Auth is **closed**. The durable
+Postgres runtime, Supabase ES256/JWKS auth, consent, dashboard re-entry, API-derived Class 10 ->
+CBSE -> Science -> Electricity launch path, resume/hydration, native Android flow, and non-bypass
+pooled-RLS isolation gate are verified. Interactive web is excluded from the native-first M4
+closure gate; its production CanvasKit export is green and interactive rendering remains a
+non-blocking follow-up. M5 Checkpoints is next and has not started.
+
 **Deferred without guilt** (per §2.6 — these layer on later via replay/projection or are
 post-MVP by existing decisions): image/video enrichment tiers, Perplexity integration, V4 and
 all B2B admin surfaces, topology Phases 2–3, steering (ADR-0012 stays Proposed), content-library

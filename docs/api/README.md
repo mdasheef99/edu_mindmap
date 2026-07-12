@@ -1,6 +1,6 @@
 # API Documentation Source of Truth
 
-**Document Version**: 1.0 (draft)  
+**Document Version**: 1.1 (M4 runtime alignment)
 **Status**: Current API planning baseline  
 **Scope**: FastAPI modular monolith API contracts for `/v1/student` and `/v1/teacher`
 
@@ -60,7 +60,12 @@ The mobile client must not self-assign, trust, or persist authoritative `tenant_
 
 After context resolution, the same `/v1/student` learning endpoints serve both B2C and B2B learners. For B2C, curriculum selection may be manual. For B2B, curriculum/class context may be pre-filled or locked by roster/class assignment. A session is always created under exactly one active tenant context and never spans tenants.
 
-Institutional activation, roster upload, consent recording, teacher invitation, class management, and tenant migration contracts are upstream admin/auth/internal operations. This folder fixes that boundary but defers the endpoint contracts to future admin/internal API docs.
+Institutional activation, roster upload, guardian/institutional consent administration and
+withdrawal, teacher invitation, class management, and tenant migration contracts are upstream
+admin/auth/internal operations. M4 implements one narrow B2C exception: an explicit behavioral-
+analytics acknowledgement on student session start is recorded idempotently by the backend. This
+folder otherwise fixes the administrative boundary and defers those endpoint contracts to future
+admin/internal API docs.
 
 ## 5. Routers Covered Here
 
