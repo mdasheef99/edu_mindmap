@@ -1,7 +1,7 @@
 # 04 Feature Inventory
 
-**2026-07-11 update**: physical-device remediation has landed for dashboard latency, persisted
-consent acknowledgement, and sign-out/re-login token handling. Native retest remains pending.
+**2026-07-13 update**: the post-M4 canvas position lifecycle is locally stabilized and verified;
+physical-device and performance gates were not rerun.
 
 **Snapshot**: 2026-07-10.
 
@@ -27,10 +27,12 @@ consent acknowledgement, and sign-out/re-login token handling. Native retest rem
 - **Status**: closed locally; physical performance gates recorded separately in canon/worklogs.
 - **Ownership**: `mobile/canvas/`.
 - **Core**: `SkiaCanvas.tsx`, `CanvasEdges.tsx`, `NodeChip.tsx`, `CanvasToolbar.tsx`, `store.ts`,
-  `useCanvasGestures.ts`, `useSessionHydration.ts`, viewport culling, render budgets, discovery,
-  deletion reconciliation, zoom/fit/reset/snap controls.
-- **Pattern**: Skia edges + native node overlays, Zustand transient state, Reanimated/Gesture
-  Handler transforms, hierarchy layout.
+  `nodePositionCoordinator.ts`, `useNodePositionWrites.ts`, `useCanvasGestures.ts`,
+  `useSessionHydration.ts`, viewport culling, render budgets, discovery, deletion reconciliation,
+  zoom/fit/reset/snap controls.
+- **Pattern**: Skia edges + native overlays, session-scoped canonical positions in Zustand,
+  Reanimated/Gesture Handler transient transforms, checked FIFO drag-end persistence, and
+  deterministic hierarchy layout preserving manual overrides.
 
 ## M2 Phrase Selection
 

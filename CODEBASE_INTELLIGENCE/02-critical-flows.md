@@ -1,8 +1,7 @@
 # 02 Critical Flows
 
-**2026-07-11 update**: bootstrap now returns persisted behavioral consent state; dashboard renders
-before the full curriculum path finishes; sign-out calls Supabase remote logout before local
-clearing.
+**2026-07-13 update**: node movement, persistence retry, session disposal, and branch-placement
+recovery are now explicit mobile lifecycle flows.
 
 **Snapshot**: 2026-07-10. These are the current M4 production-runtime flows, not the legacy M2
 smoke path.
@@ -67,7 +66,20 @@ smoke path.
 
 ## 6. Node Position and Deletion
 
-- Node position changes are validated by `node_position_workflow.py` and recorded as append-only
-  events; replay applies the latest position.
+- Hydration seeds the current session's Zustand position authority. A finite drag-end commits once
+  and enters a per-node FIFO; different nodes may write concurrently. Checked PATCH failure keeps
+  the latest manual position visible and retryable.
+- Session replacement/sign-out disposes old queues; deletion removes authority and prevents stale
+  acknowledgement or retry from resurrecting a node. Replay still applies the latest persisted
+  `node_position_updated` event.
+- During drag, NodeChip, edge-plus, Skia edges, and labels consume the same UI-thread SharedValues;
+  committed state continues to drive hit-testing and culling.
 - `canvas_deletion.py` computes AI-path descendants, appends `edge_deleted` plus `node_deleted`, and
   replay removes them. Historical events are never updated or deleted.
+
+## 7. Branch Placement Recovery
+
+Choice selection creates the child branch once. Its separate checked position PATCH may be retried
+without repeating creation, or the sheet closes through one reload boundary. Edge-plus controls
+are single-flight with neutral retry feedback; only the first current-generation completion owns
+the active offer sheet.

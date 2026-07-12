@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0
 
-**Status**: In progress — local reconstruction; verification evidence pending
+**Status**: Locally complete — owner approval pending; no push or PR
 
 **Phase / milestone**: Bounded post-M4, pre-M5 canvas stabilization; not a formal M4.5 milestone
 
@@ -159,3 +159,35 @@ pytest, Ruff format-check/lint, mypy, import-linter, `git diff --check`, artifac
 and zero remaining `.pyc` files are recorded from this branch.
 
 Physical-device behavior and performance remain unverified unless separately rerun and recorded.
+
+## 9. Branch-Local Verification Evidence (2026-07-13)
+
+The approved lifecycle is implemented on `codex/integrate-canvas-position-lifecycle` from the
+base named above. No backend, schema, migration, authentication, curriculum, membership, tenancy,
+RLS, dependency, lockfile, viewport-persistence, or `App.tsx` behavior changed.
+
+Red-first evidence was captured in three committed test slices before their production changes:
+
+- checked PATCH, finite validation, FIFO/concurrency, store hydration/manual precedence,
+  session disposal, deletion, and retry initially failed because the coordinator, hook, and
+  session-scoped Zustand authority did not exist and PATCH returned `void`;
+- render/gesture tests initially failed because writes were concurrent, edges/labels used static
+  positions, cancellation had no finalizer, and render data still required the JS drag mirror;
+- placement/discovery tests initially failed because failed placement completed the branch flow,
+  edge-plus had no single-flight/retry state, and discovery had no completion ownership.
+
+Final local gates:
+
+- focused mobile lifecycle/rendering/recovery suites: green;
+- full mobile Jest: 35 suites / 159 tests passed;
+- App and Canvas TypeScript: green;
+- focused backend PATCH/replay/hydration/deletion/resume: 22 passed;
+- full Python: 164 passed / 3 skipped;
+- Ruff format: 145 files already formatted; Ruff lint: green;
+- mypy: 94 application source files green;
+- import-linter: four contracts kept, zero broken;
+- `git diff --check`: green; generated Python bytecode under `backend/` and `tests/`: zero.
+
+The sibling worktree's own inherited virtual environment lacked declared `psycopg_pool`; backend
+gates were therefore run against the already provisioned repository interpreter without changing
+dependencies. Physical-device 40+ node performance and 65-node smoke were not rerun.

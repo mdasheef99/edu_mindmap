@@ -1,8 +1,8 @@
 # 06 Testing and Verification Map
 
-**2026-07-11 update**: physical-device remediation coverage added cached JWKS reuse, bootstrap
-consent mapping, consent prompt suppression, remote Supabase logout, and progressive dashboard
-rendering before curriculum completion.
+**2026-07-13 update**: canvas lifecycle coverage now includes checked PATCH, FIFO/concurrency,
+session/deletion disposal, finite validation, UI-thread drag geometry, placement recovery, and
+edge-plus single-flight behavior.
 
 **Snapshot**: 2026-07-10. Current automated M4 remediation gates are green; human gates remain.
 
@@ -12,7 +12,7 @@ rendering before curriculum completion.
 - Mobile/canvas: Jest tests under `mobile/app/__tests__/` and `mobile/canvas/__tests__/`.
 - Boundaries: four import-linter contracts in `pyproject.toml`, with subprocess assertions in
   `tests/architecture/`.
-- Type safety: TypeScript for the Expo app/canvas. There is no current merge-blocking mypy gate.
+- Type safety: TypeScript for the Expo app/canvas and the CI mypy gate over `backend/app`.
 - Deterministic AI: recorded fixtures/contract checks under `LLM_CI_MODE`; no live LLM in CI.
 - Live Postgres tests: opt-in via non-bypass `TEST_DATABASE_URL`; they must not silently fall back
   to a bypass production credential.
@@ -24,7 +24,10 @@ From the repository root in PowerShell:
 ```powershell
 $env:PYTHONPATH='backend'
 python -m pytest --basetemp=.pytest-tmp
-lint-imports
+ruff format --check backend tests
+ruff check backend tests
+mypy backend/app
+lint-imports --config pyproject.toml --no-cache
 ```
 
 The workspace-local `--basetemp` is required on this Windows environment. In the Codex sandbox,
@@ -41,11 +44,12 @@ npx tsc --noEmit
 npx expo export --platform web
 ```
 
-## Latest Evidence
+## Latest Branch-Local Evidence
 
-- Backend: 147 regular tests plus 4/4 isolated import-linter tests green (151 combined); direct
-  import-linter reports 4 kept, 0 broken.
-- Mobile: 27/27 suites and 136/136 tests green; TypeScript green.
+- Backend: 164 passed / 3 skipped; focused PATCH/replay/hydration/deletion/resume 22 passed;
+  import-linter 4 kept / 0 broken; Ruff format/lint and mypy green.
+- Mobile: 35 suites / 159 tests passed; App and Canvas TypeScript green.
+- Source/test Python bytecode count: zero; `git diff --check`: green.
 - Web export: green and contains `dist/canvaskit.wasm`.
 - Native bundling: Expo Go Android Hermes bundle succeeded with 1,822 modules and 11,243,312 bytes.
 - Live durable smoke: signup/bootstrap → consent-aware session/root → branch → runtime recreation →
@@ -54,9 +58,9 @@ npx expo export --platform web
 
 ## Remaining Human/Operational Gates
 
-1. Physical Android: stranger signup → dashboard → Electricity → canvas and resume.
-2. Interactive browser: render the web canvas without `PictureRecorder`/CanvasKit errors.
-3. Pooled non-bypass app-role: prove cross-tenant denial through RLS.
+1. Owner review and approval before pushing the local canvas stabilization branch.
+2. Canvas 40+ node performance rerun and 65-node physical-device smoke remain unverified here.
+3. Interactive browser rendering remains a separately documented non-blocking follow-up.
 
 Jest/export/bundle success does not substitute for these gates. Likewise, schema metadata alone is
 not the non-bypass RLS behavior test.
