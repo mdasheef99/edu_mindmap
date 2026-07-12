@@ -62,7 +62,9 @@ implementation. Keep it below 350 lines and rotate before exceeding that thresho
   suite: 30 passed.
 - Full mobile Jest suite: 28 suites / 139 tests passed.
 - App and Canvas TypeScript checks: green.
-- `git diff --check`: green.
+- `git diff --check`: reconstructed code is clean; two trailing-space findings remain in the
+  byte-for-byte preserved, closed remediation SDD at lines 5-6. The immutable closure evidence was
+  not edited to conceal that historical formatting issue.
 - Sensitive-value scan found no JWT-shaped tokens or private-key material. URL/credential-pattern
   hits are confined to immutable historical evidence, explicit example/test fixtures, and typed
   credential parameters; production configuration contains no embedded value.

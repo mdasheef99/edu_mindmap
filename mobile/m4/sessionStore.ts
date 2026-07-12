@@ -53,4 +53,3 @@ export async function clearStoredSupabaseSession(): Promise<void> {
   }
   await SecureStore.deleteItemAsync(SESSION_KEY);
 }
-
