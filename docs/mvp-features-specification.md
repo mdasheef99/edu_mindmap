@@ -155,11 +155,11 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 
 | Attribute | Specification |
 |-----------|---------------|
-| **Description** | Pinch to zoom (25%-400%), one-finger pan with momentum scrolling |
-| **UI Location** | Canvas gestures |
-| **Implementation** | React Native Gesture Handler → Reanimated SharedValues → Animated.View transform on canvas container |
+| **Description** | Pinch to zoom (25%-400%), one-finger pan with momentum scrolling, toolbar zoom in/out controls, fit-to-screen, reset view, and a visible zoom readout |
+| **UI Location** | Canvas gestures and bottom canvas toolbar |
+| **Implementation** | React Native Gesture Handler → Reanimated SharedValues → Animated.View transform on canvas container; toolbar actions update the same bounded viewport transform and emit the same transform-end pathway |
 | **Dependencies** | None |
-| **Priority Justification** | Core interaction for exploring mind map |
+| **Priority Justification** | Core interaction for exploring and recovering orientation within the mind map |
 | **Spec Reference** | `mobile-features-core-ui.md` Section 3.1 |
 | **Architecture Reference** | `architecture-feature-mapping.md` Pillar 1 (Hybrid Native Views + Skia Edges) |
 
@@ -200,6 +200,18 @@ The MVP delivers a syllabus-driven, AI-supported path-based conceptual explorati
 **Connection model note**:
 - Manual connections are learner-created **reference-style links** between nodes.
 - AI-generated parent → child path edges are created only through the two exploration flows (phrase selection and edge `+`) and are a different connection category in the product logic.
+
+### Feature 3.5: Canvas Alignment Controls
+
+| Attribute | Specification |
+|-----------|---------------|
+| **Description** | Optional snap-to-grid alignment for dragged nodes using a fixed 15px grid; snapping applies only when a drag is released |
+| **UI Location** | Bottom canvas toolbar → grid toggle |
+| **Implementation** | Toolbar toggle stored in canvas UI state; drag-end commit rounds the final board-space `x/y` position to the configured grid size before local update and persistence |
+| **Dependencies** | Canvas Navigation (Feature 3.1), Node Selection (Feature 3.3) |
+| **Priority Justification** | Helps learners keep growing maps legible without introducing auto-layout or a visible grid system |
+| **Spec Reference** | `mobile-features-core-ui.md` Sections 3.3 and 3.4 |
+| **Configuration Reference** | `configuration-reference.md` Section 3 (`CANVAS_GRID_SIZE_PX`) |
 
 ---
 

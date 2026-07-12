@@ -8,6 +8,7 @@
 
 ## Start Here
 
+- **Codebase Intelligence**: Before starting any work, read `CODEBASE_INTELLIGENCE/README.md` and the relevant map files. If Augment/codebase-retrieval is available, use it to refresh the relevant area before editing.
 - **Understand the product and learning model**: start with `theory-of-change.md`, then `framework-design-philosophy.md`
 - **Understand the system and implementation approach**: start with `architecture/backend-architecture.md`, the ADR sequence (`architecture/adr-log.md` then `architecture/adr-log-02.md`), and `planning/development-approach.md`, then use `system-architecture.md` as the reconciled high-level architecture map
 - **Understand current MVP scope boundaries**: use `prd/master-prd.md`, `mvp-features-specification.md`, and the v1.3+ planning docs as the current scope anchors, including for basic offline access versus broader offline capability

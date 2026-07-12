@@ -40,6 +40,32 @@ class StudentSession(BaseModel):
     last_active_at: datetime
 
 
+class CanvasNodeSnapshot(BaseModel):
+    node_id: UUID
+    node_type: str
+    content: str
+    position_x: float | None = None
+    position_y: float | None = None
+    thread_context_id: UUID | None = None
+
+
+class CanvasEdgeSnapshot(BaseModel):
+    edge_id: UUID
+    source_node_id: UUID
+    target_node_id: UUID
+    edge_kind: str
+    label: str | None = None
+
+
+class CanvasSnapshot(BaseModel):
+    nodes: list[CanvasNodeSnapshot]
+    edges: list[CanvasEdgeSnapshot]
+
+
+class StudentSessionWithCanvas(StudentSession):
+    canvas: CanvasSnapshot
+
+
 def build_session_started(
     *,
     context: SessionContext,

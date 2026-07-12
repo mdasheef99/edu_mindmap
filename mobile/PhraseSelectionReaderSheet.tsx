@@ -25,13 +25,29 @@ type ReaderNode = {
   content: string;
 };
 
+/**
+ * Full server response from POST /v1/student/offer-sets/{id}/choices (selected outcome).
+ * Mirrors backend OfferChoiceResponse (domain/student/offer_choices.py); all branch fields
+ * are optional because the dismissed outcome omits them (response_model_exclude_none).
+ */
+export type OfferChoiceResult = {
+  offer_set_id?: string;
+  outcome?: string;
+  recorded?: boolean;
+  child_node_id?: string;
+  edge_id?: string;
+  child_node_type?: string;
+  child_content?: string;
+};
+
 type Props = {
   visible: boolean;
   apiBaseUrl: string;
   node: ReaderNode;
   authorizationToken?: string;
   onClose: () => void;
-  onBranchCreated?: (childNodeId: string) => void;
+  /** Receives the full choice response (not just child_node_id — G1-v fix, M3-C SDD §9.5). */
+  onBranchCreated?: (result: OfferChoiceResult) => void;
 };
 
 export function PhraseSelectionReaderSheet({
@@ -109,9 +125,10 @@ export function PhraseSelectionReaderSheet({
         },
       );
       if (response.ok) {
-        const body = await response.json();
+        // Propagate the full response so the caller can add the new node + edge (G1-v fix).
+        const body: OfferChoiceResult = await response.json();
         setStatus("branch created");
-        if (body.child_node_id) onBranchCreated?.(body.child_node_id);
+        onBranchCreated?.(body);
       } else {
         setStatus("branch failed");
       }

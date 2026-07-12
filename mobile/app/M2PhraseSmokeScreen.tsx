@@ -22,7 +22,7 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
-import { PhraseSelectionReaderSheet } from '../PhraseSelectionReaderSheet';
+import { PhraseSelectionReaderSheet, OfferChoiceResult } from '../PhraseSelectionReaderSheet';
 
 // Fixed IDs must match backend/scripts/dev_smoke_bootstrap.py
 const EXAM_ID = '00000000-0000-4000-8000-000000000001';
@@ -33,14 +33,10 @@ const CONCEPT_ENTRY_ID = '00000000-0000-4000-8000-000000000004';
 /**
  * Dev-only defaults — deterministic because the bootstrap script always uses
  * the same hardcoded secret + fixed student UUID (no exp/iat claims).
- * Update DEV_API_BASE_URL to your laptop's LAN IP before tapping "Fill dev defaults".
- * Token: jwt.encode({"sub":"00000000-0000-4000-8000-000000000020"}, "dev-smoke-secret")
+ * Set the development URL and token through the documented EXPO_PUBLIC_DEV_* variables.
  */
-const DEV_API_BASE_URL = 'http://192.168.31.183:8001';
-const DEV_AUTH_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
-  '.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjAifQ' +
-  '.PdM8x6KPeHghg976eZbcxbeitCbWdqLXh-dqkTQUd-g';
+const DEV_API_BASE_URL = process.env.EXPO_PUBLIC_DEV_API_BASE_URL?.trim() ?? '';
+const DEV_AUTH_TOKEN = process.env.EXPO_PUBLIC_DEV_AUTH_TOKEN?.trim() ?? '';
 
 // Passage seeded by the bootstrap script — must match READER_PASSAGE in bootstrap.
 const SEEDED_CONTENT =
@@ -56,9 +52,17 @@ function randomUUID(): string {
   });
 }
 
-export function M2PhraseSmokeScreen() {
-  const [apiBaseUrl, setApiBaseUrl] = useState(DEV_API_BASE_URL);
-  const [authToken, setAuthToken] = useState(DEV_AUTH_TOKEN);
+interface M2PhraseSmokeScreenProps {
+  devApiBaseUrl?: string;
+  devAuthToken?: string;
+}
+
+export function M2PhraseSmokeScreen({
+  devApiBaseUrl = DEV_API_BASE_URL,
+  devAuthToken = DEV_AUTH_TOKEN,
+}: M2PhraseSmokeScreenProps = {}) {
+  const [apiBaseUrl, setApiBaseUrl] = useState(devApiBaseUrl);
+  const [authToken, setAuthToken] = useState(devAuthToken);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState('idle');
   const [readerVisible, setReaderVisible] = useState(false);
@@ -101,8 +105,8 @@ export function M2PhraseSmokeScreen() {
     setReaderVisible(true);
   }
 
-  function handleBranchCreated(childNodeId: string) {
-    setBranchResult(childNodeId);
+  function handleBranchCreated(result: OfferChoiceResult) {
+    setBranchResult(result.child_node_id ?? null);
     setReaderVisible(false);
   }
 
@@ -117,7 +121,7 @@ export function M2PhraseSmokeScreen() {
           style={styles.input}
           value={apiBaseUrl}
           onChangeText={setApiBaseUrl}
-          placeholder="http://192.168.x.x:8000"
+          placeholder="Development backend URL"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -142,7 +146,10 @@ export function M2PhraseSmokeScreen() {
         <View style={styles.button}>
           <Button
             title="Fill dev defaults"
-            onPress={() => { setApiBaseUrl(DEV_API_BASE_URL); setAuthToken(DEV_AUTH_TOKEN); }}
+            onPress={() => {
+              setApiBaseUrl(devApiBaseUrl);
+              setAuthToken(devAuthToken);
+            }}
           />
         </View>
 

@@ -3,6 +3,9 @@
 This directory holds standalone React Native components plus the planned runnable Expo app. Every
 component calls the backend `/v1/student` API only and stores **no** provider/AI/TTS credentials.
 
+> Before starting codebase work, read `CODEBASE_INTELLIGENCE/README.md` and the relevant map files. If
+> Augment/codebase-retrieval is available, use it to refresh the relevant area before editing.
+
 ## Components
 
 - `Phase1WalkingSkeletonScreen.tsx` — Phase 1 Walking Skeleton screen
@@ -38,8 +41,9 @@ optional follow-up, not a gate blocker. M3 Canvas maturation is now the active m
 
 Local dev notes:
 
-- The phone cannot reach `localhost` on the host machine. Point `apiBaseUrl` at the host LAN IP
-  (e.g. `http://192.168.x.x:8000`) and bind the backend to `0.0.0.0`.
+- The phone cannot reach `localhost` on the host machine. Set
+  `EXPO_PUBLIC_DEV_API_BASE_URL` to the development backend and bind it to an appropriate
+  trusted-network interface.
 - `0.0.0.0` binding is **local-trusted-network only**; never expose it on shared/public Wi-Fi or
   against a deployed backend.
 - Provide the dev auth token at runtime via a `secureTextEntry` field; do not persist it to

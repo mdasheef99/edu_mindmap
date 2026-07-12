@@ -3,24 +3,61 @@ type: always_apply
 ---
 # Mindmap Canon (v1.3+) — merge-blocking
 
-ACTIVE MILESTONE: Phase 3 — M3 Canvas maturation (pan/zoom/gestures via skia + reanimated,
-node visualization, manual reference links, 65-node limits; 60fps at 40+ nodes on the
-reference mid-range Android device — development-approach.md §5 M3). Phase 3 M2 Phrase
-Selection is CLOSED (2026-06-20): the §5 M2 user/device gate was met on a physical Android
-device (a test user branched from a self-chosen phrase); the "questions aren't tappable"
-fatal risk (§9) is retired. Phase 3 M1 is Locally Complete / Operationally Pending: session
-persistence/resume, offer-set logging, edge-`+` branching, deletion cascade, and event-only
-session-path reconstruction are green locally; Render backend+worker live verification and
-physical-device Expo smoke remain deferred operational gates. Do not attempt operational
-verification unless explicitly requested.
+ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth (SDD drafted 2026-07-02;
+implementation not started).
+M4 scope: B2C individual signup first via Supabase email/password, Class 10 → CBSE → Science →
+Electricity launch curriculum path, dashboard re-entry, consent capture, and a deterministic
+fixture-backed Electricity generation simulator (~10 nodes) that mimics real backend/event/canvas
+node creation. Phone/OTP auth, B2B roster/invite activation, admin/content panels, and live LLM
+generation are deferred. Supabase MCP currently exposes the wrong project
+(`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`); local Mindmap `.env` points at
+`jbmqyxhrmcbdgardamrp`, so M4 migration SQL must be generated locally and applied manually by the
+owner to the correct Supabase database.
+Phase 3 M3.6 Canvas Controls is LOCALLY COMPLETE (2026-06-30): explicit zoom in/out toolbar
+controls, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end
+toggle. The pre-M4 TypeScript/Jest config blocker was resolved on 2026-07-01; canvas TypeScript and
+full mobile Jest were green in `worklog-v8.md`.
+Seams A/B/C and Tier 2 event-emission wiring are implemented and tested: backend pytest
+120/120 green, mobile Jest 92/92 green, import-linter green. M3-C closes the three
+"compute-ready, transport-missing" gaps discovered in the 2026-06-23 audit (RCA).
+SkiaCanvas orchestrator refactor COMPLETE (2026-06-25): SkiaCanvas.tsx reduced from 372 to
+242 lines (canon limit resolved) by extracting useDeletionReconciliation, useDiscoveryManager,
+useLiveDragOverride, and useCanvasRenderData; 17 new unit tests; 22 suites / 112 mobile Jest
+green. M3-B/M3-C carried housekeeping item closed. commit 4645bbd on phase-3-m3.
+Phase 3 M3.5 Frontend Readiness bridge is VERIFIED / COMPLETE (2026-06-25): learner-safe
+NodeChip text, SkiaCanvas edge-`+` neutral error banner, and useSessionHydration title/content
+persistence are implemented and verified by automated Jest tests plus physical device Expo Go
+smoke; 18 suites / 97 mobile Jest green. Pre-existing TS2688 Jest type-definition config issue
+remains a known non-blocking blocker for `tsc --noEmit`.
+Phase 3 M3 + M3-B Canvas maturation is CLOSED locally (2026-06-22): M3 base (pan/zoom/gestures
+via skia + reanimated, node visualization, 65-node limits, 60fps at 40+ nodes —
+development-approach.md §5 M3) and M3-B supplemental (edge labels F1, edge-`+` discovery UI F2,
+node selection/toolbar F3, native view culling F5, node-limit mobile UI F6) are both locally
+complete: 82/82 mobile Jest green. Deferred operational gates remain non-blocking: Stage 2 device
+60fps re-run at 40+ nodes and Stage 3 65-node smoke.
+Phase 3 M2 Phrase Selection is CLOSED (2026-06-20): the §5 M2 user/device gate was met on
+a physical Android device; the "questions aren't tappable" fatal risk (§9) is retired.
+Phase 3 M1 is Locally Complete / Operationally Pending: session persistence/resume,
+offer-set logging, edge-`+` branching, deletion cascade, and event-only session-path
+reconstruction are green locally; Render backend+worker live verification and physical-
+device Expo smoke remain deferred operational gates. Do not attempt operational verification
+unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-ACTIVE SDD: docs/planning/sdd/phase-3-m3-canvas-sdd.md (M3 Canvas maturation, authored
-2026-06-21; §12 red tests required before any M3 production code). Prior closed SDD:
-docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, completed; user/device gate CLOSED
+ACTIVE SDD: docs/planning/sdd/phase-3-m4-curriculum-auth-sdd.md (M4, DRAFTED 2026-07-02;
+B2C Supabase email auth + curriculum entry + dashboard re-entry + fixture-backed Electricity
+canvas flow; implementation not started).
+Prior closed SDDs: docs/planning/sdd/phase-3-m3-6-canvas-controls-sdd.md (M3.6, LOCALLY COMPLETE
+2026-06-30; toolbar zoom controls, fit/reset view, zoom readout, snap-to-grid drag-end toggle);
+docs/planning/sdd/phase-3-m3-5-frontend-readiness-sdd.md (M3.5,
+VERIFIED / COMPLETE 2026-06-25; F1-F7 frontend readiness + physical device Expo Go smoke);
+docs/planning/sdd/phase-3-m3c-infrastructure-remediation-sdd.md (M3-C, 2026-06-24);
+docs/planning/sdd/phase-3-m3-canvas-sdd.md + phase-3-m3b-canvas-feature-parity-sdd.md
+(M3/M3-B, closed 2026-06-22); docs/planning/sdd/phase-3-phrase-selection-sdd.md (M2, closed
 2026-06-20).
-LIVE TRACKER: docs/planning/worklog-v7.md (worklog-v6.md rotated past the ~350-line threshold,
-2026-06-21; worklog-v5.md rotated at 346 lines).
+LIVE TRACKER: docs/planning/worklog-v9.md (worklog-v8.md rotated before M4 implementation planning,
+2026-07-02; worklog-v7.md rotated at 405 lines, 2026-06-25; worklog-v6.md rotated past the
+~350-line threshold, 2026-06-21; worklog-v5.md rotated at 346 lines).
 CLOSED DECISION (Phase 1): consent gate on `classify` → `analytic_rm` — RESOLVED 2026-06-17.
 See ADR-0014, worklog.md Open Decisions.
 

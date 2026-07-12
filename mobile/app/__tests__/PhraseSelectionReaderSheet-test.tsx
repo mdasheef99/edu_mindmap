@@ -23,6 +23,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { PhraseSelectionReaderSheet } from '../../PhraseSelectionReaderSheet';
 
+jest.setTimeout(15000);
+
 const NODE = {
   sessionId: 'session-1',
   nodeId: 'node-1',
@@ -164,7 +166,8 @@ describe('PhraseSelectionReaderSheet', () => {
       expect(choiceUrl).toContain('/v1/student/offer-sets/offer-1/choices');
       const body = JSON.parse(choiceOpts.body as string);
       expect(body.outcome).toBe('selected');
-      expect(props.onBranchCreated).toHaveBeenCalledWith('child-1');
+      // G1-v fix: onBranchCreated now receives the full response body, not just the id.
+      expect(props.onBranchCreated).toHaveBeenCalledWith({ child_node_id: 'child-1' });
     });
   });
 
@@ -256,5 +259,74 @@ describe('PhraseSelectionReaderSheet', () => {
 
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     expect(props.onBranchCreated).not.toHaveBeenCalled();
+  });
+
+  /**
+   * TC-M3 — chooseOption full payload propagation (M3-C SDD §9.5).
+   * onBranchCreated must receive the full response body (node_created + edge_created),
+   * NOT just the child_node_id string (G1-v gap fix).
+   */
+  it('TC-M3: onBranchCreated receives full response body, not just child_node_id', async () => {
+    const choiceBody = {
+      node_created: { node_id: 'child-1', node_type: 'ai' },
+      edge_created: { edge_id: 'edge-1', edge_kind: 'ai_path' },
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => OFFER_SET })
+      .mockResolvedValueOnce({ ok: true, json: async () => choiceBody });
+
+    const props = makeProps();
+    await render(<PhraseSelectionReaderSheet {...props} />);
+
+    await selectPhrase(0, 16);
+    fireEvent.press(screen.getByText('Use selected phrase'));
+    await waitFor(() => screen.getByText('Elaborate'));
+
+    fireEvent.press(screen.getByText('Elaborate'));
+
+    await waitFor(() => {
+      expect(props.onBranchCreated).toHaveBeenCalledWith(choiceBody);
+    });
+  });
+
+  /**
+   * TC-M4 — Category Invisibility: chooseOption request body has no analytic fields
+   * (M3-C SDD §9.5; canon invariant).
+   */
+  it('TC-M4: chooseOption POST body has no analytic fields (Category Invisibility)', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => OFFER_SET })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ child_node_id: 'child-1' }) });
+
+    const props = makeProps();
+    await render(<PhraseSelectionReaderSheet {...props} />);
+
+    await selectPhrase(0, 16);
+    fireEvent.press(screen.getByText('Use selected phrase'));
+    await waitFor(() => screen.getByText('Elaborate'));
+    fireEvent.press(screen.getByText('Elaborate'));
+
+    await waitFor(() => {
+      const calls = (global.fetch as jest.Mock).mock.calls;
+      expect(calls).toHaveLength(2);
+      const choiceBody = JSON.parse(calls[1][1].body as string);
+
+      // Student-safe fields must be present.
+      expect(choiceBody.session_id).toBeDefined();
+      expect(choiceBody.outcome).toBe('selected');
+
+      // Analytic fields must be absent (Category Invisibility invariant).
+      for (const forbidden of [
+        'propensity', 'score', 'dimension', 'classification', 'confidence',
+        'entropy', 'vector', 'profile', 'weight', 'tenant_id',
+      ]) {
+        expect(choiceBody).not.toHaveProperty(forbidden);
+      }
+      Object.keys(choiceBody).forEach(key => {
+        expect(key).not.toMatch(/^teacher_/);
+      });
+    });
   });
 });

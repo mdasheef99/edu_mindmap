@@ -15,6 +15,8 @@ import os
 
 DEFAULT_NODE_WARNING_COUNT = 50
 DEFAULT_NODE_HARD_LIMIT = 65
+DEFAULT_MIN_ZOOM = 0.25
+DEFAULT_MAX_ZOOM = 4.0
 
 
 class NodeLimitExceeded(Exception):
@@ -31,11 +33,31 @@ def canvas_node_hard_limit() -> int:
     return _read_int("CANVAS_NODE_HARD_LIMIT", DEFAULT_NODE_HARD_LIMIT)
 
 
+def canvas_min_zoom() -> float:
+    """Return the minimum allowed viewport scale (configuration-reference.md §3)."""
+    return _read_float("CANVAS_MIN_ZOOM", DEFAULT_MIN_ZOOM)
+
+
+def canvas_max_zoom() -> float:
+    """Return the maximum allowed viewport scale (configuration-reference.md §3)."""
+    return _read_float("CANVAS_MAX_ZOOM", DEFAULT_MAX_ZOOM)
+
+
 def _read_int(key: str, default: int) -> int:
     raw = os.getenv(key)
     if raw is None or raw.strip() == "":
         return default
     try:
         return int(raw)
+    except ValueError:
+        return default
+
+
+def _read_float(key: str, default: float) -> float:
+    raw = os.getenv(key)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return float(raw)
     except ValueError:
         return default

@@ -8,6 +8,7 @@ fail before reaching the append-only `events` table.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any, Mapping
 
 
@@ -306,6 +307,21 @@ REGISTRY: dict[tuple[str, int], EventTypeSpec] = {
             }
         ),
     ),
+    ("node_position_updated", 1): EventTypeSpec(
+        event_type="node_position_updated",
+        event_version=1,
+        allowed_producers=frozenset({"client"}),
+        required_fields=COMMON_REQUIRED_FIELDS
+        | frozenset({"actor_user_id", "student_id", "session_id", "node_id"}),
+        required_payload_fields=frozenset(
+            {
+                "node_id",
+                "session_id",
+                "position_x",
+                "position_y",
+            }
+        ),
+    ),
     ("consent_recorded", 1): EventTypeSpec(
         event_type="consent_recorded",
         event_version=1,
@@ -357,5 +373,15 @@ def validate_event(event: Mapping[str, Any], *, producer: str) -> Mapping[str, A
     )
     if missing_payload_fields:
         raise InvalidEventPayloadError(f"Missing required payload fields: {missing_payload_fields}")
+
+    if event_type == "node_position_updated":
+        for field in ("position_x", "position_y"):
+            value = payload[field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not isfinite(float(value))
+            ):
+                raise InvalidEventPayloadError(f"{field} must be a finite number")
 
     return event
