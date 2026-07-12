@@ -19,14 +19,66 @@
 
 import { create } from 'zustand';
 
+import type { Point } from './coordinateSystem';
+
+export interface PositionAuthority {
+  position: Point;
+  positionOverridden: boolean;
+}
+
 export interface MindMapState {
   selectedNodeId: string | null;
+  positionSessionId: string | null;
+  positionAuthorityByNode: Record<string, PositionAuthority>;
   selectNode: (nodeId: string) => void;
   clearSelection: () => void;
+  beginPositionSession: (sessionId: string) => void;
+  resetPositionSession: () => void;
+  hydrateNodePosition: (nodeId: string, position: Point, positionOverridden: boolean) => void;
+  commitNodePosition: (nodeId: string, position: Point) => void;
+  removeNodePositions: (nodeIds: readonly string[]) => void;
 }
 
 export const useMindMapStore = create<MindMapState>()((set) => ({
   selectedNodeId: null,
+  positionSessionId: null,
+  positionAuthorityByNode: {},
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
   clearSelection: () => set({ selectedNodeId: null }),
+  beginPositionSession: (sessionId) => set((state) => state.positionSessionId === sessionId
+    ? state
+    : { positionSessionId: sessionId, positionAuthorityByNode: {} }),
+  resetPositionSession: () => set({ positionSessionId: null, positionAuthorityByNode: {} }),
+  hydrateNodePosition: (nodeId, position, positionOverridden) => set((state) => {
+    assertFinitePoint(position);
+    const current = state.positionAuthorityByNode[nodeId];
+    if (current?.positionOverridden) return state;
+    return {
+      positionAuthorityByNode: {
+        ...state.positionAuthorityByNode,
+        [nodeId]: { position: { ...position }, positionOverridden },
+      },
+    };
+  }),
+  commitNodePosition: (nodeId, position) => set((state) => {
+    assertFinitePoint(position);
+    return {
+      positionAuthorityByNode: {
+        ...state.positionAuthorityByNode,
+        [nodeId]: { position: { ...position }, positionOverridden: true },
+      },
+    };
+  }),
+  removeNodePositions: (nodeIds) => set((state) => {
+    const next = { ...state.positionAuthorityByNode };
+    let changed = false;
+    for (const nodeId of nodeIds) changed = delete next[nodeId] || changed;
+    return changed ? { positionAuthorityByNode: next } : state;
+  }),
 }));
+
+function assertFinitePoint(position: Point): void {
+  if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+    throw new TypeError('Node position coordinates must be finite');
+  }
+}

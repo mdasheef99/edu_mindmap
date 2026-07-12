@@ -68,25 +68,51 @@ export function postClientEvent(
   });
 }
 
-/** Persist a node's committed board-space position. Fire-and-forget like event emission. */
-export function patchNodePosition(
+export interface PositionAcknowledgement {
+  nodeId: string;
+  position: { x: number; y: number };
+}
+
+/** Persist a committed board-space position and validate the server acknowledgement. */
+export async function patchNodePosition(
   apiBaseUrl: string,
   sessionId: string,
   nodeId: string,
   authorizationToken: string | undefined,
   position: { x: number; y: number },
-): void {
+): Promise<PositionAcknowledgement> {
+  assertFinitePosition(position);
   const url = `${apiBaseUrl}/v1/student/sessions/${sessionId}/nodes/${nodeId}`;
-  fetch(url, {
+  const response = await fetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       ...(authorizationToken ? { Authorization: `Bearer ${authorizationToken}` } : {}),
     },
     body: JSON.stringify({ position_x: position.x, position_y: position.y }),
-  }).catch(() => {
-    // Position persistence is best-effort; local drag commit must remain responsive.
   });
+  if (!response.ok) {
+    throw new Error(`Node position PATCH failed with HTTP ${response.status}`);
+  }
+  const body = await response.json() as Record<string, unknown>;
+  const positionX = body.position_x;
+  const positionY = body.position_y;
+  if (
+    body.node_id !== nodeId
+    || typeof positionX !== 'number'
+    || typeof positionY !== 'number'
+    || !Number.isFinite(positionX)
+    || !Number.isFinite(positionY)
+  ) {
+    throw new Error('Invalid node position acknowledgement');
+  }
+  return { nodeId, position: { x: positionX, y: positionY } };
+}
+
+function assertFinitePosition(position: { x: number; y: number }): void {
+  if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+    throw new TypeError('Node position coordinates must be finite');
+  }
 }
 
 // ── Throttled viewport helper ─────────────────────────────────────────────────

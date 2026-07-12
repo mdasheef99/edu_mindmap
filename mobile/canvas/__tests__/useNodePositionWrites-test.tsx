@@ -22,30 +22,30 @@ describe('useNodePositionWrites', () => {
     globalThis.fetch = jest.fn()
       .mockResolvedValueOnce({ ok: false, status: 503 })
       .mockImplementation(() => new Promise(() => undefined)) as unknown as typeof fetch;
-    const { result } = renderHook(() => useNodePositionWrites({
+    const { result } = await renderHook(() => useNodePositionWrites({
       nodes: [{ node_id: 'node-1', position: { x: 0, y: 0 }, positionOverridden: false }],
       apiBaseUrl: 'http://localhost:8000', sessionId: 'session-1',
     }));
 
-    act(() => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
+    await act(async () => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
     await waitFor(() => expect(result.current.failedNodeCount).toBe(1));
     expect(result.current.visiblePositions['node-1']).toEqual({ x: 10, y: 10 });
-    expect(result.current.retryFailed()).toBe(1);
+    await act(async () => expect(result.current.retryFailed()).toBe(1));
   });
 
   it('discards stale completion when the session changes', async () => {
     const pending = deferred<any>();
     globalThis.fetch = jest.fn().mockReturnValue(pending.promise) as unknown as typeof fetch;
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({ sessionId }) => useNodePositionWrites({
         nodes: [{ node_id: 'node-1', position: { x: 0, y: 0 }, positionOverridden: false }],
         apiBaseUrl: 'http://localhost:8000', sessionId,
       }),
       { initialProps: { sessionId: 'session-1' } },
     );
-    act(() => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
+    await act(async () => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
 
-    rerender({ sessionId: 'session-2' });
+    await rerender({ sessionId: 'session-2' });
     pending.resolve({ ok: true, json: async () => ({ node_id: 'node-1', position_x: 10, position_y: 10 }) });
     await act(async () => { await Promise.resolve(); });
 
@@ -55,14 +55,14 @@ describe('useNodePositionWrites', () => {
 
   it('removes deleted positions and prevents retrying their failed writes', async () => {
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 }) as unknown as typeof fetch;
-    const { result } = renderHook(() => useNodePositionWrites({
+    const { result } = await renderHook(() => useNodePositionWrites({
       nodes: [{ node_id: 'node-1', position: { x: 0, y: 0 }, positionOverridden: false }],
       apiBaseUrl: 'http://localhost:8000', sessionId: 'session-1',
     }));
-    act(() => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
+    await act(async () => result.current.enqueuePosition('node-1', { x: 10, y: 10 }));
     await waitFor(() => expect(result.current.failedNodeCount).toBe(1));
 
-    act(() => result.current.removeNodes(['node-1']));
+    await act(async () => result.current.removeNodes(['node-1']));
     expect(result.current.failedNodeCount).toBe(0);
     expect(result.current.visiblePositions['node-1']).toBeUndefined();
     expect(result.current.retryFailed()).toBe(0);
