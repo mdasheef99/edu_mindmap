@@ -69,6 +69,7 @@ jest.mock('react-native-gesture-handler', () => {
 
 import { cleanup, render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import * as UseCanvasGesturesMod from '../../canvas/useCanvasGestures';
+import type { UseCanvasGesturesResult } from '../../canvas/useCanvasGestures';
 import { SkiaCanvas } from '../../canvas/SkiaCanvas';
 import { clampScale, CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM } from '../../canvas/gestureTransform';
 import { cullEdges, computeBoardViewport } from '../../canvas/viewportCulling';
@@ -284,7 +285,7 @@ describe('TA-M1/TA-M2 — event emission (M3-C SDD §9.6)', () => {
         dragCurrBY: { value: 0 },
         groupTransform: { value: [] },
         composed: {},
-      };
+      } as unknown as UseCanvasGesturesResult;
     });
     useMindMapStore.setState({ selectedNodeId: null });
   });

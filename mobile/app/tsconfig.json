@@ -2,6 +2,12 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest"]
+    "types": ["jest", "node"],
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "d3-hierarchy": ["./node_modules/@types/d3-hierarchy/index.d.ts"],
+      "*": ["./node_modules/*"]
+    }
   }
 }

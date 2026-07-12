@@ -3,7 +3,7 @@
  *
  * Mirrors the backend invariant (tests/integration/test_observability_sentry.py):
  * Sentry is optional — initialize only when a DSN is supplied, otherwise no-op.
- * The mobile DSN is sourced from SENTRY_DSN_MOBILE (configuration-reference.md §10),
+ * The mobile DSN is sourced from EXPO_PUBLIC_SENTRY_DSN_MOBILE (configuration-reference.md §10),
  * resolved at the App.tsx call site and passed in, keeping this module pure/testable.
  *
  * Traceability: phase-3-m3-canvas-sdd.md §3, §14.
