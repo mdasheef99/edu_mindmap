@@ -45,6 +45,7 @@ describe('EdgePlusButtons request lifecycle', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Explore from right edge' }));
     await screen.findByText('Questions could not load. Tap to retry.');
     fireEvent.press(screen.getByRole('button', { name: 'Retry loading questions from right edge' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Loading questions' })).toBeTruthy());
     fireEvent.press(screen.getByRole('button', { name: 'Loading questions' }));
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   });

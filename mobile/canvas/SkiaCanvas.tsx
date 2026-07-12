@@ -71,7 +71,8 @@ export default function SkiaCanvas({
 }: SkiaCanvasProps) {
   const { selectedNodeId, selectNode, clearSelection } = useMindMapStore();
   const {
-    activeOfferSet, discoveryError, handleOfferSet, handleOfferError, handleBranchCreated, closeOfferSet,
+    activeOfferSet, discoveryError, beginDiscovery, handleOfferSet, handleOfferError,
+    handleBranchCreated, closeOfferSet,
   } = useDiscoveryManager(onReloadCanvas);
 
   const [snapToGrid, setSnapToGrid] = useState(false);
@@ -228,8 +229,11 @@ export default function SkiaCanvas({
                   sessionId={sessionId!}
                   threadContextId={node.thread_context_id ?? ''}
                   disabled={limitState.creationBlocked}
-                  onOfferSet={(offerSet) => handleOfferSet(offerSet as EdgeOfferSet, node)}
-                  onError={handleOfferError}
+                  onRequestStart={beginDiscovery}
+                  onOfferSet={(offerSet, generation) => (
+                    handleOfferSet(offerSet as EdgeOfferSet, node, generation)
+                  )}
+                  onError={(_error, generation) => handleOfferError(generation)}
                 />
               ))}
           {discoveryEnabled && selectedNode && (
