@@ -2,8 +2,8 @@
 
 **Document Version**: 0.3
 **Status**: Closed (2026-07-11)
-**Phase / milestone**: Phase 3 — M4  
-**Parent SDD**: `phase-3-m4-curriculum-auth-sdd.md`  
+**Phase / milestone**: Phase 3 — M4
+**Parent SDD**: `phase-3-m4-curriculum-auth-sdd.md`
 **Live tracker**: `docs/planning/worklog-v10.md`
 
 ---

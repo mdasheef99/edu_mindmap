@@ -62,14 +62,19 @@ implementation. Keep it below 350 lines and rotate before exceeding that thresho
   suite: 30 passed.
 - Full mobile Jest suite: 28 suites / 139 tests passed.
 - App and Canvas TypeScript checks: green.
-- `git diff --check`: reconstructed code is clean; two trailing-space findings remain in the
-  byte-for-byte preserved, closed remediation SDD at lines 5-6. The immutable closure evidence was
-  not edited to conceal that historical formatting issue.
+- `git diff --check`: green after owner-approved removal of two trailing spaces from the closed
+  remediation SDD header; no prose or behavior changed.
 - Sensitive-value scan found no JWT-shaped tokens or private-key material. URL/credential-pattern
   hits are confined to immutable historical evidence, explicit example/test fixtures, and typed
   credential parameters; production configuration contains no embedded value.
 - Only `.env.example` is present in the reconstruction worktree. Generated-file count is zero;
   Python bytecode count is zero.
+
+**2026-07-13 final rerun**:
+
+- Ruff format/lint, Mypy, and all four import-linter contracts are green.
+- Full Python suite: 164 passed / 3 skipped using a worktree-local pytest temporary directory.
+- Full mobile Jest suite: 28 suites / 139 tests passed; App and Canvas TypeScript are green.
 
 **Remaining operational gates**:
 
