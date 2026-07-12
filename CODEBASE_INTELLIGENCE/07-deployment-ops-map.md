@@ -1,8 +1,7 @@
 # 07 Deployment and Operations Map
 
-**2026-07-11 update**: the physical-device run should be restarted after the JWKS cache,
-progressive dashboard, persisted consent, and remote sign-out fixes. Retest sign out -> sign in
-again on the same account.
+**2026-07-11 update**: M4 is closed. The LAN backend and Expo Go server are reachable for bounded
+canvas position-lifecycle device review; reachability is not behavioral acceptance evidence.
 
 **Snapshot**: 2026-07-10.
 
@@ -59,5 +58,13 @@ JWT fixture, or LLM provider secrets through `EXPO_PUBLIC_*`.
 ## Current Local Device Run
 
 As recorded in `docs/planning/worklog-v10.md`, the durable backend is bound to `0.0.0.0:8000` and
-Expo Go LAN to `exp://192.168.31.183:8081`. The LAN address is process-local operational data and
-must not be committed as app configuration.
+Expo Go LAN to `exp://192.168.31.183:8081`. Backend docs and the Android Expo manifest return HTTP
+200, and the manifest content type is `application/expo+json`. The LAN address is process-local
+operational data and must not be committed as app configuration. The bounded drag/edge-plus
+interaction review has been exercised and accepted on Android.
+
+## 2026-07-12 Device Result
+
+The bounded drag/edge-plus interaction review was exercised and accepted on Android. LAN
+reachability remains operational evidence only; deferred 40+ node performance and 65-node smoke
+measurements remain separate work.

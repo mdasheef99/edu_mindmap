@@ -165,6 +165,14 @@ pooled-RLS isolation gate are verified. Interactive web is excluded from the nat
 closure gate; its production CanvasKit export is green and interactive rendering remains a
 non-blocking follow-up. M5 Checkpoints is next and has not started.
 
+**Stabilization status update (2026-07-12)**: A bounded post-M4/pre-M5 canvas follow-on is
+complete and recorded in `canvas-position-write-lifecycle-sdd.md` v0.6. It repaired reliable
+drag-end position writes, branch-child placement recovery, dragged-edge UI-thread synchronization,
+and edge-plus local busy/single-flight behavior. This is not a formal M4.5 milestone, changes no
+M5 requirement, backend/schema/event contract, layout behavior, or gesture composition, and does
+not authorize M5. Deferred M3 performance gates and later layout/manual-reference work remain
+separate.
+
 **Deferred without guilt** (per §2.6 — these layer on later via replay/projection or are
 post-MVP by existing decisions): image/video enrichment tiers, Perplexity integration, V4 and
 all B2B admin surfaces, topology Phases 2–3, steering (ADR-0012 stays Proposed), content-library

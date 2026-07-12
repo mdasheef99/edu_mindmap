@@ -74,3 +74,41 @@ complete direct reads and `rg` searches; it must not be represented as an Augmen
 - Documented the five-table catalog tenant remediation and the remaining non-bypass RLS gate.
 - Corrected Expo env names to match `mobile/app/App.tsx`.
 - Recorded the honest UX scope: API-derived fixed Electricity path, not a general catalog picker.
+
+## 2026-07-11 — Canvas Position-Lifecycle Refresh (Direct Evidence)
+
+No Augment/codebase-retrieval query was used. This refresh follows the completed repository audit,
+focused implementation review, deterministic tests, and measured local service checks.
+
+**Evidence incorporated**:
+
+- Interaction → local state → checked API helper → existing backend endpoint → acknowledgement →
+  hydration/replay path for drag-end position writes.
+- `nodePositionCoordinator.ts`, `useNodePositionWrites.ts`, `SkiaCanvas.tsx`, and
+  `EdgeOfferSetSheet.tsx` public behavior and ownership boundaries.
+- Focused B2 12/12, nearest regression 53/53, full mobile 165/165, TypeScript, line counts, and
+  `git diff --check` results.
+- LAN backend/Expo HTTP 200 and Android manifest content type; no device behavior inferred from
+  service reachability.
+
+**Refresh decisions**:
+
+- Recorded the per-node FIFO and mounted-session hydration-authority contract without describing
+  internal refs/maps as product requirements.
+- Kept one-off branch placement outside the drag FIFO and documented durable-branch recovery.
+- Preserved the explicit later-slice boundaries for layout, `{0,0}`, `manual_reference`, persistent
+  delivery, backend atomicity, navigation, and M5.
+- Marked M4 closed, the bounded stabilization increment automated-green/device-pending, and M5
+  frozen. No formal M4.5 milestone was created.
+
+## 2026-07-12 -- Canvas Follow-on Refresh (Direct Evidence)
+
+No Augment/codebase-retrieval query was used. This direct refresh records the bounded Android
+corrections and user-confirmed device result.
+
+- Evidence: `CanvasEdges.tsx` active-drag SharedValue geometry; `EdgePlusButtons.tsx` local
+  busy/failure/retry and paired-control single-flight; `useDiscoveryManager.ts` first-current-
+  completion acceptance; edge-plus 5/5 and 16/16, focused 68/68, TypeScript, diff hygiene, and
+  direct Android confirmation.
+- Decision: mark the bounded record complete, retain performance/web/layout/manual-reference/
+  persistent-delivery/M5 boundaries, and do not create a formal M4.5 milestone.

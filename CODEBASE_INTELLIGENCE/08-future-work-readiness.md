@@ -1,17 +1,17 @@
 # 08 Future Work Readiness
 
-**2026-07-11 update**: physical-device remediation has landed for dashboard latency, persisted
-consent, and sign-out/re-login handling. Retest this exact native path before closing M4.
+**2026-07-12 update**: M4 is closed. Bounded pre-M5 canvas stabilization is complete and
+Android-reviewed. M5 remains frozen.
 
-**Snapshot**: 2026-07-10. M4 implementation is not “still planned”: automated remediation is
-complete. M4 is not closed until its three remaining human/operational gates pass.
+**Snapshot**: 2026-07-11. The current active bounded design record is
+`docs/planning/sdd/canvas-position-write-lifecycle-sdd.md`; it is not a formal M4.5 milestone.
 
 ## Read Before Changing Code
 
 1. `.augment/rules/00-canon.md`.
 2. Source hierarchy in order: `development-approach.md`, `backend-architecture.md`, ADR logs,
    `session-path-data-contract.md`, master PRD, MVP feature specification.
-3. `docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md`.
+3. `docs/planning/sdd/canvas-position-write-lifecycle-sdd.md`.
 4. `docs/planning/worklog-v10.md`.
 5. The relevant maps in this folder, then verify the actual code and tests.
 
@@ -20,13 +20,13 @@ introduce Redis Streams, Celery, TimescaleDB, legacy event tables, or client-sid
 
 ## Immediate Next Actions
 
-0. Retest the fixed native Android path on the physical device, including sign out and sign in again
-   on the same account.
-
-1. Complete the native Android stranger signup → dashboard → Electricity → canvas/resume gate.
-2. Complete the interactive web CanvasKit render gate.
-3. Complete pooled non-bypass app-role cross-tenant RLS verification.
-4. Record evidence in the active SDD/worklog and close M4 only if all acceptance criteria pass.
+1. Complete the bounded physical Android canvas review and record only observed behavior.
+2. Decide whether the bounded stabilization increment can close; do not formalize M4.5 without an
+   explicit owner decision supported by the audit/evidence.
+3. Keep deterministic layout, `{0,0}` fallback correction, `manual_reference` hierarchy changes,
+   persistent/offline writes, and backend branch atomicity in later separately approved slices.
+4. Keep interactive web CanvasKit rendering and deferred M3 performance checks as explicit
+   follow-ups rather than silently folding them into the position lifecycle.
 5. Do not start M5 merely because automated tests are green.
 
 ## Honest Product Gaps Within M4
@@ -36,6 +36,14 @@ introduce Redis Streams, Celery, TimescaleDB, legacy event tables, or client-sid
 - M4 deliberately uses deterministic fixture generation, not a live LLM.
 - Phone/OTP auth, B2B roster/invite activation, institutional consent administration, admin/content
   panels, and general catalog UX are deferred by the M4 SDD.
+
+## Known Canvas Position-Lifecycle Limits
+
+- No causal snapshot revision/event watermark exists, so cross-device freshness is undefined.
+- In-memory queued delivery is not guaranteed across unmount, application termination, or restart.
+- Branch creation and initial child positioning remain separate, non-atomic backend operations.
+- An unpositioned child may still hydrate at the existing `{0,0}` fallback.
+- Device interaction and performance evidence is not replaced by unit tests or LAN readiness.
 
 ## Likely Touchpoints
 
@@ -51,3 +59,11 @@ introduce Redis Streams, Celery, TimescaleDB, legacy event tables, or client-sid
 - Versioned session snapshots if measured event replay latency becomes material.
 - General curriculum picker only when scheduled by a higher-ranked requirement/SDD.
 - Broader device/platform performance gates as scheduled by `development-approach.md`.
+
+## 2026-07-12 Next Boundary
+
+The bounded position/interaction stabilization record is complete and must not silently grow. The
+next work requires a separately approved SDD: either M5 checkpoints, or a later canvas layout and
+position-quality slice. Keep deterministic layout, `{0,0}` fallback, `manual_reference` hierarchy,
+persistent delivery, backend branch atomicity, performance gates, and interactive web review as
+explicit decisions rather than incidental follow-ons.

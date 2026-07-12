@@ -1,7 +1,8 @@
 # 03 Backend and Data Map
 
-**2026-07-11 update**: live Supabase ES256/JWKS verification now reuses a cached JWKS client across
-authenticated requests, and auth bootstrap returns persisted behavioral-consent state.
+**2026-07-11 update**: M4 is closed. The bounded canvas position lifecycle changes only mobile
+delivery/feedback around the existing event-sourced node-position endpoint; backend contracts,
+schemas, and migrations are unchanged.
 
 **Snapshot**: 2026-07-10.
 **Primary authority**: `docs/architecture/backend-architecture.md` §§5-8 and 11-12.
@@ -16,6 +17,9 @@ authenticated requests, and auth bootstrap returns persisted behavioral-consent 
   durability.
 - Mobile API calls live in `mobile/m4/studentApi.ts` for M4 and `mobile/canvas/apiClient.ts` for
   canvas operations.
+- `patchNodePosition` is a checked typed helper: network and non-2xx failures reject, while success
+  returns the accepted node id and coordinates. It sends no tenant id; the authenticated backend
+  resolves tenancy and appends through the existing node-position workflow.
 
 ## Postgres Adapters
 
@@ -67,7 +71,7 @@ tenant state cannot leak across pooled requests. RLS is the database backstop.
 - Supabase Storage is the planned byte store for podcast/media artifacts; database rows retain
   metadata and authorization context.
 
-## Remaining Operational Evidence
+## Closed M4 Operational Evidence
 
-The live schema audit used a credential that may bypass RLS. M4 still requires a pooled
-non-bypass app-role cross-tenant isolation smoke before closure.
+The pooled non-bypass app-role cross-tenant isolation test passed before M4 closure. The bounded
+canvas position lifecycle changes no tenancy, schema, migration, or backend composition behavior.

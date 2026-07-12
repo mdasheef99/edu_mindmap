@@ -1,10 +1,10 @@
 # 06 Testing and Verification Map
 
-**2026-07-11 update**: physical-device remediation coverage added cached JWKS reuse, bootstrap
-consent mapping, consent prompt suppression, remote Supabase logout, and progressive dashboard
-rendering before curriculum completion.
+**2026-07-12 update**: bounded canvas stabilization verification and Android review are complete:
+checked position lifecycle, dragged-edge synchronization, and edge-plus single-flight/recovery.
 
-**Snapshot**: 2026-07-10. Current automated M4 remediation gates are green; human gates remain.
+**Snapshot**: 2026-07-12. M4 is closed; the bounded canvas stabilization record is complete and
+M5 remains frozen.
 
 ## Test Systems and Locations
 
@@ -45,18 +45,31 @@ npx expo export --platform web
 
 - Backend: 147 regular tests plus 4/4 isolated import-linter tests green (151 combined); direct
   import-linter reports 4 kept, 0 broken.
-- Mobile: 27/27 suites and 136/136 tests green; TypeScript green.
+- Mobile: 32/32 suites and 170/170 tests green; TypeScript green.
+- Canvas position lifecycle: focused B2 12/12 green; nearest branch/discovery/API/coordinator/hook/
+  canvas regressions 8 suites and 53/53 green. The new B2 file is clean in isolation.
 - Web export: green and contains `dist/canvaskit.wasm`.
 - Native bundling: Expo Go Android Hermes bundle succeeded with 1,822 modules and 11,243,312 bytes.
 - Live durable smoke: signup/bootstrap → consent-aware session/root → branch → runtime recreation →
   dashboard/resume/hydrate; the Postgres worker completed classification and projection.
 - Live schema readback: all 15 audited tables contain `tenant_id` and have RLS enabled.
 
-## Remaining Human/Operational Gates
+## Remaining Human/Operational Evidence
 
-1. Physical Android: stranger signup → dashboard → Electricity → canvas and resume.
-2. Interactive browser: render the web canvas without `PictureRecorder`/CanvasKit errors.
-3. Pooled non-bypass app-role: prove cross-tenant denial through RLS.
+1. Physical Android canvas review: rapid completed drags, save-failure feedback/retry where a
+   controlled failure can be produced safely, branch placement/reload recovery, and resume.
+2. Deferred M3 performance checks: 40+ node 60fps rerun and 65-node smoke.
+3. Interactive browser: render the web canvas without `PictureRecorder`/CanvasKit errors
+   (non-blocking follow-up).
 
-Jest/export/bundle success does not substitute for these gates. Likewise, schema metadata alone is
-not the non-bypass RLS behavior test.
+Jest, TypeScript, LAN reachability, export, and bundle success do not substitute for direct device
+behavior or performance evidence.
+
+## 2026-07-12 Stabilization Evidence
+
+- Edge-plus lifecycle: 5/5 independently and 16/16 with nearest discovery tests.
+- Focused edge/gesture/position regressions: 13 suites, 68/68.
+- TypeScript and `git diff --check`: green; final relevant runs had no new warnings, open handles,
+  or unhandled rejections.
+- Direct Android review confirmed the dragged-edge and edge-plus corrections. Deferred 40+ node
+  60fps and 65-node smoke measurement still require separate evidence.

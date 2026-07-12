@@ -1,13 +1,13 @@
 # 01 System Map
 
-**2026-07-11 update**: physical-device remediation added cached Supabase JWKS clients, bootstrap
-consent state, progressive dashboard rendering before curriculum completion, and Supabase remote
-logout before local session clearing.
+**2026-07-12 update**: M4 is closed. Bounded pre-M5 canvas stabilization is complete and
+Android-reviewed: checked position lifecycle, branch-placement recovery, dragged-edge UI-thread
+synchronization, and edge-plus busy/single-flight behavior.
 
-**Snapshot**: 2026-07-10 — M4 automated remediation complete; human gates pending.
+**Snapshot**: 2026-07-12 — bounded stabilization complete; M5 frozen.
 **Authority**: `docs/planning/development-approach.md` §§5-8,
-`docs/architecture/backend-architecture.md` §§3-8 and 11-12, ADR-0017, and the active M4
-runtime-remediation SDD.
+`docs/architecture/backend-architecture.md` §§3-8 and 11-12, ADR-0013, ADR-0017, and the active
+bounded canvas position-write lifecycle SDD.
 
 ## Backend
 
@@ -52,6 +52,10 @@ The Expo/React Native entry is `mobile/app/index.ts` → `mobile/app/App.tsx`.
 - `mobile/m4/studentApi.ts` is the typed M4 API client. It never supplies authoritative tenancy.
 - `mobile/canvas/` owns the M3/M3-B hybrid canvas: Skia edges, native node views, Zustand state,
   Reanimated/Gesture Handler interactions, hierarchy layout, viewport culling, and hydration.
+- Position writes are divided deliberately: `nodePositionCoordinator.ts` and
+  `useNodePositionWrites.ts` own ordered drag-end delivery/reconciliation; `EdgeOfferSetSheet.tsx`
+  owns only the created child's one-off placement recovery. Neither path writes during gesture
+  frames or changes backend/event contracts.
 - `mobile/app/index.web.ts` prepares CanvasKit before the web app loads.
 - `EXPO_PUBLIC_SHOW_CANVAS` and `EXPO_PUBLIC_SHOW_M2_SMOKE` expose closed-milestone smoke surfaces;
   they are not the normal M4 path.
@@ -73,3 +77,10 @@ Runtime paths:
 - Read: API → tenant-scoped operational/`student_rm` data or event-replayed canvas.
 - Async: selected choice → classify job → worker event → consent-gated `analytic_rm` projection.
 - Student APIs must never import or serialize analytic internals.
+
+## 2026-07-12 Bounded Canvas Follow-on
+
+The completed stabilization record additionally keeps dragged-edge geometry on the UI thread via
+the active node's SharedValues, and keeps edge-plus busy/retry state local to each node's paired
+controls. `useDiscoveryManager.ts` accepts only the first current discovery completion. No backend,
+event, schema, gesture-composition, layout, or M5 change was introduced.

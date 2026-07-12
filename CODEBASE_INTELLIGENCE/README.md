@@ -1,14 +1,19 @@
 # Codebase Intelligence Pack
 
-**2026-07-11 update**: M4 has an additional physical-device remediation for dashboard latency,
-persisted consent acknowledgement, and sign-out/re-login token handling. Native Android retest,
-interactive web, and non-bypass app-role RLS gates remain before closure.
+**2026-07-12 update**: M4 is closed. The bounded pre-M5 canvas stabilization record is complete:
+position lifecycle, dragged-edge synchronization, and edge-plus feedback/single-flight behavior
+are automated-green and Android-reviewed. M5 remains frozen.
+
+**2026-07-12 update**: M4 is closed. The bounded pre-M5 canvas stabilization record is complete:
+position lifecycle, dragged-edge synchronization, and edge-plus feedback/single-flight behavior
+are automated-green and Android-reviewed. M5 remains frozen.
 
 This folder is a durable orientation map for the Mindmap Learning Project. It reduces rediscovery
 cost, but it does not override canon or the source-of-truth hierarchy.
 
-**Current snapshot**: 2026-07-10 — M4 Curriculum Entry + Supabase Auth automated remediation is
-complete; native Android, interactive web, and non-bypass app-role RLS gates remain before closure.
+**Current snapshot**: 2026-07-12 — read `canvas-position-write-lifecycle-sdd.md` v0.6 and
+`worklog-v10.md` for the completed bounded record and remaining gates. It is not a formal M4.5
+milestone.
 
 ## Required Reading Order
 
@@ -23,13 +28,14 @@ complete; native Android, interactive web, and non-bypass app-role RLS gates rem
 
 1. `01-system-map.md` — current production/test composition, mobile structure, and runtime paths.
 2. `02-critical-flows.md` — auth/bootstrap, dashboard/catalog, consent/session/root, branching,
-   worker, resume/hydration, and deletion flows.
+   worker, resume/hydration, ordered position writes/recovery, and deletion flows.
 3. `03-backend-data-map.md` — Postgres adapters, auth/consent, schemas, jobs, and remaining RLS gate.
 4. `04-feature-inventory.md` — milestone ownership/status and reuse boundaries.
 5. `05-security-risk-map.md` — Category Invisibility, tenancy, event sourcing, secrets, and risks.
 6. `06-testing-verification-map.md` — commands, latest evidence, and human/operational gates.
 7. `07-deployment-ops-map.md` — Render/Expo/Supabase services, env names, migrations, and health.
-8. `08-future-work-readiness.md` — immediate closure work, honest gaps, and likely touchpoints.
+8. `08-future-work-readiness.md` — device review, explicit deferred slices, honest gaps, and likely
+   touchpoints.
 9. `09-augment-query-log.md` — Augment queries and clearly labeled direct-verification refreshes.
 
 ## Maintenance Rules

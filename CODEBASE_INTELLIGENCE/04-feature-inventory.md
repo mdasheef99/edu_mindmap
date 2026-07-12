@@ -1,14 +1,13 @@
 # 04 Feature Inventory
 
-**2026-07-11 update**: physical-device remediation has landed for dashboard latency, persisted
-consent acknowledgement, and sign-out/re-login token handling. Native retest remains pending.
+**2026-07-12 update**: M4 is closed. Bounded pre-M5 canvas stabilization is complete and
+Android-reviewed; M5 is frozen.
 
 **Snapshot**: 2026-07-10.
 
 ## M4 Curriculum Entry and Supabase Auth
 
-- **Status**: automated remediation complete; native Android, interactive web, and non-bypass
-  app-role RLS human/operational gates remain.
+- **Status**: closed 2026-07-11. Interactive web remains a non-blocking follow-up.
 - **Mobile**: `mobile/M4CurriculumAuthScreen.tsx`, `mobile/m4/useM4AppFlow.ts`,
   `mobile/m4/supabaseAuth.ts`, `mobile/m4/sessionStore.ts`, `mobile/m4/studentApi.ts`.
 - **Backend**: `backend/app/api/student/{auth,curriculum,dashboard,sessions}.py`,
@@ -31,6 +30,20 @@ consent acknowledgement, and sign-out/re-login token handling. Native retest rem
   deletion reconciliation, zoom/fit/reset/snap controls.
 - **Pattern**: Skia edges + native node overlays, Zustand transient state, Reanimated/Gesture
   Handler transforms, hierarchy layout.
+
+## Bounded Pre-M5 Canvas Position Lifecycle
+
+- **Status**: completed bounded stabilization record; Android review accepted 2026-07-12.
+  This is not a formal M4.5 milestone and does not authorize M5.
+- **Ownership**: `mobile/canvas/apiClient.ts`, `nodePositionCoordinator.ts`,
+  `useNodePositionWrites.ts`, `SkiaCanvas.tsx`, and `EdgeOfferSetSheet.tsx`.
+- **Behavior**: checked position PATCHes; independent per-node FIFO; newest-intent visibility;
+  acknowledged/baseline reconciliation; stale-hydration protection for mounted-session authority;
+  neutral retry aggregation; session/disposal isolation; branch-child placement retry without
+  branch recreation; idempotent Close and reload.
+- **Explicit exclusions**: deterministic layout, `{0,0}` fallback replacement,
+  `manual_reference` hierarchy correction, offline/persistent delivery, backend branch atomicity,
+  optimistic insertion, navigation, and checkpoints.
 
 ## M2 Phrase Selection
 
@@ -59,3 +72,10 @@ consent acknowledgement, and sign-out/re-login token handling. Native retest rem
   there. Determine status from `App.tsx`, canon, and the active SDD before reusing or deleting them.
 - New generation/classification behavior must preserve the import-linter seams and Organic-First
   async boundary.
+
+## 2026-07-12 Stabilization Completion
+
+The bounded pre-M5 canvas record is Android-reviewed and complete. In addition to the position
+lifecycle and branch-placement recovery, it includes active-drag edge SharedValue synchronization
+and edge-plus local busy/single-flight/retry behavior. It is not a formal M4.5 milestone; M5
+remains frozen.

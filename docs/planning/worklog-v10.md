@@ -247,3 +247,102 @@ close production composition plus mobile closure gaps red-first under the remedi
 
 **Status**: Phase 3 M4 Curriculum Entry + Supabase Auth is CLOSED. M5 Checkpoints is next and has
 not started.
+
+## 2026-07-11 -- Bounded pre-M5 canvas position-write stabilization
+
+**Milestone boundary**:
+
+- M4 remains closed and M5 remains frozen/not started.
+- This is a bounded canvas stabilization increment, not a formal M4.5 milestone.
+- Governing references are `development-approach.md` §§5 and 8,
+  `configuration-reference.md` §4, the closed M3/M3-C/M3.6 canvas SDDs, ADR-0013, and
+  `session-path-data-contract.md` §§6, 8, and 11.
+- Active bounded design record: `canvas-position-write-lifecycle-sdd.md` v0.5.
+
+**Investigation conclusions**:
+
+- The prior drag-end helper was fire-and-forget, so network/non-2xx failure was not observable.
+- Rapid completed drags had no per-node request-order guarantee; local overrides could mask
+  unsettled durability and hydration lacked causal revision metadata.
+- Branch creation and initial child positioning are separate durable operations. A failed child
+  PATCH must retain the created branch and must not report full placement success.
+- Deterministic layout is not part of the real hydration/branch path, missing positions can still
+  reach the existing `{0,0}` fallback, and layout/manual-reference correction remains excluded.
+
+**Implemented red-first**:
+
+- Phase A: `patchNodePosition` is a typed checked promise; `nodePositionCoordinator.ts` provides
+  independent per-node FIFO queues, newest-intent visibility, failure pause/retry, acknowledged
+  fallback, and disposal safety. Completed drag writes are not coalesced.
+- Phase B1: `useNodePositionWrites.ts` owns one coordinator per mounted session, subscribes through
+  stable snapshots, reads refreshed credentials for later writes, preserves acknowledged/queued
+  mounted-session authority over stale hydration, and exposes failed-node aggregation/retry.
+  `SkiaCanvas` now enqueues at drag end and shows one neutral canvas-level retry status without
+  adding gesture-frame React/network writes.
+- Phase B2: `EdgeOfferSetSheet` uses the checked PATCH directly, keeps recovery local after durable
+  branch creation, retries placement without repeating creation, and provides idempotent
+  `Close and reload`. Initial creation and retry are single-flight; late settlement and unmount are
+  guarded; a missing child id cannot trigger an unsafe retry or false success claim.
+- No backend, schema, migration, event, layout, navigation, global test configuration, optimistic
+  insertion, persistent retry, M5, or checkpoint behavior changed.
+
+**Verification**:
+
+- Focused B2 recovery: 12/12 green with no new act warnings, unhandled rejections, or open handles.
+- Nearest branch/discovery/API/coordinator/hook/canvas regression set: 8 suites, 53/53 green.
+- Full mobile Jest: 31 suites, 165/165 green.
+- TypeScript: `npx.cmd tsc --noEmit` green.
+- `git diff --check` green; `SkiaCanvas.tsx` is 310 lines and `EdgeOfferSetSheet.tsx` is 230 lines.
+- Existing warning output in older phrase-selection, Skia canvas, node-selection, and SafeAreaView
+  tests remains pre-existing; the new B2 file is clean in isolation.
+
+**Physical-device readiness and remaining review**:
+
+- Durable backend and Expo Go LAN endpoints return HTTP 200 at `192.168.31.183:{8000,8081}`; the
+  Android manifest returns `application/expo+json`, and the phone established Metro connections.
+- Direct learner validation of drag ordering, visible failure/retry behavior, branch-placement
+  recovery, resume, and Android interaction quality remains pending. Server reachability is not
+  recorded as behavioral proof.
+- Known limits remain: no causal snapshot revision/watermark, no delivery guarantee across
+  unmount/termination, non-atomic branch creation/placement, and the existing `{0,0}` fallback for
+  an unpositioned child.
+
+**Status**: completed bounded stabilization record; Android review accepted 2026-07-12.
+M5 remains frozen.
+
+## 2026-07-12 -- Canvas stabilization Android review and bounded follow-ons
+
+**Observed and corrected**:
+
+- Dragged edges briefly followed the committed node centre because their geometry took a
+  UI-thread to JS to React-state path during movement. `CanvasEdges` now derives only edges
+  attached to the actively dragged node from the same Reanimated SharedValues as the native node;
+  React/canonical/coordinator updates remain drag-end only.
+- Edge-plus controls had no immediate feedback or request guard. `EdgePlusButtons` now provides
+  per-node shared left/right busy state, neutral loading/failure/retry feedback, and single-flight
+  request protection. `useDiscoveryManager` accepts the first current discovery completion only,
+  preventing later competing success/failure from replacing the sheet or surfacing stale error.
+
+**Verification**:
+
+- New edge-plus lifecycle tests: 5/5 independently; nearest edge-plus/discovery tests: 16/16.
+- Focused edge/gesture/position regressions: 13 suites, 68/68.
+- Final full mobile Jest: 32 suites, 170/170 green; TypeScript remains green.
+- TypeScript and `git diff --check` green; final relevant runs reported no new warnings, open
+  handles, or unhandled rejections.
+- User physical-device review confirms both corrections are working.
+
+**Boundary preserved**:
+
+- No change to `useCanvasGestures`, Race/Simultaneous composition, backend endpoints/schemas,
+  migrations, event contracts, position coordinator semantics, deterministic layout, `{0,0}`
+  fallback, `manual_reference` hierarchy, navigation, or M5.
+- The bounded stabilization record is complete, not a formal M4.5 milestone. M5 remains frozen
+  until separately authorized.
+
+**Still pending outside this completed slice**:
+
+- Deferred M3 physical performance evidence: 40+ node 60fps rerun and 65-node smoke.
+- Interactive web CanvasKit runtime review.
+- A separately approved layout/position-quality slice, if desired, for deterministic hydration
+  placement, missing-position fallback, and manual-reference hierarchy semantics.

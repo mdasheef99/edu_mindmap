@@ -29,10 +29,22 @@ required catalog `tenant_id` columns, constraints, indexes, and RLS policies. Fr
 confirms all 15 required operational/catalog/read-model tables have `tenant_id` and RLS enabled.
 The old wrong project (`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`) must not be used.
 Current automated gates: backend 147 regular tests plus 4 isolated import-linter subprocess tests
-green (151 combined), direct import-linter 4/4 contracts kept, mobile 136/136 Jest and TypeScript
+green (151 combined), direct import-linter 4/4 contracts kept, mobile 170/170 Jest and TypeScript
 green; Expo Android Hermes bundle 1,822 modules / 11,243,312 bytes from the prior device-server
 open. The four import-linter subprocess tests need the user-level `lint-imports.exe` outside the
 sandbox on this Windows machine, so direct contract output remains the canonical boundary evidence.
+Bounded pre-M5 canvas stabilization is COMPLETE / ANDROID-REVIEWED (2026-07-12). This is not a
+formal M4.5 milestone and does not start M5.
+Every completed drag is queued through a per-node FIFO; checked position writes expose failure,
+newest completed intent remains visible, stale hydration cannot move mounted-session authority
+backward, and failed heads have explicit neutral retry. Branch creation remains separate from child
+placement: a placement failure retains the durable branch and offers Retry placement or idempotent
+Close and reload without recreating the branch. Known exclusions remain deterministic layout,
+the `{0,0}` missing-position fallback, `manual_reference` hierarchy correction, persistent/offline
+delivery, backend branch atomicity, navigation changes, and checkpoint behavior. Full mobile Jest
+is 32 suites / 170 tests green; TypeScript and `git diff --check` are green. LAN backend/Expo
+reachability and direct Android review are verified. Deferred 40+ node performance, 65-node smoke,
+interactive web CanvasKit review, and later layout/manual-reference work remain separate.
 Phase 3 M3.6 Canvas Controls is LOCALLY COMPLETE (2026-06-30): explicit zoom in/out toolbar
 controls, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end
 toggle. The pre-M4 TypeScript/Jest config blocker was resolved on 2026-07-01; canvas TypeScript and
@@ -68,6 +80,8 @@ CLOSED SDD: docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md v0.3
 production Postgres composition, durable auth/consent/session flow, mobile dashboard/resume, and
 platform closure gates; closed 2026-07-11). Parent SDD:
 phase-3-m4-curriculum-auth-sdd.md v0.6 (closed 2026-07-11).
+COMPLETED BOUNDED SDD: docs/planning/sdd/canvas-position-write-lifecycle-sdd.md v0.6
+(Android reviewed; M5 frozen).
 Prior closed SDDs: docs/planning/sdd/phase-3-m3-6-canvas-controls-sdd.md (M3.6, LOCALLY COMPLETE
 2026-06-30; toolbar zoom controls, fit/reset view, zoom readout, snap-to-grid drag-end toggle);
 docs/planning/sdd/phase-3-m3-5-frontend-readiness-sdd.md (M3.5,

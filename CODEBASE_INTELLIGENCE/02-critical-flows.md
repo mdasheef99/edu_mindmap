@@ -1,8 +1,7 @@
 # 02 Critical Flows
 
-**2026-07-11 update**: bootstrap now returns persisted behavioral consent state; dashboard renders
-before the full curriculum path finishes; sign-out calls Supabase remote logout before local
-clearing.
+**2026-07-11 update**: M4 is closed. Bounded pre-M5 canvas stabilization adds checked, ordered
+drag-end writes and recoverable branch-child placement without starting M5.
 
 **Snapshot**: 2026-07-10. These are the current M4 production-runtime flows, not the legacy M2
 smoke path.
@@ -67,7 +66,28 @@ smoke path.
 
 ## 6. Node Position and Deletion
 
-- Node position changes are validated by `node_position_workflow.py` and recorded as append-only
-  events; replay applies the latest position.
+- A completed drag ends in `SkiaCanvas`, which enqueues the board-space position through
+  `useNodePositionWrites.ts` into `nodePositionCoordinator.ts`. One write per node may be in flight;
+  completed drags remain FIFO and are not coalesced, while different nodes may write independently.
+- `mobile/canvas/apiClient.ts::patchNodePosition` rejects network/non-2xx failure and returns the
+  backend acknowledgement. `node_position_workflow.py` validates accepted coordinates and appends
+  `node_position_updated`; replay applies the latest durable position.
+- The newest mounted-session intent remains visible while older writes settle. Hydration seeds the
+  baseline but cannot overwrite newer queued/acknowledged mounted-session authority because the API
+  exposes no causal position revision or event watermark.
+- A failed per-node head pauses that node and exposes one neutral canvas retry boundary. Retry does
+  not duplicate an active write; disposal/session replacement invalidates late callbacks, but the
+  queue is intentionally not durable across unmount, restart, or termination.
+- Edge-plus branch creation remains separate from initial child positioning. `EdgeOfferSetSheet`
+  uses the checked PATCH directly; placement failure retains the durable branch, retries only the
+  PATCH, or closes through one canonical reload. No optimistic insertion or layout fallback is
+  introduced.
 - `canvas_deletion.py` computes AI-path descendants, appends `edge_deleted` plus `node_deleted`, and
   replay removes them. Historical events are never updated or deleted.
+
+## 2026-07-12 Canvas Interaction Follow-on
+
+During a drag, only affected Skia edge geometry derives from the same SharedValues as the node;
+the drag-end position lifecycle remains the sole persistence boundary. Edge-plus first press gives
+local neutral feedback and starts one paired-control request; retry is single-flight. Independent
+nodes may request concurrently, but only the first current completion can own the active sheet.
