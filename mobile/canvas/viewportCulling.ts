@@ -29,6 +29,7 @@ export interface BoardEdge {
   edge_id: string;
   source_node_id: string;
   target_node_id: string;
+  edge_kind?: string;
 }
 
 /** Board-space rectangle currently visible, per the §9 formula. */

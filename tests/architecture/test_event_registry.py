@@ -145,9 +145,7 @@ def test_viewport_changed_missing_visible_node_ids() -> None:
     from app.events.registry import InvalidEventPayloadError, validate_event
 
     event = _valid_viewport_changed_event()
-    event["payload"] = {
-        k: v for k, v in event["payload"].items() if k != "visible_node_ids"
-    }
+    event["payload"] = {k: v for k, v in event["payload"].items() if k != "visible_node_ids"}
     with pytest.raises(InvalidEventPayloadError, match="visible_node_ids"):
         validate_event(event, producer="client")
 

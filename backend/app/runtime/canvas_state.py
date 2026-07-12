@@ -84,7 +84,8 @@ def _same_scope(
 
 def _edge_payload(payload: Mapping[str, Any]) -> dict[str, str]:
     missing_keys = [
-        key for key in ("edge_id", "session_id", "source_node_id", "target_node_id", "edge_kind")
+        key
+        for key in ("edge_id", "session_id", "source_node_id", "target_node_id", "edge_kind")
         if payload.get(key) is None
     ]
     if missing_keys:

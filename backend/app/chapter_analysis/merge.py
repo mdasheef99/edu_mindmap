@@ -21,9 +21,7 @@ def merge_concept_records(
     for embedded in embedded_concepts:
         missing_keys = [key for key in ("label", "concept_id") if key not in embedded]
         if missing_keys:
-            raise ValueError(
-                f"Embedded concept missing required keys {missing_keys}: {embedded}"
-            )
+            raise ValueError(f"Embedded concept missing required keys {missing_keys}: {embedded}")
         target = _find_matching_named_concept(merged, str(embedded["label"]))
         if target is None:
             new_concept = deepcopy(embedded)

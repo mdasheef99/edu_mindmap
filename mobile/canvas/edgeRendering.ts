@@ -30,7 +30,7 @@ export function cubicBezierPath(p0: Point, p1: Point): string {
 }
 
 /** Style descriptor keyed by edge_kind: ai_path solid, manual_reference dashed. */
-export function edgeStyleForKind(kind: string): EdgeStyle {
+export function edgeStyleForKind(kind?: string): EdgeStyle {
   if (kind === 'manual_reference') {
     return { dashed: true, dashIntervals: [8, 6] };
   }

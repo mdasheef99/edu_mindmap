@@ -79,8 +79,8 @@ export function computeLayout(nodes: Record<string, LayoutInputNode>): LayoutRes
       result[id] = { x: input.position.x, y: input.position.y };
     } else {
       result[id] = {
-        x: Math.round((d.x - rootX) * 10) / 10,
-        y: Math.round((d.y - rootY) * 10) / 10,
+        x: Math.round((d.x! - rootX) * 10) / 10,
+        y: Math.round((d.y! - rootY) * 10) / 10,
       };
     }
   });
