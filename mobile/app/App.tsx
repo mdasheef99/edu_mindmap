@@ -1,49 +1,47 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { M2PhraseSmokeScreen } from './M2PhraseSmokeScreen';
 import { initSentry } from './observability/sentry';
 import { SkiaCanvas } from '../canvas/SkiaCanvas';
 import { useSessionHydration } from '../canvas/useSessionHydration';
+import { resolveDevCanvasConfig } from './devCanvasConfig';
 
-// Mobile error tracking (M3 SDD §3, §14). DSN is SENTRY_DSN_MOBILE
-// (configuration-reference.md §10), supplied to the bundle via its EXPO_PUBLIC_ form;
-// absent locally, initSentry is a no-op.
+// Mobile error tracking (M3 SDD §3, §14). DSN is supplied through the
+// EXPO_PUBLIC form of the configuration-reference.md §10 setting.
 initSentry(process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE);
 
-// ── Canvas wiring (M3-C SDD §5, §8) ──────────────────────────────────────────
-// Nodes/edges now hydrate from GET /v1/student/sessions/{id} via useSessionHydration
-// (DEV_NODES/DEV_EDGES/DEV_TRANSFORM fixtures removed — G3 mobile side).
 const DEV_SCREEN = { width: 390, height: 844 };
-// transform: zero translate so §4 seam and §9 culling box agree from the start.
 const DEFAULT_TRANSFORM = { scale: 1, translateX: 0, translateY: 0 };
-// Edge-`+` discovery chrome (F2) renders only when apiBaseUrl + sessionId are supplied.
-// Point at the backend LAN IP so the buttons can POST /v1/student/offer-sets/edge.
-const DEV_API_BASE_URL =
-  process.env.EXPO_PUBLIC_DEV_API_BASE_URL ??
-  (Platform.OS === 'web' ? 'http://127.0.0.1:8000' : 'http://192.168.31.183:8000');
-const DEV_SESSION_ID = '00000000-0000-4000-8000-000000000030';
-const DEV_AUTH_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMjAifQ.PdM8x6KPeHghg976eZbcxbeitCbWdqLXh-dqkTQUd-g';
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // Toggle: set EXPO_PUBLIC_SHOW_CANVAS=true to see the M3 canvas instead of the M2 smoke screen.
   const showCanvas = process.env.EXPO_PUBLIC_SHOW_CANVAS === 'true';
-
-  // Canonical transform kept in JS-thread state (§7 dual-state, onTransformEnd write-once-on-end).
-  // SkiaCanvas shared values drive live rendering; this state drives the committed culling viewport.
+  const devCanvas = resolveDevCanvasConfig(showCanvas, process.env);
+  const config = devCanvas.enabled && 'config' in devCanvas ? devCanvas.config : undefined;
   const [canvasTransform, setCanvasTransform] = useState(DEFAULT_TRANSFORM);
 
-  // Hook runs unconditionally (rules-of-hooks); sessionId is only passed in canvas
-  // mode so the M2 smoke screen does not trigger a hydration fetch.
+  // The hook remains unconditional. When Canvas mode is disabled or invalidly
+  // configured, undefined inputs keep hydration idle.
   const { nodes, edges, status, reload } = useSessionHydration({
-    apiBaseUrl: DEV_API_BASE_URL,
-    sessionId: showCanvas ? DEV_SESSION_ID : undefined,
-    authorizationToken: DEV_AUTH_TOKEN,
+    apiBaseUrl: config?.apiBaseUrl,
+    sessionId: config?.sessionId,
+    authorizationToken: config?.authorizationToken,
   });
 
   if (showCanvas) {
+    if (!config) {
+      const error =
+        devCanvas.enabled && 'error' in devCanvas
+          ? devCanvas.error
+          : 'Development Canvas configuration is unavailable.';
+      return (
+        <View style={styles.root}>
+          <Text style={styles.canvasConfigError}>{error}</Text>
+          <StatusBar style="auto" />
+        </View>
+      );
+    }
+
     return (
       <View style={styles.root}>
         <SkiaCanvas
@@ -52,9 +50,9 @@ export default function App() {
           screen={DEV_SCREEN}
           transform={canvasTransform}
           onTransformEnd={setCanvasTransform}
-          apiBaseUrl={DEV_API_BASE_URL}
-          authorizationToken={DEV_AUTH_TOKEN}
-          sessionId={DEV_SESSION_ID}
+          apiBaseUrl={config.apiBaseUrl}
+          authorizationToken={config.authorizationToken}
+          sessionId={config.sessionId}
           onReloadCanvas={reload}
         />
         {status !== 'ready' || nodes.length === 0 ? (
@@ -63,7 +61,7 @@ export default function App() {
               {status === 'loading'
                 ? 'Loading canvas...'
                 : status === 'error'
-                  ? 'Canvas could not hydrate from the local backend.'
+                  ? 'Canvas could not hydrate from the configured development backend.'
                   : 'No canvas nodes loaded.'}
             </Text>
           </View>
@@ -93,4 +91,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 24, 39, 0.82)',
   },
   canvasStatusText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  canvasConfigError: { margin: 24, color: '#991b1b' },
 });

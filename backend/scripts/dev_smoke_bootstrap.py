@@ -6,7 +6,7 @@ Usage:
 Guards:
 - Refuses without --dev-smoke flag.
 - Refuses if APP_ENV or MINDMAP_ENV == 'production'.
-- Uses a hardcoded dev-only JWT secret ('dev-smoke-secret'); never touches real credentials.
+- Requires DEV_JWT_SECRET from the local environment; never touches real credentials.
 - Binds to 0.0.0.0 for LAN reachability; trusted-network-only.
 
 Traceability: docs/planning/sdd/phase-3-phrase-selection-sdd.md §12
@@ -38,8 +38,6 @@ STUDENT_USER_ID = UUID("00000000-0000-4000-8000-000000000020")
 SESSION_ID = UUID("00000000-0000-4000-8000-000000000030")
 CONCEPT_ID = UUID("00000000-0000-4000-8000-000000000006")
 
-DEV_JWT_SECRET = "dev-smoke-secret"  # Never a production value.
-
 READER_PASSAGE = (
     "Electric current flows through a closed circuit.\n\n"
     "When resistance increases, current decreases according to Ohm's Law.\n\n"
@@ -67,10 +65,17 @@ def _lan_ip() -> str:
         return "127.0.0.1"
 
 
+def _dev_jwt_secret() -> str:
+    secret = os.getenv("DEV_JWT_SECRET")
+    if not secret:
+        raise RuntimeError("DEV_JWT_SECRET is required for the development smoke bootstrap")
+    return secret
+
+
 def _mint_token() -> str:
     import jwt  # PyJWT
 
-    return jwt.encode({"sub": str(STUDENT_USER_ID)}, DEV_JWT_SECRET, algorithm="HS256")
+    return jwt.encode({"sub": str(STUDENT_USER_ID)}, _dev_jwt_secret(), algorithm="HS256")
 
 
 def _build_runtime():  # type: ignore[return]
@@ -112,7 +117,7 @@ def _build_runtime():  # type: ignore[return]
     runtime = SessionRuntime.for_testing(
         tenant_id=TENANT_ID,
         student_user_id=STUDENT_USER_ID,
-        jwt_secret=DEV_JWT_SECRET,
+        jwt_secret=_dev_jwt_secret(),
         memberships=memberships,
     )
     runtime.curriculum.ingest(build_curriculum_rows(curriculum_input))

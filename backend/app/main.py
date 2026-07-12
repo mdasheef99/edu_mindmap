@@ -1,14 +1,4 @@
-"""FastAPI composition root for the Phase 1 walking skeleton.
-
-Responsibilities:
-- FastAPI app instantiation via ``create_app``.
-- CORS + Sentry middleware configuration.
-- Router inclusions.
-- Re-exports ``SessionRuntime`` and ``InMemoryMembershipStore`` for backward
-  compatibility so existing tests and scripts continue to import from here.
-
-Traceability: CODEBASE_INTELLIGENCE/01-system-map.md §Backend → Composition Root
-"""
+"""FastAPI composition root for the Phase 1 walking skeleton."""
 
 from __future__ import annotations
 
@@ -23,9 +13,10 @@ from app.api.student.offer_choices import router as offer_choice_router
 from app.api.student.offer_sets import router as offer_set_router
 from app.api.student.sessions import router as student_router
 from app.api.teacher.chapters import router as teacher_chapter_router
+from app.configuration import allowed_origins
 from app.observability.sentry import init_sentry
-from app.runtime.session import SessionRuntime  # re-exported for backward compat
-from app.tenancy.memberships import InMemoryMembershipStore  # re-exported for backward compat
+from app.runtime.session import SessionRuntime
+from app.tenancy.memberships import InMemoryMembershipStore
 
 __all__ = ["SessionRuntime", "InMemoryMembershipStore", "create_app"]
 
@@ -35,12 +26,7 @@ def create_app(runtime: SessionRuntime | None = None) -> FastAPI:
     app = FastAPI(title="Mindmap Phase 1 Walking Skeleton")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:8099",
-            "http://127.0.0.1:8099",
-            "http://localhost:8100",
-            "http://127.0.0.1:8100",
-        ],
+        allow_origins=allowed_origins(),
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )

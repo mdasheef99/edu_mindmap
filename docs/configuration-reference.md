@@ -98,6 +98,16 @@ Values are not documented here.
 | `SENTRY_DSN_BACKEND` | backend | error tracking |
 | `SENTRY_DSN_MOBILE` | mobile | error tracking |
 | `SENTRY_DSN_WEB` | teacher web | error tracking |
+| `CORS_ALLOWED_ORIGINS` | backend | comma-separated browser origins; empty disables CORS |
+| `DEV_JWT_SECRET` | dev smoke only | required disposable signing secret; no source fallback |
+| `EXPO_PUBLIC_SHOW_CANVAS` | mobile dev only | enables the pre-M4 development Canvas path |
+| `EXPO_PUBLIC_DEV_API_BASE_URL` | mobile dev only | development backend URL |
+| `EXPO_PUBLIC_DEV_SESSION_ID` | mobile dev only | seeded development session |
+| `EXPO_PUBLIC_DEV_AUTH_TOKEN` | mobile dev only | disposable development bearer token |
+
+The three `EXPO_PUBLIC_DEV_*` values are required only when
+`EXPO_PUBLIC_SHOW_CANVAS=true`. They have no committed fallback values and must never be used
+for production authentication.
 
 ### 10.1 Phase 2 placeholders — Supabase Auth + curriculum ingestion
 
