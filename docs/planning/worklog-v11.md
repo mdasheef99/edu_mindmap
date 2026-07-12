@@ -76,6 +76,15 @@ implementation. Keep it below 350 lines and rotate before exceeding that thresho
 - Full Python suite: 164 passed / 3 skipped using a worktree-local pytest temporary directory.
 - Full mobile Jest suite: 28 suites / 139 tests passed; App and Canvas TypeScript are green.
 
+**Physical-device reconstruction evidence**:
+
+- The owner confirmed that the reconstructed M4 branch passed the current physical-device smoke
+  check after the final local publication gates.
+- The report did not enumerate the individual actions exercised, so this reconstruction record
+  does not separately claim sign-up/sign-in, bootstrap, curriculum/dashboard loading,
+  creation/resume, canvas hydration, restart restoration, or sign-out beyond the confirmed smoke
+  result. Live Supabase/key-rotation and migration-application checks remain separately deferred.
+
 **Remaining operational gates**:
 
 - Live Supabase ES256/JWKS, key rotation, membership bootstrap, and applied-migration verification
