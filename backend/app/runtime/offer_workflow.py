@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.canvas.limits import NodeLimitExceeded, canvas_node_hard_limit
 from app.domain.auth import AuthContext
 from app.domain.student.offer_choices import (
     OfferChoiceContext,
@@ -22,6 +23,7 @@ from app.domain.student.offer_sets import (
     build_phrase_offer_set,
 )
 from app.events.store import InMemoryEventStore
+from app.runtime.canvas_state import count_active_nodes
 from app.tenancy.pool import InMemoryTenantConnectionPool
 from app.workers.queue import InMemoryJobQueue
 
@@ -57,6 +59,14 @@ def record_offer_choice_workflow(
     try:
         stored_choice_event = event_store.append(choice_event, producer="server")
         if payload.outcome == "selected":
+            active_node_count = count_active_nodes(
+                event_store.events,
+                session_id=payload.session_id,
+                tenant_id=resolved.tenant_id,
+                student_user_id=resolved.user_id,
+            )
+            if active_node_count >= canvas_node_hard_limit():
+                raise NodeLimitExceeded("Canvas node limit reached; no new node can be created")
             node_event, edge_event, child_response = build_selected_child_path(
                 context=context,
                 offer_set_id=offer_set_id,
