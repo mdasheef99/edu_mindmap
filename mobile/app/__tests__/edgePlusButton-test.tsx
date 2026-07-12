@@ -135,15 +135,17 @@ describe('TB2 — EdgePlusButtons touch target + endpoint (SDD §5.2)', () => {
   });
 
   it('test_plus_press_posts_edge_offer_set', async () => {
+    const onOfferSet = jest.fn();
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ offer_set_id: 'os-1', options: [] }),
     });
 
-    await render(<EdgePlusButtons {...PROPS} />);
-    fireEvent.press(screen.getByTestId('edge-plus-left'));
+    await render(<EdgePlusButtons {...PROPS} onOfferSet={onOfferSet} />);
+    await fireEvent.press(screen.getByTestId('edge-plus-left'));
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    await waitFor(() => expect(onOfferSet).toHaveBeenCalledTimes(1));
     const [url, opts] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toContain('/v1/student/offer-sets/edge');
     expect(opts.method).toBe('POST');

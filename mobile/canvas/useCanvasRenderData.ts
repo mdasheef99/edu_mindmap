@@ -10,7 +10,6 @@ import { useMemo } from 'react';
 import { computeBoardViewport, cullEdges, visibleNodeIds, ScreenSize } from './viewportCulling';
 import type { CanvasNode, CanvasEdge } from './SkiaCanvas';
 import type { CanvasTransform, Point } from './coordinateSystem';
-import type { LiveDragOverride } from './useLiveDragOverride';
 
 export interface CanvasRenderData {
   nodePositions: Record<string, Point>;
@@ -22,17 +21,12 @@ export interface CanvasRenderData {
 export function useCanvasRenderData(
   liveNodes: CanvasNode[],
   liveEdges: CanvasEdge[],
-  liveDragOverride: LiveDragOverride | null,
   transform: CanvasTransform,
   screen: ScreenSize,
 ): CanvasRenderData {
   const nodePositions = useMemo<Record<string, Point>>(() => {
-    const base = Object.fromEntries(liveNodes.map((n) => [n.node_id, n.position]));
-    if (liveDragOverride) {
-      base[liveDragOverride.nodeId] = { x: liveDragOverride.x, y: liveDragOverride.y };
-    }
-    return base;
-  }, [liveNodes, liveDragOverride]);
+    return Object.fromEntries(liveNodes.map((n) => [n.node_id, n.position]));
+  }, [liveNodes]);
 
   const viewport = useMemo(() => computeBoardViewport(transform, screen), [transform, screen]);
 

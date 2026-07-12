@@ -1,19 +1,16 @@
 /**
- * EdgeOfferSetSheet — renders the student-safe questions returned by
- * POST /v1/student/offer-sets/edge and, on selection, records the choice
- * (POST /offer-sets/{id}/choices → outcome "selected"). The backend then creates
- * an `ai` child node ("Explore: <question>") + an `ai_path` edge; we PATCH the
- * child's position next to its parent (Seam C) and ask the canvas to re-hydrate
- * so the new node/edge appear.
+ * EdgeOfferSetSheet — creates a student-safe branch, then positions its child.
+ * Branch creation is durable before the separate position PATCH. If placement
+ * fails, recovery stays local to this sheet and never recreates the branch.
  *
- * Category Invisibility: the request body carries no analytic fields and no tenant_id.
- *
- * Traceability: phase-3-offer-set-logging-sdd.md §7; phase-3-m3c-infrastructure-
- * remediation-sdd.md §6 (Seam C); backend/app/domain/student/offer_choices.py.
+ * Traceability: phase-3-m3c-infrastructure-remediation-sdd.md §6 (Seam C);
+ * canvas-position-write-lifecycle-sdd.md §13 (Phase B2 recovery contract).
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { patchNodePosition } from './apiClient';
 
 export interface EdgeOfferOption {
   option_id: string;
@@ -37,12 +34,17 @@ export interface EdgeOfferSetSheetProps {
   apiBaseUrl: string;
   authorizationToken?: string;
   onClose: () => void;
-  /** Fired after a child node/edge is created + positioned; canvas should re-hydrate. */
+  /** Fired through the existing canonical close-and-rehydrate boundary. */
   onBranchCreated: () => void;
 }
 
-// Offset of the new child node from its parent (board units) so the edge reads clearly.
 const CHILD_OFFSET = { x: 340, y: 80 };
+
+interface PlacementRecovery {
+  childNodeId?: string;
+  position: { x: number; y: number };
+  phase: 'positioning' | 'failed';
+}
 
 export function EdgeOfferSetSheet({
   visible,
@@ -55,7 +57,21 @@ export function EdgeOfferSetSheet({
   onBranchCreated,
 }: EdgeOfferSetSheetProps) {
   const [status, setStatus] = useState('Pick a question to explore');
-  const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [recovery, setRecovery] = useState<PlacementRecovery | null>(null);
+  const mountedRef = useRef(false);
+  const creationBusyRef = useRef(false);
+  const placementBusyRef = useRef(false);
+  const positionRequestRef = useRef(0);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      positionRequestRef.current += 1;
+    };
+  }, []);
 
   function headers() {
     return {
@@ -64,9 +80,40 @@ export function EdgeOfferSetSheet({
     };
   }
 
+  function completeThroughReload() {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    positionRequestRef.current += 1;
+    onBranchCreated();
+  }
+
+  async function attemptPlacement(next: PlacementRecovery) {
+    if (!next.childNodeId || placementBusyRef.current || completedRef.current) return;
+    placementBusyRef.current = true;
+    const requestId = ++positionRequestRef.current;
+    setRecovery({ ...next, phase: 'positioning' });
+    try {
+      await patchNodePosition(
+        apiBaseUrl,
+        offerSet.session_id,
+        next.childNodeId,
+        authorizationToken,
+        next.position,
+      );
+      if (!mountedRef.current || requestId !== positionRequestRef.current || completedRef.current) return;
+      placementBusyRef.current = false;
+      completeThroughReload();
+    } catch {
+      if (!mountedRef.current || requestId !== positionRequestRef.current || completedRef.current) return;
+      placementBusyRef.current = false;
+      setRecovery({ ...next, phase: 'failed' });
+    }
+  }
+
   async function chooseOption(option: EdgeOfferOption) {
-    if (busy) return;
-    setBusy(true);
+    if (creationBusyRef.current || recovery || completedRef.current) return;
+    creationBusyRef.current = true;
+    setCreating(true);
     setStatus('Creating new node…');
     try {
       const res = await fetch(
@@ -85,49 +132,82 @@ export function EdgeOfferSetSheet({
         },
       );
       if (!res.ok) {
-        setStatus(`Failed: HTTP ${res.status}`);
-        setBusy(false);
+        if (mountedRef.current) {
+          creationBusyRef.current = false;
+          setCreating(false);
+          setStatus(`Failed: HTTP ${res.status}`);
+        }
         return;
       }
-      const result = await res.json();
-      // Position the new child next to its parent so the ai_path edge is visible (Seam C).
-      if (result.child_node_id) {
-        await fetch(
-          `${apiBaseUrl}/v1/student/sessions/${offerSet.session_id}/nodes/${result.child_node_id}`,
-          {
-            method: 'PATCH',
-            headers: headers(),
-            body: JSON.stringify({
-              position_x: sourcePosition.x + CHILD_OFFSET.x,
-              position_y: sourcePosition.y + CHILD_OFFSET.y,
-            }),
-          },
-        ).catch(() => undefined);
-      }
-      setBusy(false);
-      setStatus('Pick a question to explore');
-      onBranchCreated();
+      const result = (await res.json()) as { child_node_id?: string };
+      if (!mountedRef.current || completedRef.current) return;
+      creationBusyRef.current = false;
+      setCreating(false);
+      setStatus('Branch created');
+      const next: PlacementRecovery = {
+        childNodeId: result.child_node_id,
+        position: {
+          x: sourcePosition.x + CHILD_OFFSET.x,
+          y: sourcePosition.y + CHILD_OFFSET.y,
+        },
+        phase: result.child_node_id ? 'positioning' : 'failed',
+      };
+      setRecovery(next);
+      if (next.childNodeId) await attemptPlacement(next);
     } catch {
-      setStatus('Failed: network error');
-      setBusy(false);
+      if (mountedRef.current && !completedRef.current) {
+        creationBusyRef.current = false;
+        setCreating(false);
+        setStatus('Failed: network error');
+      }
     }
   }
 
+  function handleClose() {
+    if (creationBusyRef.current) return;
+    if (recovery) {
+      completeThroughReload();
+      return;
+    }
+    onClose();
+  }
+
+  const placementActive = recovery?.phase === 'positioning';
+
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={handleClose}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <Text style={styles.title}>Explore a question</Text>
           <Text style={styles.status}>{status}</Text>
+          {recovery ? (
+            <Text style={styles.status}>
+              {placementActive ? 'Saving placement…' : 'Placement was not saved'}
+            </Text>
+          ) : null}
           <ScrollView>
             {offerSet.options.map((option) => (
               <View key={option.option_id} testID={`offer-option-${option.rank_position}`} style={styles.option}>
-                <Button title={option.text} onPress={() => chooseOption(option)} disabled={busy} />
+                <Button
+                  title={option.text}
+                  onPress={() => { void chooseOption(option); }}
+                  disabled={creating || recovery !== null}
+                />
               </View>
             ))}
           </ScrollView>
+          {recovery?.phase === 'failed' && recovery.childNodeId ? (
+            <View style={styles.option}>
+              <Button title="Retry placement" onPress={() => { void attemptPlacement(recovery); }} />
+            </View>
+          ) : null}
           <View style={styles.option}>
-            <Button title="Close" color="#b91c1c" onPress={onClose} />
+            <Button
+              title={recovery ? 'Close and reload' : 'Close'}
+              color="#b91c1c"
+              onPress={handleClose}
+              disabled={creating}
+            />
           </View>
         </View>
       </View>

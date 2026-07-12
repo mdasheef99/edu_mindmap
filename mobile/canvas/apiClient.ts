@@ -68,25 +68,42 @@ export function postClientEvent(
   });
 }
 
-/** Persist a node's committed board-space position. Fire-and-forget like event emission. */
-export function patchNodePosition(
+export interface NodePositionAcknowledgement {
+  nodeId: string;
+  position: { x: number; y: number };
+}
+
+interface NodePositionResponseBody {
+  node_id: string;
+  position_x: number;
+  position_y: number;
+}
+
+/** Persist one completed drag-end position and return the backend acknowledgement. */
+export async function patchNodePosition(
   apiBaseUrl: string,
   sessionId: string,
   nodeId: string,
   authorizationToken: string | undefined,
   position: { x: number; y: number },
-): void {
+): Promise<NodePositionAcknowledgement> {
   const url = `${apiBaseUrl}/v1/student/sessions/${sessionId}/nodes/${nodeId}`;
-  fetch(url, {
+  const response = await fetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       ...(authorizationToken ? { Authorization: `Bearer ${authorizationToken}` } : {}),
     },
     body: JSON.stringify({ position_x: position.x, position_y: position.y }),
-  }).catch(() => {
-    // Position persistence is best-effort; local drag commit must remain responsive.
   });
+  if (!response.ok) {
+    throw new Error(`Node position update failed with HTTP ${response.status}`);
+  }
+  const body = (await response.json()) as NodePositionResponseBody;
+  return {
+    nodeId: body.node_id,
+    position: { x: body.position_x, y: body.position_y },
+  };
 }
 
 // ── Throttled viewport helper ─────────────────────────────────────────────────

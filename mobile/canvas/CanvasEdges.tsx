@@ -14,14 +14,17 @@
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Canvas, DashPathEffect, Group, Path, Text as SkiaText, matchFont } from '@shopify/react-native-skia';
+import { useDerivedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { Point } from './coordinateSystem';
 import type { CanvasEdge } from './SkiaCanvas';
-import { cubicBezierPath, edgeStyleForKind, edgeLabelLayout } from './edgeRendering';
+import { edgeStyleForKind, edgeLabelLayout } from './edgeRendering';
 
 export interface CanvasEdgesProps {
   /** Board-space positions indexed by node_id. */
   nodePositions: Record<string, Point>;
+  /** Node indices matching the gesture hook's live-node array. */
+  nodeIndexById: Readonly<Record<string, number>>;
   /** All edges in the canvas (used for label culling). */
   edges: CanvasEdge[];
   /** Edges whose at least one endpoint is visible (used for path drawing). */
@@ -30,14 +33,114 @@ export interface CanvasEdgesProps {
   visIds: Set<string>;
   /** Reactive UI-thread transform for the Skia <Group>. */
   groupTransform: SharedValue<any>;
+  /** Active node-drag SharedValues; also consumed directly by NodeChip. */
+  dragNodeIdxShared: SharedValue<number>;
+  dragCurrBXShared: SharedValue<number>;
+  dragCurrBYShared: SharedValue<number>;
+}
+
+interface ReactiveEndpointsProps {
+  source: Point;
+  target: Point;
+  sourceIdx: number;
+  targetIdx: number;
+  dragNodeIdxShared: SharedValue<number>;
+  dragCurrBXShared: SharedValue<number>;
+  dragCurrBYShared: SharedValue<number>;
+}
+
+function useReactivePath(props: ReactiveEndpointsProps) {
+  const { source, target, sourceIdx, targetIdx, dragNodeIdxShared, dragCurrBXShared, dragCurrBYShared } = props;
+  return useDerivedValue(() => {
+    const draggedIdx = dragNodeIdxShared.value;
+    const sx = draggedIdx === sourceIdx ? dragCurrBXShared.value : source.x;
+    const sy = draggedIdx === sourceIdx ? dragCurrBYShared.value : source.y;
+    const tx = draggedIdx === targetIdx ? dragCurrBXShared.value : target.x;
+    const ty = draggedIdx === targetIdx ? dragCurrBYShared.value : target.y;
+    const midY = (sy + ty) / 2;
+    return `M ${sx} ${sy} C ${sx} ${midY} ${tx} ${midY} ${tx} ${ty}`;
+  });
+}
+
+function useReactiveLabelPosition(props: ReactiveEndpointsProps) {
+  const { source, target, sourceIdx, targetIdx, dragNodeIdxShared, dragCurrBXShared, dragCurrBYShared } = props;
+  const labelX = useDerivedValue(() => {
+    const draggedIdx = dragNodeIdxShared.value;
+    const sx = draggedIdx === sourceIdx ? dragCurrBXShared.value : source.x;
+    const tx = draggedIdx === targetIdx ? dragCurrBXShared.value : target.x;
+    return (sx + tx) / 2;
+  });
+  const labelY = useDerivedValue(() => {
+    const draggedIdx = dragNodeIdxShared.value;
+    const sy = draggedIdx === sourceIdx ? dragCurrBYShared.value : source.y;
+    const ty = draggedIdx === targetIdx ? dragCurrBYShared.value : target.y;
+    return (sy + ty) / 2;
+  });
+  return { labelX, labelY };
+}
+
+function ReactiveEdgePath({
+  source,
+  target,
+  sourceIdx,
+  targetIdx,
+  dragNodeIdxShared,
+  dragCurrBXShared,
+  dragCurrBYShared,
+  edgeKind,
+}: ReactiveEndpointsProps & { edgeKind: string }) {
+  const path = useReactivePath({
+    source, target, sourceIdx, targetIdx, dragNodeIdxShared, dragCurrBXShared, dragCurrBYShared,
+  });
+  const style = edgeStyleForKind(edgeKind);
+  return (
+    <Path
+      path={path}
+      style="stroke"
+      strokeWidth={style.dashed ? 1.5 : 2}
+      color="#5a5a72"
+    >
+      {style.dashed && <DashPathEffect intervals={style.dashIntervals} />}
+    </Path>
+  );
+}
+
+function ReactiveEdgeLabel({
+  source,
+  target,
+  sourceIdx,
+  targetIdx,
+  dragNodeIdxShared,
+  dragCurrBXShared,
+  dragCurrBYShared,
+  text,
+  font,
+}: ReactiveEndpointsProps & { text: string; font: any }) {
+  const reactive = useReactiveLabelPosition({
+    source, target, sourceIdx, targetIdx, dragNodeIdxShared, dragCurrBXShared, dragCurrBYShared,
+  });
+  const displayText = edgeLabelLayout(source, target, text).displayText;
+  return (
+    <SkiaText
+      x={reactive.labelX}
+      y={reactive.labelY}
+      text={displayText}
+      font={font}
+      color="#5a5a72"
+    />
+  );
 }
 
 export function CanvasEdges({
   nodePositions,
+  nodeIndexById,
   edges,
   visibleEdges,
   visIds,
   groupTransform,
+  dragNodeIdxShared,
+  dragCurrBXShared,
+  dragCurrBYShared,
 }: CanvasEdgesProps) {
   // F1 — Skia font for edge labels (mocked in CI; matchFont returns {} from the test stub).
   const labelFont = useMemo(() => {
@@ -51,18 +154,22 @@ export function CanvasEdges({
     }
   }, []);
 
-  // Board-space SVG path strings — passed directly to <Path path={string} /> (M3 SDD §9).
+  // Static endpoint metadata; only the derived Skia props read transient drag SharedValues.
   const edgePaths = useMemo(
     () =>
       visibleEdges.map((edge) => {
         const src = nodePositions[edge.source_node_id];
         const tgt = nodePositions[edge.target_node_id];
         if (!src || !tgt) return null;
-        const svgPath = cubicBezierPath(src, tgt);
-        const style = edgeStyleForKind(edge.edge_kind);
-        return { edge_id: edge.edge_id, svgPath, style };
+        return {
+          edge,
+          src,
+          tgt,
+          sourceIdx: nodeIndexById[edge.source_node_id] ?? -2,
+          targetIdx: nodeIndexById[edge.target_node_id] ?? -2,
+        };
       }),
-    [visibleEdges, nodePositions],
+    [visibleEdges, nodePositions, nodeIndexById],
   );
 
   // F1 — edge labels: only for edges whose source node is visible and a label is set.
@@ -73,37 +180,47 @@ export function CanvasEdges({
         const src = nodePositions[e.source_node_id];
         const tgt = nodePositions[e.target_node_id];
         if (!src || !tgt) return [];
-        return [{ edge_id: e.edge_id, layout: edgeLabelLayout(src, tgt, e.label) }];
+        return [{
+          edge: e,
+          src,
+          tgt,
+          sourceIdx: nodeIndexById[e.source_node_id] ?? -2,
+          targetIdx: nodeIndexById[e.target_node_id] ?? -2,
+        }];
       }),
-    [edges, nodePositions, visIds],
+    [edges, nodePositions, visIds, nodeIndexById],
   );
 
   return (
     <Canvas style={StyleSheet.absoluteFill}>
       <Group transform={groupTransform}>
-        {edgePaths.map((ep) =>
-          ep ? (
-            <Path
-              key={ep.edge_id}
-              path={ep.svgPath}
-              style="stroke"
-              strokeWidth={ep.style.dashed ? 1.5 : 2}
-              color="#5a5a72"
-            >
-              {ep.style.dashed && <DashPathEffect intervals={ep.style.dashIntervals} />}
-            </Path>
-          ) : null,
-        )}
+        {edgePaths.map((ep) => ep ? (
+          <ReactiveEdgePath
+            key={ep.edge.edge_id}
+            source={ep.src}
+            target={ep.tgt}
+            sourceIdx={ep.sourceIdx}
+            targetIdx={ep.targetIdx}
+            dragNodeIdxShared={dragNodeIdxShared}
+            dragCurrBXShared={dragCurrBXShared}
+            dragCurrBYShared={dragCurrBYShared}
+            edgeKind={ep.edge.edge_kind}
+          />
+        ) : null)}
         {/* F1 — edge labels at Bézier midpoints (board space, scaled with Group) */}
         {labelFont
           ? edgeLabels.map((el) => (
-              <SkiaText
-                key={`lbl-${el.edge_id}`}
-                x={el.layout.position.x}
-                y={el.layout.position.y}
-                text={el.layout.displayText}
+              <ReactiveEdgeLabel
+                key={`lbl-${el.edge.edge_id}`}
+                source={el.src}
+                target={el.tgt}
+                sourceIdx={el.sourceIdx}
+                targetIdx={el.targetIdx}
+                dragNodeIdxShared={dragNodeIdxShared}
+                dragCurrBXShared={dragCurrBXShared}
+                dragCurrBYShared={dragCurrBYShared}
+                text={el.edge.label!}
                 font={labelFont}
-                color="#5a5a72"
               />
             ))
           : null}
