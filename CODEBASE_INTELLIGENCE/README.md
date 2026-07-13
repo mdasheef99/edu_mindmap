@@ -1,14 +1,12 @@
 # Codebase Intelligence Pack
 
-**2026-07-11 update**: M4 has an additional physical-device remediation for dashboard latency,
-persisted consent acknowledgement, and sign-out/re-login token handling. Native Android retest,
-interactive web, and non-bypass app-role RLS gates remain before closure.
+**2026-07-13 update**: M4 is closed. The bounded post-M4/pre-M5 canvas position-lifecycle
+stabilization is locally reconstructed and verified; owner approval is pending before publication.
 
 This folder is a durable orientation map for the Mindmap Learning Project. It reduces rediscovery
 cost, but it does not override canon or the source-of-truth hierarchy.
 
-**Current snapshot**: 2026-07-10 — M4 Curriculum Entry + Supabase Auth automated remediation is
-complete; native Android, interactive web, and non-bypass app-role RLS gates remain before closure.
+**Current snapshot**: 2026-07-13 — M4 closed; canvas stabilization locally complete; M5 not started.
 
 ## Required Reading Order
 

@@ -4,9 +4,10 @@ type: always_apply
 # Mindmap Canon (v1.3+) — merge-blocking
 
 ACTIVE MILESTONE: Phase 3 — M4 Curriculum entry + Supabase Auth, **CLOSED** (2026-07-11).
-INTEGRATION STATUS: the closed historical M4 implementation is being reconstructed locally onto
-the post-PR-6 `main`. Historical closure evidence remains authoritative for the source behavior;
-the reconstructed branch must repeat all local gates before it is eligible for a draft PR.
+INTEGRATION STATUS: the closed M4 implementation is reconstructed on `main`. A bounded post-M4,
+pre-M5 canvas position-lifecycle stabilization is locally complete on
+`codex/integrate-canvas-position-lifecycle` from `f1308fc`; all branch-local gates are green and
+owner approval is pending before any push or draft PR. M5 remains frozen and has not started.
 Next milestone is M5 Checkpoints; it has not started. The earlier browser path was a local in-memory
 smoke prototype, not a durable production-runtime verification. Production API composition,
 live restart durability, consent-aware worker projection, TypeScript/Jest/pytest/import-linter,
@@ -31,11 +32,10 @@ project `jbmqyxhrmcbdgardamrp`; migrations `20260702173751 / m4_catalog_auth_see
 required catalog `tenant_id` columns, constraints, indexes, and RLS policies. Fresh live readback
 confirms all 15 required operational/catalog/read-model tables have `tenant_id` and RLS enabled.
 The old wrong project (`ahntbtktjjmvfosgkmgn`, `Bookconnect_reactexpo`) must not be used.
-Current automated gates: backend 147 regular tests plus 4 isolated import-linter subprocess tests
-green (151 combined), direct import-linter 4/4 contracts kept, mobile 136/136 Jest and TypeScript
-green; Expo Android Hermes bundle 1,822 modules / 11,243,312 bytes from the prior device-server
-open. The four import-linter subprocess tests need the user-level `lint-imports.exe` outside the
-sandbox on this Windows machine, so direct contract output remains the canonical boundary evidence.
+Current branch-local automated gates: backend 164 passed / 3 skipped, direct import-linter 4/4
+contracts kept, mobile 35 suites / 159 tests passed, App/Canvas TypeScript green, Ruff format/lint
+green, and mypy green. Expo Android bundle and physical-device evidence remain historical; the
+canvas stabilization did not rerun performance or physical-device gates.
 Phase 3 M3.6 Canvas Controls is LOCALLY COMPLETE (2026-06-30): explicit zoom in/out toolbar
 controls, fit-to-screen, reset view, zoom percentage readout, and optional snap-to-grid drag-end
 toggle. The pre-M4 TypeScript/Jest config blocker was resolved on 2026-07-01; canvas TypeScript and
@@ -43,10 +43,9 @@ full mobile Jest were green in `worklog-v8.md`.
 Seams A/B/C and Tier 2 event-emission wiring are implemented and tested: backend pytest
 120/120 green, mobile Jest 92/92 green, import-linter green. M3-C closes the three
 "compute-ready, transport-missing" gaps discovered in the 2026-06-23 audit (RCA).
-SkiaCanvas orchestrator refactor COMPLETE (2026-06-25): SkiaCanvas.tsx reduced from 372 to
-242 lines (canon limit resolved) by extracting useDeletionReconciliation, useDiscoveryManager,
-useLiveDragOverride, and useCanvasRenderData; 17 new unit tests; 22 suites / 112 mobile Jest
-green. M3-B/M3-C carried housekeeping item closed. commit 4645bbd on phase-3-m3.
+SkiaCanvas orchestrator refactor COMPLETE (2026-06-25); the later 2026-07-13 position-lifecycle
+stabilization removed `useLiveDragOverride` after edge/label drag geometry moved entirely to
+UI-thread SharedValues. `SkiaCanvas.tsx` remains within the 300–350 line source limit.
 Phase 3 M3.5 Frontend Readiness bridge is VERIFIED / COMPLETE (2026-06-25): learner-safe
 NodeChip text, SkiaCanvas edge-`+` neutral error banner, and useSessionHydration title/content
 persistence are implemented and verified by automated Jest tests plus physical device Expo Go
@@ -67,7 +66,9 @@ device Expo smoke remain deferred operational gates. Do not attempt operational 
 unless explicitly requested.
 Phase 1 and Phase 2 are CLOSED locally (2026-06-18). Do not reopen closed items unless
 explicitly requested.
-CLOSED SDD: docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md v0.3 (M4 remediation;
+ACTIVE LOCAL INTEGRATION SDD: `docs/planning/sdd/canvas-position-write-lifecycle-sdd.md`
+(locally complete 2026-07-13; owner approval pending). CLOSED SDD:
+docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md v0.3 (M4 remediation;
 production Postgres composition, durable auth/consent/session flow, mobile dashboard/resume, and
 platform closure gates; closed 2026-07-11). Parent SDD:
 phase-3-m4-curriculum-auth-sdd.md v0.6 (closed 2026-07-11).

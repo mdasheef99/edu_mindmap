@@ -1,8 +1,7 @@
 # 01 System Map
 
-**2026-07-11 update**: physical-device remediation added cached Supabase JWKS clients, bootstrap
-consent state, progressive dashboard rendering before curriculum completion, and Supabase remote
-logout before local session clearing.
+**2026-07-13 update**: canvas positions now use session-scoped Zustand authority with checked
+per-node FIFO delivery; edge and label drag geometry remains entirely on UI-thread SharedValues.
 
 **Snapshot**: 2026-07-10 — M4 automated remediation complete; human gates pending.
 **Authority**: `docs/planning/development-approach.md` §§5-8,
@@ -50,8 +49,10 @@ The Expo/React Native entry is `mobile/app/index.ts` → `mobile/app/App.tsx`.
   sequential curriculum path, records or reuses consent state through session start, and resumes
   recent sessions.
 - `mobile/m4/studentApi.ts` is the typed M4 API client. It never supplies authoritative tenancy.
-- `mobile/canvas/` owns the M3/M3-B hybrid canvas: Skia edges, native node views, Zustand state,
-  Reanimated/Gesture Handler interactions, hierarchy layout, viewport culling, and hydration.
+- `mobile/canvas/` owns the hybrid canvas. `store.ts` holds session-scoped canonical position
+  overrides, `nodePositionCoordinator.ts` owns per-node FIFO/retry/disposal, and
+  `useNodePositionWrites.ts` adapts hydration and credentials. Skia edges and native overlays share
+  Reanimated drag values; there is no UI-thread-to-React frame mirror.
 - `mobile/app/index.web.ts` prepares CanvasKit before the web app loads.
 - `EXPO_PUBLIC_SHOW_CANVAS` and `EXPO_PUBLIC_SHOW_M2_SMOKE` expose closed-milestone smoke surfaces;
   they are not the normal M4 path.

@@ -1,18 +1,18 @@
 # 08 Future Work Readiness
 
-**2026-07-11 update**: physical-device remediation has landed for dashboard latency, persisted
-consent, and sign-out/re-login handling. Retest this exact native path before closing M4.
+**2026-07-13 update**: M4 is closed; the bounded canvas position-lifecycle reconstruction is
+locally complete and awaits owner approval. M5 has not started.
 
-**Snapshot**: 2026-07-10. M4 implementation is not “still planned”: automated remediation is
-complete. M4 is not closed until its three remaining human/operational gates pass.
+**Snapshot**: 2026-07-13. Do not reopen M4 or broaden the canvas stabilization into M5.
 
 ## Read Before Changing Code
 
 1. `.augment/rules/00-canon.md`.
 2. Source hierarchy in order: `development-approach.md`, `backend-architecture.md`, ADR logs,
    `session-path-data-contract.md`, master PRD, MVP feature specification.
-3. `docs/planning/sdd/phase-3-m4-runtime-closure-remediation-sdd.md`.
-4. `docs/planning/worklog-v10.md`.
+3. `docs/planning/sdd/canvas-position-write-lifecycle-sdd.md` for this local integration, then the
+   closed M4 SDDs for M4 behavior.
+4. `docs/planning/worklog-v11.md`.
 5. The relevant maps in this folder, then verify the actual code and tests.
 
 Every new requirement/edit must trace to a source-of-truth section. Do not use superseded docs or
@@ -20,14 +20,10 @@ introduce Redis Streams, Celery, TimescaleDB, legacy event tables, or client-sid
 
 ## Immediate Next Actions
 
-0. Retest the fixed native Android path on the physical device, including sign out and sign in again
-   on the same account.
-
-1. Complete the native Android stranger signup → dashboard → Electricity → canvas/resume gate.
-2. Complete the interactive web CanvasKit render gate.
-3. Complete pooled non-bypass app-role cross-tenant RLS verification.
-4. Record evidence in the active SDD/worklog and close M4 only if all acceptance criteria pass.
-5. Do not start M5 merely because automated tests are green.
+1. Review the local canvas stabilization diff; push or open a draft PR only with owner approval.
+2. If explicitly scheduled, rerun the 40+ node performance and 65-node physical-device smoke.
+3. Keep interactive web rendering as a separately scoped non-blocking follow-up.
+4. Do not start M5 merely because this bounded integration is green.
 
 ## Honest Product Gaps Within M4
 

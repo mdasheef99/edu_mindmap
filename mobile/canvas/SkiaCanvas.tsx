@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CanvasTransform, Point } from './coordinateSystem';
 import { ScreenSize } from './viewportCulling';
@@ -20,15 +20,16 @@ import { NodeChip } from './NodeChip';
 import { CanvasEdges } from './CanvasEdges';
 import { useCanvasGestures } from './useCanvasGestures';
 import { CHIP_W, CHIP_H } from './chipConstants';
-import { patchNodePosition, postClientEvent, throttledPostViewport } from './apiClient';
+import { postClientEvent, throttledPostViewport } from './apiClient';
 import { EdgeOfferSetSheet } from './EdgeOfferSetSheet';
 import type { EdgeOfferSet } from './EdgeOfferSetSheet';
 import { useDeletionReconciliation } from './useDeletionReconciliation';
 import { useDiscoveryManager } from './useDiscoveryManager';
-import { useLiveDragOverride } from './useLiveDragOverride';
 import { useCanvasRenderData } from './useCanvasRenderData';
 import { snapPointToGrid } from './canvasControls';
 import { CanvasToolbar } from './CanvasToolbar';
+import { useNodePositionWrites } from './useNodePositionWrites';
+import type { NodeDeletionResponse } from './NodeToolbar';
 
 // ── public types ──────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ export interface CanvasNode {
   node_id: string;
   parent_node_id: string | null;
   position: Point;
+  positionOverridden?: boolean;
   title?: string;
   content?: string;
   thread_context_id?: string;
@@ -69,16 +71,30 @@ export default function SkiaCanvas({
 }: SkiaCanvasProps) {
   const { selectedNodeId, selectNode, clearSelection } = useMindMapStore();
   const {
-    activeOfferSet, discoveryError, handleOfferSet, handleOfferError, handleBranchCreated, closeOfferSet,
+    activeOfferSet, discoveryError, beginDiscovery, handleOfferSet, handleOfferError,
+    handleBranchCreated, closeOfferSet,
   } = useDiscoveryManager(onReloadCanvas);
 
-  const [posOverrides, setPosOverrides] = useState<Record<string, Point>>({});
   const [snapToGrid, setSnapToGrid] = useState(false);
+  const positionWrites = useNodePositionWrites({
+    nodes, apiBaseUrl, authorizationToken, sessionId,
+  });
   const committedNodes = useMemo(
-    () => nodes.map((n) => ({ ...n, position: posOverrides[n.node_id] ?? n.position })),
-    [nodes, posOverrides],
+    () => nodes.map((n) => ({
+      ...n,
+      position: positionWrites.visiblePositions[n.node_id] ?? n.position,
+      positionOverridden: positionWrites.visiblePositions[n.node_id]
+        ? (useMindMapStore.getState().positionAuthorityByNode[n.node_id]?.positionOverridden ?? false)
+        : n.positionOverridden,
+    })),
+    [nodes, positionWrites.visiblePositions],
   );
-  const { liveNodes, liveEdges, handleDeleted } = useDeletionReconciliation(committedNodes, edges, clearSelection);
+  const deletion = useDeletionReconciliation(committedNodes, edges, clearSelection);
+  const { liveNodes, liveEdges } = deletion;
+  const handleDeleted = useCallback((result: NodeDeletionResponse) => {
+    positionWrites.removeNodes(result.deleted_node_ids);
+    deletion.handleDeleted(result);
+  }, [deletion.handleDeleted, positionWrites.removeNodes]);
 
   const liveNodesRef = useRef(liveNodes);
   liveNodesRef.current = liveNodes;
@@ -118,12 +134,9 @@ export default function SkiaCanvas({
   const handleNodeDragEnd = useCallback(
     (nodeId: string, x: number, y: number) => {
       const position = snapToGrid ? snapPointToGrid({ x, y }) : { x, y };
-      setPosOverrides((prev) => ({ ...prev, [nodeId]: position }));
-      if (apiBaseUrl && sessionId) {
-        patchNodePosition(apiBaseUrl, sessionId, nodeId, authorizationToken, position);
-      }
+      positionWrites.enqueuePosition(nodeId, position);
     },
-    [snapToGrid, apiBaseUrl, sessionId, authorizationToken],
+    [snapToGrid, positionWrites.enqueuePosition],
   );
 
   const gestures = useCanvasGestures({
@@ -137,9 +150,12 @@ export default function SkiaCanvas({
     onClearSelection: clearSelection,
   });
 
-  const liveDragOverride = useLiveDragOverride(gestures, liveNodesRef);
+  const nodeIndexById = useMemo(
+    () => Object.fromEntries(liveNodes.map((node, idx) => [node.node_id, idx])),
+    [liveNodes],
+  );
   const { nodePositions, visIds, visibleEdges } = useCanvasRenderData(
-    liveNodes, liveEdges, liveDragOverride, transform, screen,
+    liveNodes, liveEdges, transform, screen,
   );
   visIdsRef.current = visIds;
 
@@ -166,10 +182,14 @@ export default function SkiaCanvas({
         <View style={StyleSheet.absoluteFill}>
           <CanvasEdges
             nodePositions={nodePositions}
+            nodeIndexById={nodeIndexById}
             edges={liveEdges}
             visibleEdges={visibleEdges}
             visIds={visIds}
             groupTransform={gestures.groupTransform}
+            dragNodeIdxShared={gestures.dragNodeIdx}
+            dragCurrBXShared={gestures.dragCurrBX}
+            dragCurrBYShared={gestures.dragCurrBY}
           />
 
           {liveNodes
@@ -209,8 +229,11 @@ export default function SkiaCanvas({
                   sessionId={sessionId!}
                   threadContextId={node.thread_context_id ?? ''}
                   disabled={limitState.creationBlocked}
-                  onOfferSet={(offerSet) => handleOfferSet(offerSet as EdgeOfferSet, node)}
-                  onError={handleOfferError}
+                  onRequestStart={beginDiscovery}
+                  onOfferSet={(offerSet, generation) => (
+                    handleOfferSet(offerSet as EdgeOfferSet, node, generation)
+                  )}
+                  onError={(_error, generation) => handleOfferError(generation)}
                 />
               ))}
           {discoveryEnabled && selectedNode && (
@@ -227,6 +250,23 @@ export default function SkiaCanvas({
           {discoveryError ? (
             <View style={styles.discoveryError}>
               <Text style={styles.discoveryErrorText}>{discoveryError}</Text>
+            </View>
+          ) : null}
+          {positionWrites.failedNodeCount > 0 ? (
+            <View style={styles.positionWriteError}>
+              <Text style={styles.positionWriteErrorText}>
+                {positionWrites.failedNodeCount} node position
+                {positionWrites.failedNodeCount === 1 ? '' : 's'} not saved.
+              </Text>
+              <Pressable
+                testID="position-write-retry"
+                accessibilityRole="button"
+                accessibilityLabel="Retry saving node positions"
+                onPress={positionWrites.retryFailed}
+                style={styles.positionWriteRetry}
+              >
+                <Text style={styles.positionWriteRetryText}>Retry</Text>
+              </Pressable>
             </View>
           ) : null}
           <CanvasToolbar
@@ -269,4 +309,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#7f1d1d',
   },
   discoveryErrorText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  positionWriteError: {
+    position: 'absolute', left: 16, right: 16, bottom: 68, padding: 10, borderRadius: 8,
+    backgroundColor: '#374151', flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  positionWriteErrorText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  positionWriteRetry: { paddingHorizontal: 12, paddingVertical: 8 },
+  positionWriteRetryText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 });

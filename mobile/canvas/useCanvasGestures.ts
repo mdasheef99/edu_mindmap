@@ -195,6 +195,9 @@ export function useCanvasGestures(options: UseCanvasGesturesOptions): UseCanvasG
           translateY: translateYShared.value,
         });
       }
+    })
+    .onFinalize((_event, success) => {
+      if (!success) dragNodeIdx.value = -1;
     });
 
   // F3 — single tap selects/deselects nodes; Race ensures tap wins before pan/pinch begin.

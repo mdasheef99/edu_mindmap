@@ -53,4 +53,21 @@ describe('useDiscoveryManager', () => {
     await act(async () => { result.current.closeOfferSet(); });
     expect(result.current.activeOfferSet).toBeNull();
   });
+
+  it('accepts only the first completion in one discovery generation', async () => {
+    const { result } = await renderHook(() => useDiscoveryManager());
+    const secondOffer = { ...OFFER_SET, offer_set_id: 'os-2' };
+    const secondNode = { ...NODE, node_id: 'n2' };
+    let firstGeneration: number | null = null;
+    let secondGeneration: number | null = null;
+    await act(async () => {
+      firstGeneration = result.current.beginDiscovery();
+      secondGeneration = result.current.beginDiscovery();
+      result.current.handleOfferSet(OFFER_SET, NODE, firstGeneration ?? undefined);
+      result.current.handleOfferSet(secondOffer, secondNode, secondGeneration ?? undefined);
+      result.current.handleOfferError(secondGeneration ?? undefined);
+    });
+    expect(result.current.activeOfferSet?.offerSet.offer_set_id).toBe('os-1');
+    expect(result.current.discoveryError).toBeNull();
+  });
 });

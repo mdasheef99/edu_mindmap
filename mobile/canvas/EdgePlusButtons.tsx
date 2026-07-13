@@ -25,7 +25,7 @@
  * Traceability: phase-3-m3b-canvas-feature-parity-sdd.md §5.2, §5.5; adr-log-02.md ADR-0013.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
@@ -51,8 +51,9 @@ export interface EdgePlusButtonsProps {
   sessionId: string;
   threadContextId: string;
   disabled?: boolean;
-  onOfferSet?: (offerSet: unknown) => void;
-  onError?: (error: unknown) => void;
+  onRequestStart?: () => number | null;
+  onOfferSet?: (offerSet: unknown, requestGeneration?: number) => void;
+  onError?: (error: unknown, requestGeneration?: number) => void;
 }
 
 const TOUCH = 44; // MVP L277 minimum touch target
@@ -72,6 +73,7 @@ export function EdgePlusButtons({
   sessionId,
   threadContextId,
   disabled = false,
+  onRequestStart,
   onOfferSet,
   onError,
 }: EdgePlusButtonsProps) {
@@ -106,8 +108,29 @@ export function EdgePlusButtons({
     return { position: 'absolute' as const, left: pos.x - TOUCH / 2, top: pos.y - TOUCH / 2 };
   });
 
-  async function launch() {
-    if (disabled) return;
+  const [requestState, setRequestState] = useState<{
+    phase: 'idle' | 'loading' | 'failed'; side: 'left' | 'right' | null;
+  }>({ phase: 'idle', side: null });
+  const busyRef = useRef(false);
+  const mountedRef = useRef(false);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      requestIdRef.current += 1;
+      busyRef.current = false;
+    };
+  }, []);
+
+  async function launch(side: 'left' | 'right') {
+    if (disabled || busyRef.current) return;
+    const requestGeneration = onRequestStart?.();
+    if (requestGeneration === null) return;
+    busyRef.current = true;
+    const requestId = ++requestIdRef.current;
+    setRequestState({ phase: 'loading', side });
     try {
       const response = await fetch(`${apiBaseUrl}/v1/student/offer-sets/edge`, {
         method: 'POST',
@@ -121,44 +144,56 @@ export function EdgePlusButtons({
           thread_context_id: threadContextId,
         }),
       });
-      if (response.ok) onOfferSet?.(await response.json());
-      else onError?.(new Error(`HTTP ${response.status}: ${response.statusText}`));
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const offerSet = await response.json();
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      busyRef.current = false;
+      setRequestState({ phase: 'idle', side: null });
+      onOfferSet?.(offerSet, requestGeneration);
     } catch (err) {
-      // Surface network or fetch failures to the caller so they can show UI.
-      onError?.(err);
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      busyRef.current = false;
+      setRequestState({ phase: 'failed', side });
+      onError?.(err, requestGeneration);
     }
+  }
+
+  const isLoading = requestState.phase === 'loading';
+  function renderButton(side: 'left' | 'right', style: object) {
+    const isActive = requestState.side === side;
+    const retry = requestState.phase === 'failed' && isActive;
+    const label = isLoading && isActive ? 'Loading questions'
+      : retry ? `Retry loading questions from ${side} edge` : `Explore from ${side} edge`;
+    return (
+      <Animated.View testID={`edge-plus-${side}-wrapper`} style={style}>
+        <Pressable
+          testID={`edge-plus-${side}`}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          disabled={disabled || isLoading || (requestState.phase === 'failed' && !isActive)}
+          onPress={() => { void launch(side); }}
+          style={styles.touchTarget}
+        >
+          <View style={[styles.glyphCircle, (disabled || isLoading) && styles.disabled]}>
+            <Text style={styles.glyph}>+</Text>
+          </View>
+        </Pressable>
+        {isActive && requestState.phase !== 'idle' ? (
+          <View pointerEvents="none" style={[styles.feedback,
+            side === 'left' ? styles.feedbackLeft : styles.feedbackRight]}>
+            <Text accessibilityLiveRegion="polite" style={styles.feedbackText}>
+              {isLoading ? 'Loading questions…' : 'Questions could not load. Tap to retry.'}
+            </Text>
+          </View>
+        ) : null}
+      </Animated.View>
+    );
   }
 
   return (
     <>
-      <Animated.View testID="edge-plus-left-wrapper" style={leftStyle}>
-        <Pressable
-          testID="edge-plus-left"
-          accessibilityRole="button"
-          accessibilityLabel="Explore from left edge"
-          disabled={disabled}
-          onPress={launch}
-          style={styles.touchTarget}
-        >
-          <View style={[styles.glyphCircle, disabled && styles.disabled]}>
-            <Text style={styles.glyph}>+</Text>
-          </View>
-        </Pressable>
-      </Animated.View>
-      <Animated.View testID="edge-plus-right-wrapper" style={rightStyle}>
-        <Pressable
-          testID="edge-plus-right"
-          accessibilityRole="button"
-          accessibilityLabel="Explore from right edge"
-          disabled={disabled}
-          onPress={launch}
-          style={styles.touchTarget}
-        >
-          <View style={[styles.glyphCircle, disabled && styles.disabled]}>
-            <Text style={styles.glyph}>+</Text>
-          </View>
-        </Pressable>
-      </Animated.View>
+      {renderButton('left', leftStyle)}
+      {renderButton('right', rightStyle)}
     </>
   );
 }
@@ -184,4 +219,11 @@ const styles = StyleSheet.create({
   },
   disabled: { backgroundColor: '#c7c7d1' },
   glyph: { color: '#ffffff', fontSize: 15, fontWeight: '700', lineHeight: 17 },
+  feedback: {
+    position: 'absolute', top: TOUCH, width: 150, paddingHorizontal: 8, paddingVertical: 5,
+    borderRadius: 6, backgroundColor: 'rgba(31, 41, 55, 0.92)',
+  },
+  feedbackLeft: { left: 0 },
+  feedbackRight: { right: 0 },
+  feedbackText: { color: '#ffffff', fontSize: 12, lineHeight: 16 },
 });
