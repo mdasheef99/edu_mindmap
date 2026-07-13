@@ -131,3 +131,18 @@ implementation. Keep it below 350 lines and rotate before exceeding that thresho
 - Full Python: 164 passed / 3 skipped; Ruff format/lint, mypy, and 4/4 import contracts green.
 - `git diff --check` green; Python bytecode count under source/test roots zero.
 - No physical-device, 40+ node performance, 65-node smoke, live database, push, or PR action.
+
+## 2026-07-13 — Placement-recovery publication blocker resolved
+
+- Root cause was test-harness wall time, not production behavior: the component deliberately
+  launches an async POST→PATCH chain from a `void` press callback, while the test relied on
+  real-timer polling and cold native Modal/Button/ScrollView rendering inside one five-second case.
+- The test now isolates those native wrappers, explicitly warms the renderer, and resolves the
+  creation, failed placement, and successful retry promises inside controlled `act` scopes.
+  Assertions still prove one branch POST, placement-only retry, durable failure UI, failure-state
+  clearing, one completion callback, and close/reload recovery.
+- Default-timeout target case: 1 passed; complete file: 2 passed; focused placement/discovery:
+  4 suites / 15 tests passed.
+- Three consecutive normal `npm test` runs passed: 35 suites / 159 tests each. App/Canvas
+  TypeScript, Python 164 passed / 3 skipped, Ruff format/lint, mypy, and 4/4 import contracts are
+  green. No timeout, worker-count, retry, or suite-selection override was used for full runs.
